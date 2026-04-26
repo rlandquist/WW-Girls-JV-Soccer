@@ -73,6 +73,14 @@
         "customName": "",
         "goals": 1
       }
+    ],
+    "2026-04-28|opponent": [
+      {
+        "kind": "roster",
+        "playerId": "",
+        "customName": "",
+        "goals": 1
+      }
     ]
   },
   "footerModeByGame": {
