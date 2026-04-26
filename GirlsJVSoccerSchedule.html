@@ -892,15 +892,22 @@ function splitGames(games) {
   return { results:results, nextUp:nextUp, upcoming:upcoming };
 }
 
-/* Return the URL for an opponent's logo, or null if no matching team in OPPONENTS.
+/* Return the URL for an opponent's logo. First checks OPPONENTS for a managed
+   team (uses its explicit `file` field). If none matches, derives a filename
+   from the typed name by stripping all whitespace and appending .png — so a
+   custom-typed "Kettle Moraine" looks for ./Logos/KettleMoraine.png. If the
+   file doesn't exist the CSS background just doesn't load; nothing breaks.
    Logos live in /Logos/ on the GitHub Pages site (capital L, CamelCase filenames). */
 function logoFor(oppName) {
   if (!oppName) return null;
   var team = OPPONENTS.find(function(t) {
     return t.name.toLowerCase() === oppName.toLowerCase();
   });
-  if (!team) return null;
-  return './Logos/' + team.file;
+  if (team) return './Logos/' + team.file;
+  /* Custom name — derive filename: strip whitespace, preserve case, add .png. */
+  var derived = oppName.replace(/\s+/g, '');
+  if (!derived) return null;
+  return './Logos/' + derived + '.png';
 }
 
 /* Format a YYYY-MM-DD date as M/DD for display */
