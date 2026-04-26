@@ -60,6 +60,10 @@
     }
   ],
   "scorersByGame": {},
-  "footerModeByGame": {},
-  "halftimeModeByGame": {}
+  "footerModeByGame": {
+    "2026-04-27|arrowhead": "next"
+  },
+  "halftimeModeByGame": {
+    "2026-04-27|arrowhead": "scorers"
+  }
 }
