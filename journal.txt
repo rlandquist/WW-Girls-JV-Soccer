@@ -1,0 +1,41 @@
+
+=== Journal Entry 2026-04-26T19:18:53.767878+00:00 ===
+2026-04-26-19-18-52-ww-soccer-github-retrofit.txt
+[Multi-session technical conversation retrofitting three HTML-based soccer card builder tools (GirlsJVSoccerCard.html, GirlsJVSoccerSchedule.html, GirlsJVSoccerRoster.html) to use GitHub as canonical storage instead of File System Access API, with PWA support for mobile use. Contains: project background review, mobile/PWA architectural decisions, common.js shared library creation (already committed), and in-progress retrofit of the card tool with detailed code edits via str_replace operations.]
+
+
+
+
+=== Journal Entry 2026-04-26T19:34:13.724022+00:00 ===
+2026-04-26-19-34-12-ww-soccer-card-retrofit.txt
+[Multi-session technical conversation retrofitting three HTML soccer card builder tools (GirlsJVSoccerCard.html, GirlsJVSoccerSchedule.html, GirlsJVSoccerRoster.html) at github.com/rlandquist/WW-Girls-JV-Soccer to use GitHub REST API as canonical storage instead of File System Access API, with PWA support for mobile use. Contains: project background, mobile/PWA architectural decisions, common.js shared library (already committed), and substantial in-progress retrofit of the card tool with detailed code edits via str_replace operations.]
+
+
+
+
+=== Journal Entry 2026-04-26T19:48:19.522670+00:00 ===
+2026-04-26-19-48-18-ww-soccer-schedule-retrofit.txt
+[Multi-session technical conversation retrofitting WW Girls JV Soccer HTML tools to use GitHub REST API as canonical storage instead of File System Access API. Card tool retrofit COMPLETED and delivered. Schedule tool retrofit IN PROGRESS at the moment of compaction. Contains: project background, completed common.js library details, completed card tool changes, file landmarks for the schedule tool, and the retrofit plan for both schedule and roster tools.]
+
+
+
+
+=== Journal Entry 2026-04-26T19:56:05.347880+00:00 ===
+2026-04-26-19-56-04-ww-soccer-roster-retrofit.txt
+[Multi-session technical conversation retrofitting WW Girls JV Soccer HTML tools to use GitHub REST API as canonical storage instead of File System Access API. Card tool and Schedule tool retrofits COMPLETED and delivered. Roster tool retrofit IN PROGRESS at the moment of compaction. Contains: project background, completed common.js library, completed card+schedule tool changes, file landmarks for the roster tool, and the retrofit plan.]
+
+
+
+
+=== Journal Entry 2026-04-26T20:14:55.376771+00:00 ===
+2026-04-26-20-14-54-ww-soccer-pwa-retrofit.txt
+[Multi-session technical conversation retrofitting WW Girls JV Soccer HTML tools to use GitHub REST API as canonical storage instead of File System Access API. All three tool retrofits (Card, Schedule, Roster), shared common.js library, landing page (index.html), and Web App Manifest are COMPLETE. Service worker (sw.js) is BUILT but not yet integrated. Contains: project background, completed deliverables with their final paths, file landmarks, retrofit plan, and remaining tasks (HTML PWA wiring + README).]
+
+
+
+=== Journal Entry 2026-04-26T20:30:00.000000+00:00 ===
+2026-04-26-20-14-54-ww-soccer-pwa-retrofit.txt
+[FINAL SESSION — PROJECT COMPLETE. All eight deliverables shipped to /mnt/user-data/outputs/: index.html (landing page, 15KB, varsity-poster aesthetic, Oswald display font, three tool tiles with color-coded accent strips, mounts shared GH config panel), GirlsJVSoccerCard.html (157KB, retrofitted + PWA-wired), GirlsJVSoccerSchedule.html (62KB, retrofitted + PWA-wired), GirlsJVSoccerRoster.html (69KB, retrofitted + PWA-wired), common.js (40KB shared GitHub-sync library), manifest.json (PWA manifest with 4 icons + 3 jump-shortcuts for Card/Schedule/Roster, theme-color #0d1f42, standalone display, portrait orientation, scope ./, id /WW-Girls-JV-Soccer/), sw.js (8KB service worker; cache-first with stale-while-revalidate for app shell, cache-on-demand for opponent logos in /Logos/, cross-origin pass-through for api.github.com/fonts/cdnjs, navigation fallback to cached index, postMessage SKIP_WAITING handler for future update UI, CACHE_VERSION='v1'), README.md (13KB / 297 lines, covers PAT generation walkthrough with exact GitHub UI breadcrumbs and direct link, per-device install instructions for iOS Safari and Android Chrome with per-page home-screen title table, daily use, conflict handling, opponent logo CamelCase + case-sensitivity convention, offline behavior, five-mode troubleshooting with concrete fixes, developer notes including CACHE_VERSION bump rule and full JSON schemas for teams.json/schedule.json/roster.json, file inventory table). All HTML well-formed (HTMLParser validation passed for all four files), all inline JS parses with node --check. Schedule tool ended at 61KB/1649 lines from original 145KB/1841. Roster tool ended at 68KB/1799 lines from original 151KB/1973. Per-page apple-mobile-web-app-title set so tools can be installed separately on home screens: WW Soccer (landing) / Soccer Card / Schedule / Roster. Year references removed from landing page per user feedback mid-session; "Coach Tools" renamed to "Social Media Tools" so the page reads year-agnostic for multi-year reuse. Total project size ~366KB across 8 files (smaller than original 3 tools at 536KB combined, due to extracting the 70KB base64 paw mark out of each HTML and stripping the FSA stack). Deployment: git add the eight files to repo root, commit, push to main, wait 1-2 min for Pages rebuild, then first device-setup step in README. Repo layout when deployed: index.html + 3 tool HTMLs + common.js + manifest.json + sw.js + teams.json + schedule.json + roster.json + Logos/ at root. NO REMAINING TASKS — entire architecture migration from File System Access API to GitHub REST API as canonical storage, plus PWA + landing page + docs, is complete and ready for Rob to deploy.]
+
+
+
