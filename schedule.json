@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "games": [
+    {
+      "id": "g_mocx3o629hgz",
+      "date": "2026-04-07",
+      "opponent": "Hartford Union",
+      "location": "home",
+      "status": "final",
+      "scoreUs": 0,
+      "scoreThem": 0,
+      "time": ""
+    },
+    {
+      "id": "g_mocx8co3j4g4",
+      "date": "2026-04-16",
+      "opponent": "Greenfield",
+      "location": "home",
+      "status": "final",
+      "scoreUs": 14,
+      "scoreThem": 0,
+      "time": ""
+    },
+    {
+      "id": "g_mocx927dz02h",
+      "date": "2026-04-18",
+      "opponent": "Watertown Unified",
+      "location": "home",
+      "status": "final",
+      "scoreUs": 9,
+      "scoreThem": 3,
+      "time": ""
+    },
+    {
+      "id": "g_mocx9mm33lig",
+      "date": "2026-04-21",
+      "opponent": "Oconomowoc",
+      "location": "home",
+      "status": "final",
+      "scoreUs": 0,
+      "scoreThem": 2,
+      "time": ""
+    },
+    {
+      "id": "g_mocxa6rljffq",
+      "date": "2026-04-23",
+      "opponent": "Homestead",
+      "location": "home",
+      "status": "final",
+      "scoreUs": 8,
+      "scoreThem": 0,
+      "time": ""
+    },
+    {
+      "id": "g_mocxaujkskcq",
+      "date": "2026-04-25",
+      "opponent": "Waukesha North",
+      "location": "away",
+      "status": "final",
+      "scoreUs": 8,
+      "scoreThem": 0,
+      "time": "9:00 AM"
+    },
+    {
+      "id": "g_mocxbcofvh8d",
+      "date": "2026-04-28",
+      "opponent": "Arrowhead",
+      "location": "away",
+      "status": "scheduled",
+      "scoreUs": null,
+      "scoreThem": null,
+      "time": "4:30 PM"
+    },
+    {
+      "id": "g_mocxh8jxbqhg",
+      "date": "2026-05-05",
+      "opponent": "Kettle Moraine",
+      "location": "home",
+      "status": "scheduled",
+      "scoreUs": null,
+      "scoreThem": null,
+      "time": "4:30 PM"
+    },
+    {
+      "id": "g_mocxi37l9ygr",
+      "date": "2026-05-07",
+      "opponent": "Badger",
+      "location": "home",
+      "status": "scheduled",
+      "scoreUs": null,
+      "scoreThem": null,
+      "time": "4:30 PM"
+    },
+    {
+      "id": "g_mocxihwdjq7j",
+      "date": "2026-05-11",
+      "opponent": "Catholic Memorial",
+      "location": "home",
+      "status": "scheduled",
+      "scoreUs": null,
+      "scoreThem": null,
+      "time": "4:30 PM"
+    },
+    {
+      "id": "g_mocxj4ah5kxf",
+      "date": "2026-05-12",
+      "opponent": "Muskego",
+      "location": "away",
+      "status": "scheduled",
+      "scoreUs": null,
+      "scoreThem": null,
+      "time": "4:30 PM"
+    },
+    {
+      "id": "g_mocxjy9yvlo6",
+      "date": "2026-05-14",
+      "opponent": "Elkhorn",
+      "location": "away",
+      "status": "scheduled",
+      "scoreUs": null,
+      "scoreThem": null,
+      "time": "4:30 PM"
+    },
+    {
+      "id": "g_mocxkxhaszmv",
+      "date": "2026-05-21",
+      "opponent": "Whitnall",
+      "location": "home",
+      "status": "scheduled",
+      "scoreUs": null,
+      "scoreThem": null,
+      "time": "4:30 PM"
+    },
+    {
+      "id": "g_mocxm8ajqqjq",
+      "date": "2026-05-26",
+      "opponent": "Mukwonago",
+      "location": "away",
+      "status": "scheduled",
+      "scoreUs": null,
+      "scoreThem": null,
+      "time": "4:30 PM"
+    },
+    {
+      "id": "g_mocz7wb925ae",
+      "date": "2026-05-01",
+      "opponent": "New Berlin West Invite - Game 1",
+      "location": "away",
+      "status": "scheduled",
+      "scoreUs": null,
+      "scoreThem": null,
+      "time": "TBD"
+    },
+    {
+      "id": "g_mocz8pm4b1l3",
+      "date": "2026-05-02",
+      "opponent": "New Berlin West Invite - Game 2",
+      "location": "away",
+      "status": "scheduled",
+      "scoreUs": null,
+      "scoreThem": null,
+      "time": "TBD"
+    },
+    {
+      "id": "g_mocz9725wmq4",
+      "date": "2026-05-02",
+      "opponent": "New Berlin West Invite - Game 3",
+      "location": "away",
+      "status": "scheduled",
+      "scoreUs": null,
+      "scoreThem": null,
+      "time": "TBD"
+    }
+  ],
+  "layout": "double"
+}

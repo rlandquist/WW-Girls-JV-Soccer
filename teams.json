@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "spineText": "Waukesha West Girls JV Soccer 2026",
+  "teams": [
+    {
+      "name": "Arrowhead",
+      "file": "Arrowhead.png"
+    },
+    {
+      "name": "Badger",
+      "file": "Badger.png"
+    },
+    {
+      "name": "Catholic Memorial",
+      "file": "CatholicMemorial.png"
+    },
+    {
+      "name": "Elkhorn",
+      "file": "Elkhorn.png"
+    },
+    {
+      "name": "Greenfield",
+      "file": "Greenfield.png"
+    },
+    {
+      "name": "Hartford Union",
+      "file": "HartfordUnion.png"
+    },
+    {
+      "name": "Homestead",
+      "file": "Homestead.png"
+    },
+    {
+      "name": "Kettle Moraine",
+      "file": "KettleMoraine.png"
+    },
+    {
+      "name": "Mukwonago",
+      "file": "Mukwonago.png"
+    },
+    {
+      "name": "Muskego",
+      "file": "Muskego.png"
+    },
+    {
+      "name": "Oconomowoc",
+      "file": "Oconomowoc.png"
+    },
+    {
+      "name": "Watertown Unified",
+      "file": "WatertownUnified.png"
+    },
+    {
+      "name": "Waukesha North",
+      "file": "WaukeshaNorth.png"
+    },
+    {
+      "name": "Whitnall",
+      "file": "Whitnall.png"
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "layout": "double",
+  "coaches": [
+    {
+      "label": "JV Coach",
+      "name": "Zach Bargas"
+    },
+    {
+      "label": "Asst. Coach",
+      "name": ""
+    },
+    {
+      "label": "Goalkeepers Coach",
+      "name": ""
+    }
+  ],
+  "players": [
+    {
+      "id": "p_modbspdh4xpd",
+      "number": "18",
+      "firstName": "Kaitlyn",
+      "lastName": "Peschel",
+      "positions": [
+        "forward"
+      ],
+      "year": "freshman",
+      "captain": false
+    },
+    {
+      "id": "p_modccjaz3f7c",
+      "number": "00",
+      "firstName": "Noemi",
+      "lastName": "Solorzano",
+      "positions": [
+        "goalkeeper"
+      ],
+      "year": "junior",
+      "captain": false
+    },
+    {
+      "id": "p_modcd3bnlpu2",
+      "number": "1/6",
+      "firstName": "Isabella",
+      "lastName": "Monteen",
+      "positions": [
+        "goalkeeper",
+        "defender"
+      ],
+      "year": "sophomore",
+      "captain": false
+    },
+    {
+      "id": "p_modcf605xt7x",
+      "number": "4",
+      "firstName": "Layla",
+      "lastName": "Jones",
+      "positions": [],
+      "year": "freshman",
+      "captain": false
+    },
+    {
+      "id": "p_modcfhv68mqy",
+      "number": "7",
+      "firstName": "Lina",
+      "lastName": "Dubberstein",
+      "positions": [],
+      "year": "freshman",
+      "captain": false
+    },
+    {
+      "id": "p_modcg7j4dkv7",
+      "number": "8",
+      "firstName": "Dulce",
+      "lastName": "Arias-Garcia",
+      "positions": [],
+      "year": "junior",
+      "captain": true
+    },
+    {
+      "id": "p_modcieid2vxw",
+      "number": "9",
+      "firstName": "Caroline",
+      "lastName": "Ryan",
+      "positions": [],
+      "year": "freshman",
+      "captain": false
+    },
+    {
+      "id": "p_modckd8lmlbz",
+      "number": "11",
+      "firstName": "Alexandria",
+      "lastName": "Weibel",
+      "positions": [],
+      "year": "freshman",
+      "captain": false
+    },
+    {
+      "id": "p_modcmjfbf5ef",
+      "number": "13",
+      "firstName": "Marin",
+      "lastName": "Grismer",
+      "positions": [],
+      "year": "sophomore",
+      "captain": true
+    },
+    {
+      "id": "p_modcn7kcybqo",
+      "number": "14",
+      "firstName": "Kaelyn",
+      "lastName": "Veliquette",
+      "positions": [],
+      "year": "freshman",
+      "captain": false
+    },
+    {
+      "id": "p_modcohyly3h4",
+      "number": "15",
+      "firstName": "Natalie",
+      "lastName": "Cull",
+      "positions": [],
+      "year": "sophomore",
+      "captain": false
+    },
+    {
+      "id": "p_modcosrztl6c",
+      "number": "16",
+      "firstName": "Emma",
+      "lastName": "Neumann",
+      "positions": [],
+      "year": "freshman",
+      "captain": false
+    },
+    {
+      "id": "p_modcpan2y7pg",
+      "number": "19",
+      "firstName": "Riley",
+      "lastName": "Smith",
+      "positions": [],
+      "year": "sophomore",
+      "captain": true
+    },
+    {
+      "id": "p_modcpq9psnf1",
+      "number": "20",
+      "firstName": "Brooklyn",
+      "lastName": "Trojanowski",
+      "positions": [],
+      "year": "freshman",
+      "captain": false
+    },
+    {
+      "id": "p_modct2dix1zx",
+      "number": "21",
+      "firstName": "Jenna",
+      "lastName": "Bonesho",
+      "positions": [],
+      "year": "sophomore",
+      "captain": false
+    },
+    {
+      "id": "p_modctjj4r067",
+      "number": "23",
+      "firstName": "Alli",
+      "lastName": "Youngblood",
+      "positions": [],
+      "year": "freshman",
+      "captain": false
+    }
+  ]
+}
