@@ -66,6 +66,12 @@
         "playerId": "",
         "customName": "",
         "goals": 1
+      },
+      {
+        "kind": "roster",
+        "playerId": "",
+        "customName": "",
+        "goals": 1
       }
     ]
   },
