@@ -76,9 +76,11 @@
     ]
   },
   "footerModeByGame": {
-    "2026-04-27|arrowhead": "scorers"
+    "2026-04-27|arrowhead": "scorers",
+    "2026-04-28|opponent": "scorers"
   },
   "halftimeModeByGame": {
-    "2026-04-27|arrowhead": "scorers"
+    "2026-04-27|arrowhead": "scorers",
+    "2026-04-28|opponent": "scorers"
   }
 }
