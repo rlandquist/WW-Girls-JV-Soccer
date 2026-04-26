@@ -80,8 +80,12 @@ body::before {
 }
 
 .hero-paw {
-  width: 88px;
+  /* Pin height only — the source PNG is portrait, so forcing a square
+     bounding box (e.g. width: 88px AND height: 88px) stretches it
+     horizontally. Letting width auto-derive from the natural aspect
+     ratio keeps the paw mark looking right whatever its true dimensions. */
   height: 88px;
+  width: auto;
   margin: 0 auto 18px;
   display: block;
   /* Slight drop shadow grounds the mark so it doesn't float on the
