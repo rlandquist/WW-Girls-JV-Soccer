@@ -145,7 +145,7 @@
       "id": "g_mocz7wb925ae",
       "date": "2026-05-01",
       "opponent": "Kimberly",
-      "location": "away",
+      "location": "H",
       "status": "scheduled",
       "scoreUs": null,
       "scoreThem": null,
@@ -155,7 +155,7 @@
       "id": "g_mocz8pm4b1l3",
       "date": "2026-05-02",
       "opponent": "New Berlin West Invite - Game 2",
-      "location": "away",
+      "location": "H",
       "status": "scheduled",
       "scoreUs": null,
       "scoreThem": null,
@@ -165,12 +165,12 @@
       "id": "g_mocz9725wmq4",
       "date": "2026-05-02",
       "opponent": "New Berlin West Invite - Game 3",
-      "location": "away",
+      "location": "H",
       "status": "scheduled",
       "scoreUs": null,
       "scoreThem": null,
       "time": "TBD"
     }
   ],
-  "layout": "double"
+  "layout": "single"
 }
