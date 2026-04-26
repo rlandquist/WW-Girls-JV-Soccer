@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <title>WW Girls JV Soccer — Card Builder</title>
 <link rel="icon" type="image/png" href="./Logos/WaukeshaWest.png">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0d1f42">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Soccer Card">
+<link rel="apple-touch-icon" href="./Logos/WaukeshaWest.png">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3252,5 +3258,15 @@ function copyToClipboard() {
 }
 </script>
 <div id="toast-container"></div>
+
+<!-- ─── Service worker registration ──────────────────────────── -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').catch(function() { /* PWA features just don't activate */ });
+  });
+}
+</script>
+
 </body>
 </html>

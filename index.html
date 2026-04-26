@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WW Girls JV Soccer Tools</title>
 <link rel="icon" type="image/png" href="./Logos/WaukeshaWest.png">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0d1f42">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WW Soccer">
+<link rel="apple-touch-icon" href="./Logos/WaukeshaWest.png">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; }
@@ -451,6 +457,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (mount) WWCommon.renderGitHubConfigPanel(mount);
   }
 });
+</script>
+
+<!-- ─── Service worker registration ──────────────────────────── -->
+<!-- Caches the four-page app shell + opponent logos so the tools
+     load when offline. Data still flows through localStorage when
+     GitHub is unreachable, courtesy of common.js's existing fallback. -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').catch(function() {
+      /* PWA features just don't activate; the page still works. */
+    });
+  });
+}
 </script>
 
 </body>

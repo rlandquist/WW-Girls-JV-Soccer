@@ -1,0 +1,77 @@
+{
+  "name": "Waukesha West Girls JV Soccer Tools",
+  "short_name": "WW Soccer",
+  "description": "Social media tools for Waukesha West Girls JV Soccer — build cards, manage schedule, edit roster.",
+
+  "start_url": "./",
+  "scope": "./",
+  "id": "/WW-Girls-JV-Soccer/",
+
+  "display": "standalone",
+  "orientation": "portrait",
+
+  "theme_color": "#0d1f42",
+  "background_color": "#e6e9ef",
+
+  "lang": "en-US",
+  "dir": "ltr",
+
+  "categories": ["sports", "productivity"],
+
+  "icons": [
+    {
+      "src": "./Logos/WaukeshaWest.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./Logos/WaukeshaWest.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./Logos/WaukeshaWest.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./Logos/WaukeshaWest.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "Card",
+      "short_name": "Card",
+      "description": "Build the per-game social card with scorers and final score.",
+      "url": "./GirlsJVSoccerCard.html",
+      "icons": [
+        { "src": "./Logos/WaukeshaWest.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Schedule",
+      "short_name": "Schedule",
+      "description": "Lay out the season schedule and log results.",
+      "url": "./GirlsJVSoccerSchedule.html",
+      "icons": [
+        { "src": "./Logos/WaukeshaWest.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Roster",
+      "short_name": "Roster",
+      "description": "Manage players, jerseys, captains, and coaching staff.",
+      "url": "./GirlsJVSoccerRoster.html",
+      "icons": [
+        { "src": "./Logos/WaukeshaWest.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    }
+  ]
+}

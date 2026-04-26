@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <title>WW Girls JV Soccer Schedule</title>
 <link rel="icon" type="image/png" href="./Logos/WaukeshaWest.png">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0d1f42">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Schedule">
+<link rel="apple-touch-icon" href="./Logos/WaukeshaWest.png">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; }
@@ -1645,5 +1651,15 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
+
+<!-- ─── Service worker registration ──────────────────────────── -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').catch(function() { /* PWA features just don't activate */ });
+  });
+}
+</script>
+
 </body>
 </html>
