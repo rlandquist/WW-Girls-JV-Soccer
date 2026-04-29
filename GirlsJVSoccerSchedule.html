@@ -1549,7 +1549,7 @@ function applyScheduleData(payload) {
         id:         g.id || ('g' + Math.random().toString(36).slice(2, 9)),
         date:       g.date || '',
         opponent:   g.opponent || '',
-        location:   (g.location === 'A' || g.location === 'N') ? g.location : 'H',
+        location:   g.location === 'away' ? 'away' : 'home',
         status:     (g.status === 'final' || g.status === 'cancelled') ? g.status : 'scheduled',
         scoreUs:    typeof g.scoreUs   === 'number' ? g.scoreUs   : null,
         scoreThem:  typeof g.scoreThem === 'number' ? g.scoreThem : null,
