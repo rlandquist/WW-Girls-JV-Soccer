@@ -157,7 +157,7 @@
       "opponent": "St Augustine Prep",
       "location": "home",
       "status": "final",
-      "scoreUs": null,
+      "scoreUs": 1,
       "scoreThem": null,
       "time": "9:00 AM"
     },
