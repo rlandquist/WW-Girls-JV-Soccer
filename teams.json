@@ -77,10 +77,12 @@
   },
   "footerModeByGame": {
     "2026-04-27|arrowhead": "scorers",
-    "2026-04-28|opponent": "next"
+    "2026-04-28|opponent": "next",
+    "2026-05-02|st augustine prep": "scorers"
   },
   "halftimeModeByGame": {
     "2026-04-27|arrowhead": "scorers",
-    "2026-04-28|opponent": "scorers"
+    "2026-04-28|opponent": "scorers",
+    "2026-05-02|st augustine prep": "msg"
   }
 }
