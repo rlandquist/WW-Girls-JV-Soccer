@@ -133,6 +133,14 @@
         "customName": "",
         "goals": 1
       }
+    ],
+    "2026-05-02|opponent": [
+      {
+        "kind": "roster",
+        "playerId": "p_modckd8lmlbz",
+        "customName": "",
+        "goals": 1
+      }
     ]
   },
   "footerModeByGame": {
@@ -140,13 +148,15 @@
     "2026-04-28|opponent": "next",
     "2026-05-02|st augustine prep": "scorers",
     "2026-05-05|waupun": "scorers",
-    "2026-05-05|st augustine prep": "scorers"
+    "2026-05-05|st augustine prep": "scorers",
+    "2026-05-02|opponent": "scorers"
   },
   "halftimeModeByGame": {
     "2026-04-27|arrowhead": "scorers",
     "2026-04-28|opponent": "scorers",
     "2026-05-02|st augustine prep": "msg",
     "2026-05-05|waupun": "msg",
-    "2026-05-05|st augustine prep": "msg"
+    "2026-05-05|st augustine prep": "msg",
+    "2026-05-02|opponent": "msg"
   }
 }
