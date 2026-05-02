@@ -316,6 +316,56 @@ body::before {
   vertical-align: middle;
 }
 
+/* Page footer (school tagline + photo credit). Replaces the original
+   single-line .foot. Keeps the school tagline in the same Oswald
+   uppercase letterspaced style as before, and adds a small dark pill
+   below it carrying the RLP logo + copyright. Dark container is
+   intentional: the logo source has a black background, and the dark
+   container keeps the integration clean regardless of whether the
+   file later gets a true transparent alpha channel. */
+.page-foot {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.foot-school {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--hint);
+  margin: 0;
+}
+.foot-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #000;
+  border-radius: 8px;
+  padding: 8px 14px 8px 8px;
+}
+.foot-credit-logo {
+  width: 32px;
+  height: 32px;
+  display: block;
+  border-radius: 5px;
+}
+.foot-credit-text {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.85);
+}
+.foot-credit-copy {
+  color: rgba(255,255,255,0.55);
+  margin-right: 2px;
+}
+
 /* ─── Toast container ─────────────────────────────────────────── */
 /* common.js's toast() targets #toast-container if present. Including
    it here means the GH config panel can show feedback on save/test. */
@@ -441,9 +491,13 @@ body::before {
     </p>
   </section>
 
-  <p class="foot">
-    Waukesha West Wolverines
-  </p>
+  <footer class="page-foot">
+    <p class="foot-school">Waukesha West Wolverines</p>
+    <div class="foot-credit">
+      <img src="./Logos/RobertLandquistPhotography.png" alt="" class="foot-credit-logo">
+      <span class="foot-credit-text"><span class="foot-credit-copy">&copy;</span> Robert Landquist Photography</span>
+    </div>
+  </footer>
 
 </div>
 
