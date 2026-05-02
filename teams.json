@@ -80,6 +80,10 @@
     }
   ],
   "scorersByGame": {},
-  "footerModeByGame": {},
-  "halftimeModeByGame": {}
+  "footerModeByGame": {
+    "2026-05-02|st augustine prep": "scorers"
+  },
+  "halftimeModeByGame": {
+    "2026-05-02|st augustine prep": "msg"
+  }
 }
