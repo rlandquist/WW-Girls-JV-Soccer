@@ -83,3 +83,84 @@ stuck early when reproducing the 157KB HTML from in-context document content
 was attempted via create_file; user re-uploaded the file directly to
 /mnt/user-data/uploads, which unblocked the edit immediately. For large
 existing files in this project, prefer direct upload over context reproduction.]
+
+=== Journal Entry 2026-05-02T21:30:00.000000+00:00 ===
+2026-05-02-21-30-00-ww-soccer-conferences-and-back-link.txt
+[Long follow-up session on the WW Girls JV Soccer tools (already-deployed
+GitHub-API-canonical architecture). Two features shipped: conference-badge
+support across Card + Schedule + teams.json schema, and a "← Main"
+back-link at the top of the editor sidebar in all three tools.
+
+Conference badge feature: teams.json schema bumped to v2 — new top-level
+`conferences` map of { id: { name, logo } } plus a per-team `conference`
+field that's null by default. Initial commit ships with a single
+`classic-8` entry pointing at Logos/Classic8.png and every team's
+`conference` set to null per Rob's request — assignments to be flipped
+via the UI rather than guessed in advance. Card tool got 15 surgical
+edits: CSS for the .conf-badge overlay (22×22 white circle, bottom-right
+corner of the opponent's logo box, drop-shadow, 80% inner sizing); a
+CONFERENCES global plus conference-aware paths through parseStoredPayload,
+buildStoredPayload, loadOpponentsFromStorage, applyTeamsPayload, and
+importTeamsJson so the conferences map and per-team `conference` field
+round-trip cleanly through both localStorage and the GitHub PUT path;
+two helpers conferenceLogoFor(oppName) and confBadgeHTML(oppN); badge
+appended in setLogoOppScore/Preview/Halftime in both image-loaded and
+fallback-initial branches; team manager modal grid widened from 3-col
+to 4-col with a new C8 checkbox column. Short label derived from the
+conference id ('classic-8' → 'C8') so adding a second conference later
+doesn't require renaming. .team-logo / .vs-logo-box rules got
+`position:relative` (was missing) so the badge anchors correctly.
+Custom-typed opponents (not in OPPONENTS) always return null from
+conferenceLogoFor — only managed teams can carry the flag.
+
+Schedule tool got 6 surgical edits: an inline .gconf badge next to
+opponent names in the row layout (14×14 — smaller than the cards' 22px
+since rows are dense — 13px text, 24px team logos), CONFERENCES global
+declared before var OPPONENTS = loadOpponents() so the loader can
+write into it, conference-aware paths through loadOpponents and
+refreshTeamsFromGitHub, the same conferenceLogoFor helper, and
+renderGameRow appending a confBadge variable inside .gopp so the
+existing ellipsis truncation still works on long opponent names.
+Initial Schedule .gconf had no white-circle backing (just a transparent
+badge image floating on the navy row background) — Rob caught this
+immediately and a follow-up edit aligned it with the cards' design:
+white circle, border-radius 50%, 78% inner sizing, subtle box-shadow.
+
+Back-link feature: small "← Main" pill at the very top of the editor
+sidebar in all three tools, above the GitHub Sync panel. Card and
+Schedule use the project navy (#0d1f42); Roster uses its own
+royal-blue (#1e40af) to match its existing palette. Same markup across
+all three: <a class="back-link" href="./" title="Back to main page">
+<span class="arrow">←</span> Main</a>. href="./" works because
+index.html sits at the same directory level as the tool HTMLs on Pages
+— no path-juggling regardless of which subpath the user landed at.
+
+Editing approach throughout: all changes via Python scripts with
+bytes-mode read/write to preserve CRLF line endings exactly, and a
+replace_once helper that aborts if an anchor doesn't appear exactly
+once in the source. Card and Schedule are uniformly CRLF; Roster has
+mixed CRLF+LF (121 bare LFs alongside ~1700 CRLFs) which was preserved
+as-is rather than normalized. HTML well-formedness, line-ending counts,
+and node --check syntax validation run on every output before delivery.
+The conference field is purely additive — files without `conferences`
+or per-team `conference` parse cleanly via the default-to-null fallback
+in parseStoredPayload, so no migration concerns for the deployed state.
+
+Final deliverables: GirlsJVSoccerCard.html (163KB, +5.5KB from
+baseline), GirlsJVSoccerSchedule.html (66KB, +3KB),
+GirlsJVSoccerRoster.html (70KB, +0.6KB), teams.json (v2 schema with
+classic-8 entry and all teams' conference set to null). Remaining
+tasks for Rob: drop Logos/Classic8.png into the repo (CamelCase,
+case-sensitive on Pages), commit the four files plus the new logo,
+then open the Card tool's Manage teams modal and flip the C8 checkbox
+for each Classic 8 opponent. Schedule picks up the flags automatically
+on next load. Roster got the back-link for navigation consistency but
+no conference work — it doesn't display opponents.
+
+Conversation-flow note worth recording: my first read of the repo
+incorrectly concluded the April 26 retrofit hadn't deployed — the
+GitHub web UI directory listing came back partial through web_fetch
+(showed only a subset of root files), and I read the absence as
+not-shipped. Rob corrected this; the rest of the session proceeded
+against the actual deployed state. Future sessions should not
+re-walk that ground — the architecture migration is live and stable.]
