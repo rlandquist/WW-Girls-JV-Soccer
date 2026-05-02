@@ -509,6 +509,20 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
 }
 .next-row .gopp .va { color: rgba(205,218,235,0.85); }
 
+/* Conference badge — small inline icon shown after the opponent name
+   when the team is flagged in teams.json. Sized to match the row's
+   13–14px text and 24px logo without crowding the result column. */
+.grow .gopp .gconf, .next-row .gopp .gconf {
+  display: inline-block;
+  width: 14px; height: 14px;
+  margin-left: 6px;
+  vertical-align: -3px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.9;
+}
+
 .grow .gres, .next-row .gres {
   font-family: 'Arial Black', Arial, sans-serif;
   font-style: italic;
@@ -791,6 +805,7 @@ var currentPattern = 'streaks';
 /* ═══════════════════════════════════════════════════════════════ */
 /* STATE                                                             */
 /* ═══════════════════════════════════════════════════════════════ */
+var CONFERENCES = {};              // { id: { name, logo } } — populated by loadOpponents from teams.json
 var OPPONENTS = loadOpponents();   // teams from shared teams.json
 var GAMES = loadGames();           // games array (this tool's data)
 var LAYOUT = loadLayout();         // 'single' | 'double' — list column arrangement
@@ -801,7 +816,10 @@ var downloadInProgress = false;
 /* STORAGE                                                           */
 /* ═══════════════════════════════════════════════════════════════ */
 function loadOpponents() {
-  // Shared with card tool: parse either new object format or legacy array
+  // Shared with card tool: parse either new object format or legacy array.
+  // Also populates CONFERENCES from the object-format `conferences` map
+  // and preserves each team's `conference` id (or null) so the row
+  // renderer can decide whether to draw a conference badge.
   try {
     var raw = localStorage.getItem(LS_TEAMS_KEY);
     if (!raw) return [];
@@ -809,12 +827,21 @@ function loadOpponents() {
     if (Array.isArray(parsed)) {
       return parsed.filter(function(t) {
         return t && typeof t.name === 'string' && typeof t.file === 'string';
+      }).map(function(t) {
+        return { name: t.name, file: t.file, conference: (typeof t.conference === 'string' && t.conference) ? t.conference : null };
       });
     }
-    if (parsed && Array.isArray(parsed.teams)) {
-      return parsed.teams.filter(function(t) {
-        return t && typeof t.name === 'string' && typeof t.file === 'string';
-      });
+    if (parsed && typeof parsed === 'object') {
+      if (parsed.conferences && typeof parsed.conferences === 'object' && !Array.isArray(parsed.conferences)) {
+        CONFERENCES = parsed.conferences;
+      }
+      if (Array.isArray(parsed.teams)) {
+        return parsed.teams.filter(function(t) {
+          return t && typeof t.name === 'string' && typeof t.file === 'string';
+        }).map(function(t) {
+          return { name: t.name, file: t.file, conference: (typeof t.conference === 'string' && t.conference) ? t.conference : null };
+        });
+      }
     }
     return [];
   } catch(e) { return []; }
@@ -910,6 +937,22 @@ function logoFor(oppName) {
   return './Logos/' + derived + '.png';
 }
 
+/* Resolve the conference-badge URL for a typed opponent name, or null.
+   Looks up the team in OPPONENTS (case-insensitive name match) and
+   resolves its conference id against CONFERENCES (populated from
+   teams.json). Custom-typed opponents not in OPPONENTS always return
+   null — only managed teams can carry conference flags. */
+function conferenceLogoFor(oppName) {
+  if (!oppName) return null;
+  var team = OPPONENTS.find(function(t) {
+    return t.name && t.name.toLowerCase() === oppName.toLowerCase();
+  });
+  if (!team || !team.conference) return null;
+  var conf = CONFERENCES[team.conference];
+  if (!conf || !conf.logo) return null;
+  return './Logos/' + conf.logo;
+}
+
 /* Format a YYYY-MM-DD date as M/DD for display */
 function formatDateShort(iso) {
   if (!iso) return '';
@@ -966,6 +1009,10 @@ function renderGameRow(g, isNext) {
   var dateStr = formatDateShort(g.date);
   var logo = logoFor(g.opponent);
   var logoStyle = logo ? 'background-image:url(' + logo + ');' : '';
+  var confLogo = conferenceLogoFor(g.opponent);
+  var confBadge = confLogo
+    ? '<span class="gconf" style="background-image:url(' + confLogo + ');" title="Conference opponent"></span>'
+    : '';
   var resultHtml = '';
   if (g.status === 'final') {
     var us = parseInt(g.scoreUs, 10);
@@ -987,7 +1034,7 @@ function renderGameRow(g, isNext) {
     '<div class="' + cls + '">' +
       '<div class="gdate">' + dateStr + '</div>' +
       '<div class="glogo" style="' + logoStyle + '"></div>' +
-      '<div class="gopp"><span class="va">' + va + '</span>' + escapeHtml(g.opponent || '—') + '</div>' +
+      '<div class="gopp"><span class="va">' + va + '</span>' + escapeHtml(g.opponent || '—') + confBadge + '</div>' +
       resultHtml +
     '</div>'
   );
@@ -1601,16 +1648,23 @@ function refreshScheduleFromGitHub() {
 function refreshTeamsFromGitHub() {
   if (!window.WWCommon) return;
   WWCommon.loadJson('teams.json', LS_TEAMS_KEY).then(function(result) {
-    if (result && result.data && result.source === 'github'
-        && Array.isArray(result.data.teams)) {
-      var clean = result.data.teams.filter(function(t) {
-        return t && typeof t.name === 'string' && typeof t.file === 'string';
-      });
-      if (clean.length) {
-        OPPONENTS = clean.slice().sort(function(a, b) {
-          return a.name.localeCompare(b.name);
+    if (result && result.data && result.source === 'github') {
+      if (result.data.conferences && typeof result.data.conferences === 'object'
+          && !Array.isArray(result.data.conferences)) {
+        CONFERENCES = result.data.conferences;
+      }
+      if (Array.isArray(result.data.teams)) {
+        var clean = result.data.teams.filter(function(t) {
+          return t && typeof t.name === 'string' && typeof t.file === 'string';
+        }).map(function(t) {
+          return { name: t.name, file: t.file, conference: (typeof t.conference === 'string' && t.conference) ? t.conference : null };
         });
-        if (typeof update === 'function') update();
+        if (clean.length) {
+          OPPONENTS = clean.slice().sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+          });
+          if (typeof update === 'function') update();
+        }
       }
     }
   }).catch(function() {});
