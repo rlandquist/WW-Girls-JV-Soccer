@@ -1,4 +1,3 @@
-
 === Journal Entry 2026-04-26T19:18:53.767878+00:00 ===
 2026-04-26-19-18-52-ww-soccer-github-retrofit.txt
 [Multi-session technical conversation retrofitting three HTML-based soccer card builder tools (GirlsJVSoccerCard.html, GirlsJVSoccerSchedule.html, GirlsJVSoccerRoster.html) to use GitHub as canonical storage instead of File System Access API, with PWA support for mobile use. Contains: project background review, mobile/PWA architectural decisions, common.js shared library creation (already committed), and in-progress retrofit of the card tool with detailed code edits via str_replace operations.]
@@ -54,3 +53,33 @@ Filenames remain case-sensitive on GitHub Pages per existing convention. No othe
 files touched. README's "Opponent logos" section already documents the CamelCase
 naming convention so the new fallback aligns with documented behavior — no doc
 update needed.]
+
+
+
+=== Journal Entry 2026-05-02T16:55:00.000000+00:00 ===
+2026-05-02-16-55-00-ww-soccer-card-scorer-dropdown-first-name.txt
+[Short follow-up session on the WW Girls JV Soccer tools (already-deployed
+GitHub-API-canonical architecture). One surgical edit to GirlsJVSoccerCard.html's
+renderScorersPicker() function: dropdown labels for roster players previously
+showed "#NN LAST" only (e.g. "#10 Johnson"), which made disambiguation hard
+mid-game when two players share a surname. Updated to "#NN First Last"
+(e.g. "#10 Sarah Johnson") with fallbacks — both names: "First Last"; only
+last: "Last"; only first: "First"; neither: "(unnamed)". Change is editor-side
+only; the on-card scorer line still goes through scorerDisplayName(), which
+remains last-name-only uppercased ("#10 JOHNSON · 2") to match sports-card
+convention. Because renderScorersPicker() builds BOTH the Final-card and
+Halftime-card pickers from the same code path, the change applies to both
+pickers automatically with no fork — confirmed with the user before editing.
+CSS and HTML structure untouched; existing escapeHtml/escapeAttr handling on
+the label string is unchanged. Validated: HTMLParser passes, node --check on
+extracted inline JS passes, diff vs uploaded original is exactly the intended
+block (one two-line label assignment expanded to ten lines — three trimmed-name
+locals, four-clause nameLabel ternary, final label assembly with comment
+explaining the editor-only scope of the change). Service worker CACHE_VERSION
+not bumped — change is small enough that stale-while-revalidate next-reload
+pickup is acceptable; bump to v2 only if forced first-reload pickup is wanted.
+No other files touched. Process note for future sessions: file retrieval got
+stuck early when reproducing the 157KB HTML from in-context document content
+was attempted via create_file; user re-uploaded the file directly to
+/mnt/user-data/uploads, which unblocked the edit immediately. For large
+existing files in this project, prefer direct upload over context reproduction.]
