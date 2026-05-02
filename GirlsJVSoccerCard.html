@@ -42,6 +42,11 @@ input[type=file]{font-size:11px;color:#666;}
 .copy-btn:hover{background:#3a7f3a;}
 .copy-btn.success{background:#1a7a3a;}
 .copy-btn:disabled{background:#888;cursor:default;}
+.photo-credit{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000;border-radius:8px;padding:8px 14px 8px 8px;display:flex;align-items:center;gap:10px;z-index:10;font-family:Arial,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,0.15);}
+.photo-credit .rlp-logo{width:32px;height:32px;display:block;flex-shrink:0;border-radius:5px;}
+.photo-credit .rlp-text{font-size:11px;color:rgba(255,255,255,0.85);letter-spacing:.05em;}
+.photo-credit .rlp-copy{color:rgba(255,255,255,0.55);margin-right:2px;}
+.photo-credit .rlp-name{font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.07em;}
 .hint{font-size:10px;color:#aaa;}
 .drag-hint{display:none;font-size:10px;color:#1a3a6b;font-weight:600;background:#e8eef7;border-radius:5px;padding:5px 8px;margin-top:2px;text-align:center;}
 input[type=range]{width:100%;accent-color:#0d1f42;cursor:pointer;}
@@ -855,6 +860,7 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 
   <button class="dl-btn" id="download-btn" onclick="download()">&#8595; Download card</button>
   <button class="copy-btn" id="copy-btn" onclick="copyToClipboard()">&#128203; Copy card to clipboard</button>
+
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════ -->
@@ -3370,6 +3376,12 @@ function copyToClipboard() {
   }, 50);
 }
 </script>
+<!-- ── PHOTO CREDIT (fixed bottom-center of viewport) ── -->
+<div class="photo-credit">
+  <img src="./Logos/RobertLandquistPhotography.png" alt="" class="rlp-logo">
+  <span class="rlp-text"><span class="rlp-copy">&copy;</span> <span class="rlp-name">Robert Landquist Photography</span></span>
+</div>
+
 <div id="toast-container"></div>
 
 <!-- ─── Service worker registration ──────────────────────────── -->
