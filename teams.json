@@ -99,6 +99,14 @@
         "customName": "",
         "goals": 2
       }
+    ],
+    "2026-05-05|waupun": [
+      {
+        "kind": "roster",
+        "playerId": "",
+        "customName": "",
+        "goals": 1
+      }
     ]
   },
   "footerModeByGame": {
