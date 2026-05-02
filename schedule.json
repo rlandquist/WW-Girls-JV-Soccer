@@ -158,7 +158,7 @@
       "location": "home",
       "status": "final",
       "scoreUs": 7,
-      "scoreThem": null,
+      "scoreThem": 0,
       "time": "9:00 AM"
     },
     {
