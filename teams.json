@@ -1,12 +1,6 @@
 {
   "version": 2,
   "spineText": "Waukesha West Girls JV Soccer 2026",
-  "conferences": {
-    "classic-8": {
-      "name": "Classic 8 Conference",
-      "logo": "Classic8.png"
-    }
-  },
   "teams": [
     {
       "name": "Arrowhead",
@@ -78,5 +72,8 @@
       "file": "Whitnall.png",
       "conference": null
     }
-  ]
+  ],
+  "scorersByGame": {},
+  "footerModeByGame": {},
+  "halftimeModeByGame": {}
 }
