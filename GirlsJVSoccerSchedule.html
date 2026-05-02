@@ -510,17 +510,21 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
 .next-row .gopp .va { color: rgba(205,218,235,0.85); }
 
 /* Conference badge — small inline icon shown after the opponent name
-   when the team is flagged in teams.json. Sized to match the row's
-   13–14px text and 24px logo without crowding the result column. */
+   when the team is flagged in teams.json. White circle backing matches the
+   conference badge on the score cards so the logo reads against the dark
+   navy row background. 78% inner sizing leaves a thin white ring around
+   the logo, same visual ratio as the card-side .conf-badge (80%). */
 .grow .gopp .gconf, .next-row .gopp .gconf {
   display: inline-block;
   width: 14px; height: 14px;
   margin-left: 6px;
   vertical-align: -3px;
-  background-size: contain;
+  background-color: #fff;
+  border-radius: 50%;
+  background-size: 78% 78%;
   background-repeat: no-repeat;
   background-position: center;
-  opacity: 0.9;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.35);
 }
 
 .grow .gres, .next-row .gres {
