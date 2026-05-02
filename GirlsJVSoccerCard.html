@@ -193,6 +193,7 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 #card-score-inner .team-logo{
   width:92px;height:92px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
   filter:drop-shadow(0 4px 10px rgba(0,0,0,0.6)) drop-shadow(0 1px 3px rgba(0,0,0,0.4));
+  position:relative; /* anchor for .conf-badge overlay */
 }
 #card-score-inner .team-label{
   color:rgba(255,255,255,0.82);font-size:10px;font-weight:700;
@@ -300,6 +301,7 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 #card-preview-inner .vs-logo-box{
   width:110px;height:110px;display:flex;align-items:center;justify-content:center;
   filter:drop-shadow(0 4px 14px rgba(0,0,0,0.65)) drop-shadow(0 1px 4px rgba(0,0,0,0.45));
+  position:relative; /* anchor for .conf-badge overlay */
 }
 #card-preview-inner .vs-team-initial{color:#1a3a8f;font-size:44px;font-weight:900;font-style:italic;}
 #card-preview-inner .vs-team-name{
@@ -397,6 +399,7 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 #card-halftime-inner .vs-logo-box{
   width:92px;height:92px;display:flex;align-items:center;justify-content:center;
   filter:drop-shadow(0 4px 12px rgba(0,0,0,0.55)) drop-shadow(0 1px 3px rgba(0,0,0,0.4));
+  position:relative; /* anchor for .conf-badge overlay */
 }
 #card-halftime-inner .vs-team-initial{color:#a8c0e0;font-size:38px;font-weight:900;font-style:italic;}
 #card-halftime-inner .vs-score{
@@ -502,7 +505,19 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 .modal-close:hover{color:#333;}
 .modal-body{padding:12px 18px;overflow-y:auto;flex:1;}
 .modal-foot{padding:10px 18px;border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center;}
-.team-row{display:grid;grid-template-columns:1fr 1fr 26px;gap:6px;margin-bottom:6px;}
+.conf-badge{
+  position:absolute;bottom:-2px;right:-2px;
+  width:22px;height:22px;
+  background:#fff;border-radius:50%;
+  background-size:80% 80%;background-repeat:no-repeat;background-position:center;
+  box-shadow:0 1px 3px rgba(0,0,0,0.45);
+  z-index:5;
+  pointer-events:none;
+}
+.team-row{display:grid;grid-template-columns:1fr 1fr 56px 26px;gap:6px;margin-bottom:6px;align-items:center;}
+.team-conf-cell{display:flex;align-items:center;justify-content:center;gap:4px;font-size:11px;color:#666;cursor:pointer;user-select:none;font-weight:700;}
+.team-conf-cell input{margin:0;cursor:pointer;}
+.team-conf-cell.checked{color:#0d1f42;}
 .team-row input{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-family:inherit;}
 .team-row input:focus{outline:none;border-color:#1a3a8f;}
 .team-remove{background:#f0f0f0;border:none;border-radius:5px;cursor:pointer;color:#888;font-size:14px;transition:background 0.15s,color 0.15s;}
@@ -1132,6 +1147,7 @@ var LS_TEAMS_KEY = 'ww-soccer-opponents-v1';   // shared with schedule tool
 var SCORER_HISTORY = {};         /* { 'YYYY-MM-DD|opp': [scorerEntries] } */
 var FOOTER_MODE_HISTORY = {};    /* { 'YYYY-MM-DD|opp': 'next'|'scorers' } — Final card */
 var HALFTIME_MODE_HISTORY = {};  /* { 'YYYY-MM-DD|opp': 'msg'|'scorers' } — Halftime card */
+var CONFERENCES = {};            /* { '<id>': { name, logo } } — populated by parseStoredPayload */
 
 function sortTeams(arr) {
   return arr.slice().sort(function(a, b) {
@@ -1150,12 +1166,16 @@ function parseStoredPayload(raw) {
     // Legacy format: just a team array
     var validLegacy = parsed.filter(function(t) {
       return t && typeof t.name === 'string' && typeof t.file === 'string';
+    }).map(function(t) {
+      return { name: t.name, file: t.file, conference: (typeof t.conference === 'string' && t.conference) ? t.conference : null };
     });
-    return { spineText: null, teams: validLegacy, scorersByGame: {}, footerModeByGame: {}, halftimeModeByGame: {} };
+    return { spineText: null, teams: validLegacy, scorersByGame: {}, footerModeByGame: {}, halftimeModeByGame: {}, conferences: {} };
   }
   if (parsed && typeof parsed === 'object') {
     var teams = Array.isArray(parsed.teams) ? parsed.teams.filter(function(t) {
       return t && typeof t.name === 'string' && typeof t.file === 'string';
+    }).map(function(t) {
+      return { name: t.name, file: t.file, conference: (typeof t.conference === 'string' && t.conference) ? t.conference : null };
     }) : [];
     var s = (typeof parsed.spineText === 'string' && parsed.spineText.trim())
               ? parsed.spineText : null;
@@ -1165,15 +1185,18 @@ function parseStoredPayload(raw) {
               ? parsed.footerModeByGame : {};
     var hmbg = (parsed.halftimeModeByGame && typeof parsed.halftimeModeByGame === 'object' && !Array.isArray(parsed.halftimeModeByGame))
               ? parsed.halftimeModeByGame : {};
-    return { spineText: s, teams: teams, scorersByGame: sbg, footerModeByGame: fmbg, halftimeModeByGame: hmbg };
+    var confs = (parsed.conferences && typeof parsed.conferences === 'object' && !Array.isArray(parsed.conferences))
+              ? parsed.conferences : {};
+    return { spineText: s, teams: teams, scorersByGame: sbg, footerModeByGame: fmbg, halftimeModeByGame: hmbg, conferences: confs };
   }
-  return { spineText: null, teams: [], scorersByGame: {}, footerModeByGame: {}, halftimeModeByGame: {} };
+  return { spineText: null, teams: [], scorersByGame: {}, footerModeByGame: {}, halftimeModeByGame: {}, conferences: {} };
 }
 
 function buildStoredPayload() {
   return {
     version: 2,
     spineText: spineText,
+    conferences: CONFERENCES,
     teams: OPPONENTS,
     scorersByGame: SCORER_HISTORY,
     footerModeByGame: FOOTER_MODE_HISTORY,
@@ -1190,6 +1213,7 @@ function loadOpponentsFromStorage() {
     SCORER_HISTORY        = payload.scorersByGame      || {};
     FOOTER_MODE_HISTORY   = payload.footerModeByGame   || {};
     HALFTIME_MODE_HISTORY = payload.halftimeModeByGame || {};
+    CONFERENCES           = payload.conferences        || {};
     return payload.teams.length ? sortTeams(payload.teams) : DEFAULT_OPPONENTS.slice();
   } catch(e) {
     return DEFAULT_OPPONENTS.slice();
@@ -1720,9 +1744,14 @@ function buildOppSelect() {
 function applyTeamsPayload(payload) {
   if (!payload) return;
   if (payload.spineText) spineText = payload.spineText;
+  if (payload.conferences && typeof payload.conferences === 'object') {
+    CONFERENCES = payload.conferences;
+  }
   if (Array.isArray(payload.teams)) {
     var clean = payload.teams.filter(function(t) {
       return t && typeof t.name === 'string' && typeof t.file === 'string';
+    }).map(function(t) {
+      return { name: t.name, file: t.file, conference: (typeof t.conference === 'string' && t.conference) ? t.conference : null };
     });
     if (clean.length) OPPONENTS = sortTeams(clean);
   }
@@ -1819,6 +1848,9 @@ function importTeamsJson() {
         var summary = parts.join(' and ');
         if (!confirm('Load ' + summary + ' from "' + file.name + '"? This will replace your current list.')) return;
         if (payload.spineText) spineText = payload.spineText;
+        if (payload.conferences && typeof payload.conferences === 'object') {
+          CONFERENCES = payload.conferences;
+        }
         if (payload.teams.length) OPPONENTS = sortTeams(payload.teams);
         saveOpponentsToStorage();
         buildOppSelect();
@@ -1970,6 +2002,43 @@ function renderTeamRows() {
     };
     fileIn.onchange = persistManagerState;
 
+    /* Conference checkbox — sets/clears team.conference. The id used
+       for "checked" is the first key in CONFERENCES (typically
+       'classic-8'); if CONFERENCES is empty the checkbox is hidden. */
+    var confLabel = document.createElement('label');
+    confLabel.className = 'team-conf-cell';
+    var confIds = Object.keys(CONFERENCES || {});
+    var defaultConfId = confIds.length ? confIds[0] : null;
+    if (defaultConfId) {
+      confLabel.title = 'Mark as ' + (CONFERENCES[defaultConfId].name || defaultConfId) + ' opponent';
+      var confBox = document.createElement('input');
+      confBox.type = 'checkbox';
+      confBox.checked = !!opp.conference;
+      if (confBox.checked) confLabel.classList.add('checked');
+      confBox.onchange = function() {
+        OPPONENTS[i].conference = confBox.checked ? defaultConfId : null;
+        if (confBox.checked) confLabel.classList.add('checked');
+        else confLabel.classList.remove('checked');
+        persistManagerState();
+      };
+      var confTxt = document.createElement('span');
+      /* Short label: derive from conference id ('classic-8' → 'C8').
+         Strips non-alphanumerics and uppercases; falls back to 'CONF'. */
+      var shortId = String(defaultConfId).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      var shortLabel = 'CONF';
+      if (shortId.length >= 2) {
+        var firstLetter = shortId.match(/[A-Z]/);
+        var firstDigit  = shortId.match(/[0-9]+/);
+        if (firstLetter && firstDigit) shortLabel = firstLetter[0] + firstDigit[0];
+        else shortLabel = shortId.slice(0, 4);
+      }
+      confTxt.textContent = shortLabel;
+      confLabel.appendChild(confBox);
+      confLabel.appendChild(confTxt);
+    } else {
+      confLabel.style.visibility = 'hidden';
+    }
+
     var rm = document.createElement('button');
     rm.className = 'team-remove';
     rm.textContent = '×';
@@ -1981,6 +2050,7 @@ function renderTeamRows() {
 
     row.appendChild(nameIn);
     row.appendChild(fileIn);
+    row.appendChild(confLabel);
     row.appendChild(rm);
     container.appendChild(row);
   });
@@ -2065,26 +2135,54 @@ function calcFit(natW, natH, box) {
 /* ══════════════════════════════════════════════════════════════
    LOGO HELPERS
    ══════════════════════════════════════════════════════════════ */
+
+/* Resolve the conference-badge URL for a typed opponent name, or null.
+   Looks up the team in OPPONENTS (case-insensitive name match) and
+   resolves its conference id against the CONFERENCES map populated from
+   teams.json. Custom-typed opponents (not in OPPONENTS) always return
+   null — only managed teams can be flagged as conference. */
+function conferenceLogoFor(oppName) {
+  if (!oppName) return null;
+  var team = OPPONENTS.find(function(t) {
+    return t.name && t.name.toLowerCase() === oppName.toLowerCase();
+  });
+  if (!team || !team.conference) return null;
+  var conf = CONFERENCES[team.conference];
+  if (!conf || !conf.logo) return null;
+  return './Logos/' + conf.logo;
+}
+
+/* HTML for the conference badge overlay (or '' if none). Appended inside
+   the .team-logo / .vs-logo-box, which is now position:relative so the
+   badge anchors to the bottom-right corner. */
+function confBadgeHTML(oppN) {
+  var url = conferenceLogoFor(oppN);
+  if (!url) return '';
+  return '<span class="conf-badge" style="background-image:url(' + url + ');" title="Conference opponent"></span>';
+}
+
 function setLogoWWScore(el) {
   el.innerHTML = '<img src="' + PAW + '" width="' + PAW_SCORE_W + '" height="' + PAW_SCORE_H + '" alt="WW">';
 }
 function setLogoOppScore(el, oppN) {
+  var badge = confBadgeHTML(oppN);
   if (oppLogoSrc) {
     var dims = calcFit(oppLogoNatW, oppLogoNatH, OPP_BOX_SCORE);
-    el.innerHTML = '<img src="' + oppLogoSrc + '" width="' + dims.w + '" height="' + dims.h + '" alt="">';
+    el.innerHTML = '<img src="' + oppLogoSrc + '" width="' + dims.w + '" height="' + dims.h + '" alt="">' + badge;
   } else {
-    el.innerHTML = '<span class="team-initial">' + (oppN ? oppN[0] : 'O') + '</span>';
+    el.innerHTML = '<span class="team-initial">' + (oppN ? oppN[0] : 'O') + '</span>' + badge;
   }
 }
 function setLogoWWPreview(el) {
   el.innerHTML = '<img src="' + PAW + '" width="' + PAW_PREVIEW_W + '" height="' + PAW_PREVIEW_H + '" alt="WW">';
 }
 function setLogoOppPreview(el, oppN) {
+  var badge = confBadgeHTML(oppN);
   if (oppLogoSrc) {
     var dims = calcFit(oppLogoNatW, oppLogoNatH, OPP_BOX_PREVIEW);
-    el.innerHTML = '<img src="' + oppLogoSrc + '" width="' + dims.w + '" height="' + dims.h + '" alt="">';
+    el.innerHTML = '<img src="' + oppLogoSrc + '" width="' + dims.w + '" height="' + dims.h + '" alt="">' + badge;
   } else {
-    el.innerHTML = '<span class="vs-team-initial">' + (oppN ? oppN[0] : 'O') + '</span>';
+    el.innerHTML = '<span class="vs-team-initial">' + (oppN ? oppN[0] : 'O') + '</span>' + badge;
   }
 }
 /* Halftime card uses the score-card logo sizes (92px box) since both sides sit
@@ -2093,11 +2191,12 @@ function setLogoWWHalftime(el) {
   el.innerHTML = '<img src="' + PAW + '" width="' + PAW_SCORE_W + '" height="' + PAW_SCORE_H + '" alt="WW">';
 }
 function setLogoOppHalftime(el, oppN) {
+  var badge = confBadgeHTML(oppN);
   if (oppLogoSrc) {
     var dims = calcFit(oppLogoNatW, oppLogoNatH, OPP_BOX_SCORE);
-    el.innerHTML = '<img src="' + oppLogoSrc + '" width="' + dims.w + '" height="' + dims.h + '" alt="">';
+    el.innerHTML = '<img src="' + oppLogoSrc + '" width="' + dims.w + '" height="' + dims.h + '" alt="">' + badge;
   } else {
-    el.innerHTML = '<span class="vs-team-initial">' + (oppN ? oppN[0] : 'O') + '</span>';
+    el.innerHTML = '<span class="vs-team-initial">' + (oppN ? oppN[0] : 'O') + '</span>' + badge;
   }
 }
 
