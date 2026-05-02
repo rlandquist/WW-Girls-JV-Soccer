@@ -2411,8 +2411,16 @@ function renderScorersPicker() {
     /* Build the dropdown options string */
     var opts = '<option value="">— Select player —</option>';
     roster.forEach(function(p) {
-      var label = (p.number ? '#' + p.number + ' ' : '') +
-                  ((p.lastName || '').trim() || (p.firstName || '').trim() || '(unnamed)');
+      /* Dropdown label shows first + last so coaches can disambiguate quickly
+         during a game. The on-card render still uses scorerDisplayName(),
+         which is last-name-only — so this change is editor-side only. */
+      var first = (p.firstName || '').trim();
+      var last  = (p.lastName  || '').trim();
+      var nameLabel = (first && last) ? (first + ' ' + last)
+                    : last ? last
+                    : first ? first
+                    : '(unnamed)';
+      var label = (p.number ? '#' + p.number + ' ' : '') + nameLabel;
       var sel = (!isCustom && s.playerId === p.id) ? ' selected' : '';
       opts += '<option value="' + escapeAttr(p.id) + '"' + sel + '>' + escapeHtml(label) + '</option>';
     });
