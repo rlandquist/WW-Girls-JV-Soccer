@@ -79,7 +79,16 @@
       "conference": null
     }
   ],
-  "scorersByGame": {},
+  "scorersByGame": {
+    "2026-05-02|st augustine prep": [
+      {
+        "kind": "roster",
+        "playerId": "",
+        "customName": "",
+        "goals": 1
+      }
+    ]
+  },
   "footerModeByGame": {
     "2026-05-02|st augustine prep": "scorers"
   },
