@@ -147,7 +147,7 @@
       "opponent": "Kimberly",
       "location": "home",
       "status": "final",
-      "scoreUs": null,
+      "scoreUs": 1,
       "scoreThem": null,
       "time": "5:45 PM"
     },
