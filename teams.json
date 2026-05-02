@@ -148,6 +148,12 @@
         "playerId": "p_modcmjfbf5ef",
         "customName": "",
         "goals": 2
+      },
+      {
+        "kind": "roster",
+        "playerId": "",
+        "customName": "",
+        "goals": 1
       }
     ]
   },
