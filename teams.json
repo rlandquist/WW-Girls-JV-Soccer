@@ -71,7 +71,7 @@
     {
       "name": "Waukesha North",
       "file": "WaukeshaNorth.png",
-      "conference": null
+      "conference": "classic-8"
     },
     {
       "name": "Whitnall",
