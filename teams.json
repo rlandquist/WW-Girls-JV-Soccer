@@ -1,178 +1,82 @@
 {
   "version": 2,
   "spineText": "Waukesha West Girls JV Soccer 2026",
+  "conferences": {
+    "classic-8": {
+      "name": "Classic 8 Conference",
+      "logo": "Classic8.png"
+    }
+  },
   "teams": [
     {
       "name": "Arrowhead",
-      "file": "Arrowhead.png"
+      "file": "Arrowhead.png",
+      "conference": null
     },
     {
       "name": "Badger",
-      "file": "Badger.png"
+      "file": "Badger.png",
+      "conference": null
     },
     {
       "name": "Catholic Memorial",
-      "file": "CatholicMemorial.png"
+      "file": "CatholicMemorial.png",
+      "conference": null
     },
     {
       "name": "Elkhorn",
-      "file": "Elkhorn.png"
+      "file": "Elkhorn.png",
+      "conference": null
     },
     {
       "name": "Greenfield",
-      "file": "Greenfield.png"
+      "file": "Greenfield.png",
+      "conference": null
     },
     {
       "name": "Hartford Union",
-      "file": "HartfordUnion.png"
+      "file": "HartfordUnion.png",
+      "conference": null
     },
     {
       "name": "Homestead",
-      "file": "Homestead.png"
+      "file": "Homestead.png",
+      "conference": null
     },
     {
       "name": "Kettle Moraine",
-      "file": "KettleMoraine.png"
+      "file": "KettleMoraine.png",
+      "conference": null
     },
     {
       "name": "Mukwonago",
-      "file": "Mukwonago.png"
+      "file": "Mukwonago.png",
+      "conference": null
     },
     {
       "name": "Muskego",
-      "file": "Muskego.png"
+      "file": "Muskego.png",
+      "conference": null
     },
     {
       "name": "Oconomowoc",
-      "file": "Oconomowoc.png"
+      "file": "Oconomowoc.png",
+      "conference": null
     },
     {
       "name": "Watertown Unified",
-      "file": "WatertownUnified.png"
+      "file": "WatertownUnified.png",
+      "conference": null
     },
     {
       "name": "Waukesha North",
-      "file": "WaukeshaNorth.png"
+      "file": "WaukeshaNorth.png",
+      "conference": null
     },
     {
       "name": "Whitnall",
-      "file": "Whitnall.png"
+      "file": "Whitnall.png",
+      "conference": null
     }
-  ],
-  "scorersByGame": {
-    "2026-04-27|arrowhead": [
-      {
-        "kind": "roster",
-        "playerId": "",
-        "customName": "",
-        "goals": 1
-      },
-      {
-        "kind": "roster",
-        "playerId": "",
-        "customName": "",
-        "goals": 1
-      }
-    ],
-    "2026-05-02|st augustine prep": [
-      {
-        "kind": "roster",
-        "playerId": "p_modckd8lmlbz",
-        "customName": "",
-        "goals": 2
-      },
-      {
-        "kind": "roster",
-        "playerId": "p_modcg7j4dkv7",
-        "customName": "",
-        "goals": 2
-      },
-      {
-        "kind": "roster",
-        "playerId": "p_modcmjfbf5ef",
-        "customName": "",
-        "goals": 1
-      },
-      {
-        "kind": "roster",
-        "playerId": "p_modcpq9psnf1",
-        "customName": "",
-        "goals": 2
-      }
-    ],
-    "2026-05-05|waupun": [
-      {
-        "kind": "roster",
-        "playerId": "p_modcpq9psnf1",
-        "customName": "",
-        "goals": 1
-      }
-    ],
-    "2026-05-05|st augustine prep": [
-      {
-        "kind": "roster",
-        "playerId": "p_modckd8lmlbz",
-        "customName": "",
-        "goals": 2
-      },
-      {
-        "kind": "roster",
-        "playerId": "p_modcg7j4dkv7",
-        "customName": "",
-        "goals": 2
-      },
-      {
-        "kind": "roster",
-        "playerId": "p_modcmjfbf5ef",
-        "customName": "",
-        "goals": 2
-      },
-      {
-        "kind": "roster",
-        "playerId": "p_modcpq9psnf1",
-        "customName": "",
-        "goals": 1
-      }
-    ],
-    "2026-05-02|opponent": [
-      {
-        "kind": "roster",
-        "playerId": "p_modckd8lmlbz",
-        "customName": "",
-        "goals": 1
-      }
-    ],
-    "2026-05-02|waupun": [
-      {
-        "kind": "roster",
-        "playerId": "p_modcmjfbf5ef",
-        "customName": "",
-        "goals": 2
-      },
-      {
-        "kind": "roster",
-        "playerId": "p_modcfhv68mqy",
-        "customName": "",
-        "goals": 1
-      }
-    ]
-  },
-  "footerModeByGame": {
-    "2026-04-27|arrowhead": "scorers",
-    "2026-04-28|opponent": "next",
-    "2026-05-02|st augustine prep": "scorers",
-    "2026-05-05|waupun": "scorers",
-    "2026-05-05|st augustine prep": "scorers",
-    "2026-05-02|opponent": "scorers",
-    "2026-05-02|waupun": "scorers"
-  },
-  "halftimeModeByGame": {
-    "2026-04-27|arrowhead": "scorers",
-    "2026-04-28|opponent": "scorers",
-    "2026-05-02|st augustine prep": "msg",
-    "2026-05-05|waupun": "msg",
-    "2026-05-05|st augustine prep": "msg",
-    "2026-05-02|opponent": "msg",
-    "2026-05-02|waupun": "msg"
-  }
+  ]
 }
