@@ -164,3 +164,109 @@ GitHub web UI directory listing came back partial through web_fetch
 not-shipped. Rob corrected this; the rest of the session proceeded
 against the actual deployed state. Future sessions should not
 re-walk that ground — the architecture migration is live and stable.]
+
+=== Journal Entry 2026-05-02T22:45:00.000000+00:00 ===
+2026-05-02-22-45-00-ww-soccer-photo-credit-and-back-link.txt
+[Continuing the same long session that landed conferences earlier today.
+Two more features added: a Back to Main link at the top of the editor
+sidebar in all three tools, and a Robert Landquist Photography credit
+on all four pages (three tools + landing). Several rounds of iteration
+on the photo credit before it landed cleanly — captured here so the
+final state is reproducible from the journal alone.
+
+Back-link feature: small "← Main" pill at the very top of the editor
+sidebar, above the GitHub Sync panel. Same markup across all three
+tools — `<a class="back-link" href="./" title="Back to main page">
+<span class="arrow">←</span> Main</a>`. The href="./" works because
+index.html sits at the same directory level as the tool HTMLs on
+Pages — no path-juggling regardless of which subpath the user landed
+at. Card and Schedule use the project navy (#0d1f42); Roster uses
+its own royal blue (#1e40af) to match its existing palette. CSS rule
+is identical except for that one color value. Card/Schedule edited
+from local outputs (already had conference work applied); Roster was
+uploaded fresh and edited from the upload. All three preserved their
+original line endings — Card and Schedule uniformly CRLF, Roster
+mixed CRLF+LF (121 bare LFs alongside ~1700 CRLFs), preserved as-is.
+
+Photo credit feature: started with the wrong premise — Rob said the
+provided logo PNG had a transparent background, but inspection showed
+it was actually JPEG, RGB mode, with the black background being part
+of the image. Pivoted the design to take advantage of that: a black
+pill containing the logo + "© Robert Landquist Photography" text. The
+dark container does double duty — it gives the credit a clear visual
+identity AND it means the logo's black background blends into the
+container regardless of whether someone later swaps in a transparent
+PNG. Initial placement was at the bottom of the editor sidebar with
+margin-top:auto pushing it to the bottom of the editor's flex column.
+Rob asked for it in the center of the page instead, so for the three
+tools it became `position:fixed; bottom:20px; left:50%;
+transform:translateX(-50%); z-index:10` — pinned to the viewport
+bottom-center alongside the existing #toast-container, which uses the
+same fixed-positioning pattern. Index page kept the credit in document
+flow at the page bottom (no editor/card horizontal split there, so a
+fixed-position pill would feel out of place). On index, the existing
+single-line `<p class="foot">Waukesha West Wolverines</p>` was
+replaced with a structured footer that stacks the school tagline
+above a black credit pill below. Old .foot and .foot .dot CSS rules
+were left in the stylesheet as harmless dead code rather than churning
+the file to remove them.
+
+Logo iteration: this is where most of the back-and-forth happened.
+First the logo file (originally a 1254×1254 square JPEG with the
+camera+RL mark above "ROBERT LANDQUIST" text above "PHOTOGRAPHY"
+tagline) was downscaled to 256×256 and dropped into the credit pill
+at width:32px height:32px. Looked tiny. Bumped to 56×56. Rob noted
+it looked stretched — turned out the file was square but the actual
+logo CONTENT was only ~1112×773 (1.44:1 wider than tall) with massive
+black padding above and below. Tried two fixes: cropping the source
+image to the content bounds, and switching CSS to height-only with
+width:auto so aspect ratio rendered naturally. That made the pill
+~67×48 instead of 56×56. Rob came back with a screenshot showing it
+STILL looked bad — the cropped logo had three vertically-stacked
+elements (camera mark, "ROBERT LANDQUIST" text, "PHOTOGRAPHY" tag)
+all squished into a 48px height, while the pill ALSO had readable
+"© Robert Landquist Photography" text right next to it. The logo
+was competing with itself: tiny illegible text inside the image,
+duplicated by the readable text outside. Cropped to JUST the camera+RL
+mark portion (rows 234..818 in the source), dropping both text blocks.
+Bumped CSS height to 56px. Rob then provided a properly-prepared
+icon-only logo file (782×647, 1.21:1, JPEG misnamed as .png) — used
+that as the new source, converted to true PNG, resized to 512×424.
+The HTMLs needed no further edits since the filename and aspect-ratio
+CSS were unchanged.
+
+Final state: Logos/RobertLandquistPhotography.png is the icon-only
+mark at 512×424, ~121KB. CSS on all four pages renders it at
+height:56px width:auto inside a black pill with white text at
+font-size:13px, letter-spacing:0.05em. Pill positioning is
+fixed-center on Card/Schedule/Roster, document-flow on index. Sizes
+checked at the end: Card 164KB, Schedule 67KB, Roster 71KB,
+index 17KB.
+
+Editing approach throughout: same Python script + replace_once
+pattern as the conferences work — bytes-mode read/write to preserve
+line endings, abort on anchor mismatch. One Python gotcha bit me
+midway: bytes literals can't contain non-ASCII, so a CSS comment
+with em-dashes failed to compile. Fixed by writing as a string and
+encoding to bytes at concat time. Worth remembering for future.
+
+Conversation-flow note: I made an error of confidence early on with
+the photo credit logo. I confirmed via PIL that the file was JPEG/RGB
+without transparency, and explicitly told Rob he had three options
+(re-export, alternative source, or threshold-key the black). I then
+proceeded to design around option implicit-zero ("just put it on a
+dark background") without him picking one. That actually turned out
+fine because Rob hadn't expressed a preference, but it's worth being
+more explicit next time about which option I'm taking when the user
+hasn't picked. The aspect-ratio iteration was a real bug — I missed
+that the source had THREE content blocks not one, and shipped a
+"fix" (cropping to content bounds) that was insufficient. The right
+diagnosis came from looking at Rob's screenshot, which made the
+self-competing-text issue obvious. Worth remembering: when the user
+sends a screenshot of the current state, study it carefully before
+proposing the next fix.
+
+Remaining tasks for Rob: deploy the five updated files (four HTMLs
+plus the new logo PNG), then optionally bump CACHE_VERSION in sw.js
+from 'v1' to 'v2' if force-refresh doesn't pick up the new logo on
+already-cached devices.]
