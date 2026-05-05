@@ -168,7 +168,7 @@
       "location": "home",
       "status": "final",
       "scoreUs": 3,
-      "scoreThem": null,
+      "scoreThem": 2,
       "time": "TBD"
     }
   ],
