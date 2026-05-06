@@ -108,9 +108,11 @@
     ]
   },
   "footerModeByGame": {
-    "2026-05-02|st augustine prep": "scorers"
+    "2026-05-02|st augustine prep": "scorers",
+    "2026-05-05|opponent": "scorers"
   },
   "halftimeModeByGame": {
-    "2026-05-02|st augustine prep": "msg"
+    "2026-05-02|st augustine prep": "msg",
+    "2026-05-05|opponent": "msg"
   }
 }
