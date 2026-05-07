@@ -113,6 +113,14 @@
         "customName": "",
         "goals": 2
       }
+    ],
+    "2026-05-07|badger": [
+      {
+        "kind": "roster",
+        "playerId": "",
+        "customName": "",
+        "goals": 1
+      }
     ]
   },
   "footerModeByGame": {
