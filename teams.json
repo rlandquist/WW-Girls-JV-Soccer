@@ -127,16 +127,26 @@
         "customName": "",
         "goals": 1
       }
+    ],
+    "2026-05-07|opponent": [
+      {
+        "kind": "roster",
+        "playerId": "",
+        "customName": "",
+        "goals": 1
+      }
     ]
   },
   "footerModeByGame": {
     "2026-05-02|st augustine prep": "scorers",
     "2026-05-05|opponent": "scorers",
-    "2026-05-07|badger": "scorers"
+    "2026-05-07|badger": "scorers",
+    "2026-05-07|opponent": "scorers"
   },
   "halftimeModeByGame": {
     "2026-05-02|st augustine prep": "msg",
     "2026-05-05|opponent": "msg",
-    "2026-05-07|badger": "msg"
+    "2026-05-07|badger": "msg",
+    "2026-05-07|opponent": "msg"
   }
 }
