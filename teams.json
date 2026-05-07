@@ -120,6 +120,12 @@
         "playerId": "p_modcpq9psnf1",
         "customName": "",
         "goals": 1
+      },
+      {
+        "kind": "roster",
+        "playerId": "",
+        "customName": "",
+        "goals": 1
       }
     ]
   },
