@@ -386,6 +386,30 @@ body::before {
       <span class="tile-cta">Open card tool</span>
     </a>
 
+    <!-- Goals tracker — owns goals.json (per-goal entries with player,
+         minute, half). Reads roster.json + schedule.json read-only.
+         Card tool reads goals.json to render scorer lists.
+         Sits second in the order because it pairs naturally with Card:
+         track goals during the game, then build the post-game card. -->
+    <a href="./GirlsJVSoccerGoals.html" class="tile t-goals">
+      <div class="tile-head">
+        <div class="tile-icon" aria-hidden="true">
+          <!-- Inline SVG: target / goal-net mark -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <circle cx="12" cy="12" r="5.5"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
+          </svg>
+        </div>
+        <h2 class="tile-title">Goals</h2>
+      </div>
+      <p class="tile-blurb">
+        Track goal scorers live during the game. Capture jersey,
+        scorer, minute, and half. Mobile-optimized for entry.
+      </p>
+      <span class="tile-cta">Open goal tracker</span>
+    </a>
+
     <!-- Schedule maker — owns schedule.json (games[], layout). Reads
          teams.json read-only for the opponent picker. -->
     <a href="./GirlsJVSoccerSchedule.html" class="tile t-schedule">
@@ -426,28 +450,6 @@ body::before {
         coaching staff with custom role labels.
       </p>
       <span class="tile-cta">Open roster tool</span>
-    </a>
-
-    <!-- Goals tracker — owns goals.json (per-goal entries with player,
-         minute, half). Reads roster.json + schedule.json read-only.
-         Card tool reads goals.json to render scorer lists. -->
-    <a href="./GirlsJVSoccerGoals.html" class="tile t-goals">
-      <div class="tile-head">
-        <div class="tile-icon" aria-hidden="true">
-          <!-- Inline SVG: target / goal-net mark -->
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"></circle>
-            <circle cx="12" cy="12" r="5.5"></circle>
-            <circle cx="12" cy="12" r="2"></circle>
-          </svg>
-        </div>
-        <h2 class="tile-title">Goals</h2>
-      </div>
-      <p class="tile-blurb">
-        Track goal scorers live during the game. Capture jersey,
-        scorer, minute, and half. Mobile-optimized for entry.
-      </p>
-      <span class="tile-cta">Open goal tracker</span>
     </a>
 
   </nav>
