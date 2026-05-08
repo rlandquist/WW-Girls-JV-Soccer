@@ -862,14 +862,14 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
       <div class="form-block">
         <div class="section-label">Minute</div>
         <div class="minute-picker">
-          <button type="button" class="mp-arrow" id="mp-minus" onclick="adjustMinute(-1)" aria-label="Decrease minute">−</button>
+          <button type="button" class="mp-arrow" id="mp-minus" aria-label="Decrease minute">−</button>
           <div class="mp-strip-wrap">
             <div class="mp-indicator" aria-hidden="true"></div>
             <div class="mp-strip" id="entry-minute-strip" role="listbox" aria-label="Goal minute">
               <!-- cells injected by buildMinuteStrip() -->
             </div>
           </div>
-          <button type="button" class="mp-arrow" id="mp-plus" onclick="adjustMinute(1)" aria-label="Increase minute">+</button>
+          <button type="button" class="mp-arrow" id="mp-plus" aria-label="Increase minute">+</button>
         </div>
         <div class="mp-suffix-row">Min &nbsp;·&nbsp; Tap or swipe to choose</div>
         <!-- Hidden field that onAddGoal reads. Kept in sync by setEntryMinute. -->
@@ -1002,8 +1002,11 @@ document.addEventListener('DOMContentLoaded', function() {
   /* 3. Build the minute picker DOM and wire its handlers BEFORE any
         scroll / set-minute call would be made. The strip itself is just
         121 cells (0–120); the scroll listener decides which one is
-        centered after the user flicks. */
+        centered after the user flicks. setupMinuteHold owns the −/+
+        buttons (single tap = +/-1, press-and-hold = auto-repeat). */
   buildMinuteStrip();
+  setupMinuteHold(document.getElementById('mp-minus'), -1);
+  setupMinuteHold(document.getElementById('mp-plus'),   1);
   setEntryMinute(0, false);
 
   /* 4. Hydrate from localStorage immediately so the UI has data on first paint
@@ -1432,9 +1435,14 @@ function setCurrentGame(date, opp) {
      picker should start at the highest existing minute for this game
      (or 0 if none), so a coach reopening a game in progress can pick
      up where they left off. lastEnteredMinute is per-session; new
-     game = clean slate. */
+     game = clean slate.
+
+     Pass doScroll=true so the strip actually moves to that minute —
+     without it, the active-class would be on (say) cell 67 while the
+     strip itself was still parked at cell 0, defeating the whole point
+     of "pre-fill so I don't have to scroll." */
   lastEnteredMinute = null;
-  setEntryMinute(getDefaultEntryMinute(), false);
+  setEntryMinute(getDefaultEntryMinute(), true);
   /* Show the game pill and hide the "pick a game" prompt. The pill's
      text and color state are owned by updateGameTotals (called via
      renderAll below) so all writes go through one place. */
@@ -1636,6 +1644,81 @@ function scrollMinuteStripTo(m, smooth) {
 
 function adjustMinute(delta) {
   setEntryMinute(currentMinute + delta, true);
+}
+
+/* Hold-to-repeat for the −/+ buttons. Tap = single increment.
+   Press and hold = single increment + 400 ms grace period + then
+   auto-advance every 120 ms (about 8 minutes/sec) until release or
+   until the value hits the 0/120 boundary.
+
+   Pointer events unify mouse, touch, and pen input. We let the click
+   event handle the single-tap case (and keyboard Enter / Space, which
+   only fire click) — the didRepeat flag suppresses the trailing click
+   that follows pointerup when an auto-repeat actually happened, so
+   the count doesn't double up by one extra tick at the end of a hold.
+
+   pointerleave catches the case where the user drags their finger off
+   the button while still holding — same as a release. We don't use
+   setPointerCapture since we WANT pointerleave to fire when the
+   pointer wanders out of the button's bounds. */
+function setupMinuteHold(button, delta) {
+  if (!button) return;
+  var delayTimer = null;
+  var repeatTimer = null;
+  var didRepeat = false;
+
+  function start(e) {
+    /* Ignore right/middle mouse buttons. Touch/pen always pass since
+       e.button is 0 for them. */
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    /* preventDefault stops text-selection on long press, scroll
+       hijacking, and the iOS callout menu. The click event still
+       fires after pointerup, which is what we want for single taps. */
+    e.preventDefault();
+    didRepeat = false;
+    /* If a previous gesture is somehow still pending (e.g. pointercancel
+       was missed), clear it. */
+    stop();
+    delayTimer = setTimeout(function() {
+      delayTimer = null;
+      didRepeat = true;
+      repeatTimer = setInterval(function() {
+        adjustMinute(delta);
+        /* Stop on hitting the boundary — there's nothing left to
+           advance to and the button's `disabled` state will block
+           further input anyway. */
+        if ((delta < 0 && currentMinute <= 0) ||
+            (delta > 0 && currentMinute >= 120)) {
+          stop();
+        }
+      }, 120);
+    }, 400);
+  }
+
+  function stop() {
+    if (delayTimer)  { clearTimeout(delayTimer);   delayTimer  = null; }
+    if (repeatTimer) { clearInterval(repeatTimer); repeatTimer = null; }
+  }
+
+  button.addEventListener('pointerdown',   start);
+  button.addEventListener('pointerup',     stop);
+  button.addEventListener('pointercancel', stop);
+  button.addEventListener('pointerleave',  stop);
+
+  /* Click handles two paths:
+       1. Single tap (mouse / touch): pointerdown sets timer, pointerup
+          before 400 ms clears it (didRepeat=false), click runs increment.
+       2. Keyboard (Enter / Space on a focused button): no pointer events,
+          just click — runs increment.
+     If a hold actually triggered repeats, didRepeat=true and we skip
+     the trailing click so the count is exact. */
+  button.addEventListener('click', function() {
+    if (didRepeat) {
+      didRepeat = false;
+      return;
+    }
+    adjustMinute(delta);
+  });
 }
 
 function getDefaultEntryMinute() {
