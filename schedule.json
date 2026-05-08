@@ -87,7 +87,7 @@
       "opponent": "Badger",
       "location": "home",
       "status": "final",
-      "scoreUs": null,
+      "scoreUs": 1,
       "scoreThem": null,
       "time": "4:30 PM"
     },
