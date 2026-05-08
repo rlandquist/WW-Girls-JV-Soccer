@@ -949,6 +949,48 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
   .app-header { padding: 12px 22px; }
   .app-header h1 { font-size: 19px; }
 }
+
+/* ─── Robert Landquist Photography credit ────────────────────
+   Fixed bottom-center pill, matching the same treatment used on
+   Card / Schedule / Roster. The container's bottom-padding already
+   reserves ~96px so this pill sits below scrollable content. */
+.photo-credit {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000;
+  border-radius: 10px;
+  padding: 10px 18px 10px 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 10;
+  font-family: Arial, sans-serif;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+.photo-credit .rlp-logo {
+  height: 56px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+  border-radius: 6px;
+}
+.photo-credit .rlp-text {
+  font-size: 13px;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 0.05em;
+}
+.photo-credit .rlp-copy {
+  color: rgba(255,255,255,0.55);
+  margin-right: 2px;
+}
+.photo-credit .rlp-name {
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
 </style>
 </head>
 <body>
@@ -1104,6 +1146,12 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
   </div>
 
   <p class="foot">Waukesha West • <a href="./index.html">All Tools</a></p>
+</div>
+
+<!-- ── PHOTO CREDIT (fixed bottom-center of viewport) ── -->
+<div class="photo-credit">
+  <img src="./Logos/RobertLandquistPhotography.png" alt="" class="rlp-logo">
+  <span class="rlp-text"><span class="rlp-copy">&copy;</span> <span class="rlp-name">Robert Landquist Photography</span></span>
 </div>
 
 <div id="toast-container"></div>

@@ -340,6 +340,10 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
   color:#a8bfd4;font-size:15px;font-weight:700;
   text-transform:uppercase;letter-spacing:.06em;z-index:1;position:relative;
 }
+#card-preview-inner .gametime-address{
+  color:#8aaabf;font-size:11px;font-weight:600;
+  letter-spacing:.04em;z-index:1;position:relative;margin-top:1px;display:none;
+}
 #card-preview-inner .gametime-notes{
   color:#8aaabf;font-size:14px;font-weight:600;font-style:italic;
   z-index:1;position:relative;margin-top:1px;display:none;
@@ -557,7 +561,7 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 <div class="editor">
 
   <!-- ── BACK TO MAIN ── -->
-  <a class="back-link" href="./" title="Back to main page"><span class="arrow">←</span> Main</a>
+  <a class="back-link" href="./" title="Back to tools"><span class="arrow">←</span> Tools</a>
 
   <!-- ── GITHUB SYNC PANEL (collapsed by default; status pill always visible) ── -->
   <div id="gh-config-mount"></div>
@@ -874,8 +878,8 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
     <div class="field-group">
       <div class="section-label">Opponent position</div>
       <div class="toggle-row">
-        <button class="toggle-btn active" id="btn-pv-vs" onclick="setPreviewPrefix('VS.')">VS.</button>
-        <button class="toggle-btn" id="btn-pv-at" onclick="setPreviewPrefix('AT')">AT</button>
+        <button class="toggle-btn active" id="btn-pv-vs" onclick="setPreviewPrefix('VS.')">Home (vs)</button>
+        <button class="toggle-btn" id="btn-pv-at" onclick="setPreviewPrefix('AT')">Away (at)</button>
       </div>
       <div class="hint">Controls the text between the two team logos</div>
     </div>
@@ -886,6 +890,14 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
       <div class="section-label">Location</div>
       <input type="text" id="game-location" value="" placeholder="e.g. WW Soccer Field" oninput="update()">
       <div class="hint">Shown below the time — leave blank to hide</div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="field-group">
+      <div class="section-label">Address</div>
+      <input type="text" id="game-address" value="" placeholder="e.g. 605 W Veteran St, Mukwonago, WI" oninput="update()">
+      <div class="hint">Shown below the location — leave blank to hide</div>
     </div>
 
     <hr class="divider">
@@ -1008,6 +1020,7 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
         <div class="gametime-main" id="card-kickoff-label">Kick Off &nbsp;·&nbsp; 4:30 PM</div>
         <div class="gametime-rule"></div>
         <div class="gametime-location" id="card-location" style="display:none"></div>
+        <div class="gametime-address" id="card-address" style="display:none"></div>
         <div class="gametime-notes" id="card-notes"></div>
       </div>
 
@@ -2372,7 +2385,14 @@ function setCardPickerMode(mode) {
    opponent into the existing #game-date / #opp-name inputs so the
    downstream wiring (onGameContextChanged + update) fires the same
    way it does in manual mode, and try to auto-load the logo by
-   name-matching against OPPONENTS. */
+   name-matching against OPPONENTS.
+
+   v2 (May 2026): also populate Home/Away across all three card modes
+   (Final wwIsHome, Halftime wwIsLeft, Preview previewPrefix), the
+   Preview kickoff time, Preview Location, and Preview Address — by
+   looking up the full game record in SCHEDULE_GAMES. All populated
+   values remain editable as overrides; the user can change any field
+   after selecting a game. */
 function onCardScheduleSelect(value) {
   if (!value) return;   /* dropdown reset to placeholder */
   var sel = document.getElementById('card-gp-schedule-select');
@@ -2386,13 +2406,68 @@ function onCardScheduleSelect(value) {
   if (dateEl) dateEl.value = date;
   if (oppEl)  oppEl.value  = opp;
 
+  /* Look up the full schedule entry (by date + opp lowercased — same
+     composite key the dropdown options use) so we can pull location,
+     time, venue, address. The dropdown's dataset only carries date and
+     opp; the rest comes from SCHEDULE_GAMES which is already in memory
+     after the most recent refresh. */
+  var oppLower = opp.trim().toLowerCase();
+  var game = null;
+  for (var j = 0; j < SCHEDULE_GAMES.length; j++) {
+    var sg = SCHEDULE_GAMES[j];
+    if (sg && sg.date === date && (sg.opponent || '').trim().toLowerCase() === oppLower) {
+      game = sg;
+      break;
+    }
+  }
+
+  if (game) {
+    /* ── Home/Away across all three cards. Default to home when the
+       field is missing — matches the addGame default in the Schedule
+       tool and how data has historically been stored. The setters
+       update both the underlying state and the toggle-button active
+       classes; each one also calls update(), but those are cheap and
+       only re-render the active card mode. */
+    var isHome = (game.location !== 'away');
+    setWW(isHome ? 'home' : 'away');                /* Final card */
+    setHalftimeSide(isHome ? 'right' : 'left');     /* Halftime card */
+    setPreviewPrefix(isHome ? 'VS.' : 'AT');        /* Preview card */
+
+    /* ── Kickoff time. Parse "4:30 PM" → hhmm="4:30", ampm="PM".
+       Non-numeric strings ("TBD") pass through the hhmm field; the
+       existing _composedTime helper preserves them as-is. Empty just
+       clears the input — the renderer falls back to a default for
+       display. */
+    var t = (game.time || '').trim();
+    var hhmmEl = document.getElementById('game-time-hhmm');
+    if (hhmmEl) {
+      var m = /^(\d{1,2}(?::\d{2})?)\s*(AM|PM|am|pm)?\s*$/.exec(t);
+      if (m) {
+        hhmmEl.value = m[1];
+        setGameAmPm((m[2] || 'PM').toUpperCase());
+      } else if (t) {
+        hhmmEl.value = t;
+        syncGameTime();
+      } else {
+        hhmmEl.value = '';
+        syncGameTime();
+      }
+    }
+
+    /* ── Venue → Preview's existing Location input. Address → new
+       Address input. Both editable as overrides. */
+    var venueEl = document.getElementById('game-location');
+    if (venueEl) venueEl.value = (game.venue || '');
+    var addressEl = document.getElementById('game-address');
+    if (addressEl) addressEl.value = (game.address || '');
+  }
+
   /* Try to match the opponent name to a saved team for the logo.
      Match is case-insensitive on the team's `name`. If multiple match
      (e.g. duplicates in the team list), the first wins — the team
      manager already prevents true duplicates so this is mostly
      defensive. */
   if (Array.isArray(OPPONENTS)) {
-    var oppLower = opp.trim().toLowerCase();
     var matchIdx = -1;
     for (var i = 0; i < OPPONENTS.length; i++) {
       if ((OPPONENTS[i].name || '').trim().toLowerCase() === oppLower) {
@@ -3352,6 +3427,11 @@ function updatePreview() {
   var locEl = document.getElementById('card-location');
   if (locStr) { locEl.textContent = locStr; locEl.style.display = 'block'; }
   else { locEl.style.display = 'none'; }
+
+  var addrStr = document.getElementById('game-address').value.trim();
+  var addrEl = document.getElementById('card-address');
+  if (addrStr) { addrEl.textContent = addrStr; addrEl.style.display = 'block'; }
+  else { addrEl.style.display = 'none'; }
 
   var notesStr = document.getElementById('game-notes').value.trim();
   var notesEl = document.getElementById('card-notes');

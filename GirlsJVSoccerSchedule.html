@@ -732,7 +732,7 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <div class="editor">
 
-  <a class="back-link" href="./" title="Back to main page"><span class="arrow">←</span> Main</a>
+  <a class="back-link" href="./" title="Back to tools"><span class="arrow">←</span> Tools</a>
 
   <div id="gh-config-mount"></div>
 
@@ -1362,6 +1362,14 @@ function renderGameForm(g) {
           '</div>' +
         '</div>' +
         scoreOrTime +
+        '<div class="full">' +
+          '<label>Venue</label>' +
+          '<input type="text" id="f-venue" value="' + escapeAttr(g.venue || '') + '" placeholder="e.g. Mukwonago HS Stadium" onchange="saveEdit()">' +
+        '</div>' +
+        '<div class="full">' +
+          '<label>Address</label>' +
+          '<input type="text" id="f-address" value="' + escapeAttr(g.address || '') + '" placeholder="e.g. 605 W Veteran St, Mukwonago, WI" onchange="saveEdit()">' +
+        '</div>' +
         '<div class="form-actions">' +
           '<button class="btn danger" onclick="deleteGame(\'' + g.id + '\')">Delete</button>' +
           '<button class="btn primary" style="flex:1;" onclick="closeEdit()">Done</button>' +
@@ -1378,7 +1386,9 @@ function addGame() {
     opponent: '',
     location: 'home',
     status: 'scheduled',
-    time: ''
+    time: '',
+    venue: '',
+    address: ''
   };
   GAMES.push(g);
   editingId = g.id;
@@ -1440,6 +1450,11 @@ function saveEdit() {
     var timeEl = document.getElementById('f-time');
     if (timeEl) g.time = timeEl.value;
   }
+  /* Venue + address — present in both scheduled and final modes. */
+  var venueEl = document.getElementById('f-venue');
+  var addressEl = document.getElementById('f-address');
+  if (venueEl) g.venue = venueEl.value;
+  if (addressEl) g.address = addressEl.value;
   saveGames();
   // Re-render the card but NOT the games list (would destroy input focus)
   renderCardContent();
