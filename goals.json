@@ -118,8 +118,8 @@
         "id": "go_moxdlaiqnm9o",
         "minute": 1,
         "half": 1,
-        "kind": "unknown",
-        "playerId": "",
+        "kind": "roster",
+        "playerId": "p_modctjj4r067",
         "customName": ""
       }
     ]
