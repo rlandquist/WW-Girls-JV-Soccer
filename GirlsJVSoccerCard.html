@@ -2595,7 +2595,12 @@ function scorerDisplayName(player) {
 /* Defensive normalizer for individual goal entries. */
 function normalizeGoal(g) {
   if (!g || typeof g !== 'object') return null;
-  var kind = (g.kind === 'custom') ? 'custom' : 'roster';
+  /* Three valid kinds: 'roster' / 'custom' / 'unknown'. Anything else
+     coerces to 'roster' (defensive). */
+  var kind;
+  if (g.kind === 'custom')       kind = 'custom';
+  else if (g.kind === 'unknown') kind = 'unknown';
+  else                           kind = 'roster';
   var minute = null;
   if (g.minute != null && g.minute !== '') {
     var m = parseInt(g.minute, 10);
@@ -2674,7 +2679,22 @@ function aggregateGoalsByPlayer(goals, sortMode) {
   var order = [];
   goals.forEach(function(g) {
     var key;
-    if (g.kind === 'custom') {
+    if (g.kind === 'unknown') {
+      /* All unknown-scorer goals collapse to a single bucket per game.
+         Renders as "UNKNOWN · 2" or "UNKNOWN 12', 67'" depending on
+         display mode. */
+      key = 'u';
+      if (!byKey[key]) {
+        byKey[key] = {
+          kind: 'unknown',
+          name: 'UNKNOWN',
+          number: '',
+          count: 0,
+          minutes: []
+        };
+        order.push(key);
+      }
+    } else if (g.kind === 'custom') {
       var nm = (g.customName || '').trim() || '(unnamed)';
       key = 'c:' + nm.toLowerCase();
       if (!byKey[key]) {
@@ -2720,15 +2740,21 @@ function aggregateGoalsByPlayer(goals, sortMode) {
 
   /* Outer ordering depends on display mode:
        - 'totals' (default for jersey#-prefixed lists): jersey# asc,
-         blanks last, customs alphabetical at the end.
+         blanks last, customs alphabetical, then UNKNOWN at the very
+         end (since it's a placeholder pending follow-up).
        - 'times'  (chronological list): each entry's earliest minute
          asc, with nulls (unknown-minute entries) sorted to the end.
+         Unknown-scorer goals interleave naturally by their minute —
+         a goal at 12' shows above 67' regardless of who scored it.
          Ties broken by jersey# then name so the order is stable.
      The mode is passed in so the same function serves both card-side
      renders without each caller needing to re-implement sorting. */
-  var roster = [], custom = [];
+  var roster = [], custom = [], unknown = [];
   order.forEach(function(k) {
-    (byKey[k].kind === 'custom' ? custom : roster).push(byKey[k]);
+    var bucket = byKey[k];
+    if      (bucket.kind === 'unknown') unknown.push(bucket);
+    else if (bucket.kind === 'custom')  custom.push(bucket);
+    else                                roster.push(bucket);
   });
 
   if (sortMode === 'times') {
@@ -2739,7 +2765,10 @@ function aggregateGoalsByPlayer(goals, sortMode) {
       var am = (a.minutes.length && a.minutes[0] != null) ? a.minutes[0] : Infinity;
       var bm = (b.minutes.length && b.minutes[0] != null) ? b.minutes[0] : Infinity;
       if (am !== bm) return am - bm;
-      /* Same minute (or both unknown) — fall back to jersey#, then name. */
+      /* Same minute (or both unknown-minute) — fall back to jersey#,
+         then name. Unknown-scorer entries land naturally here too —
+         their `number` is '' and `name` is 'UNKNOWN', which sorts
+         after most last names but is dwarfed by the minute key anyway. */
       var an = parseInt(a.number, 10), bn = parseInt(b.number, 10);
       var aHas = !isNaN(an), bHas = !isNaN(bn);
       if (aHas && bHas && an !== bn) return an - bn;
@@ -2747,16 +2776,19 @@ function aggregateGoalsByPlayer(goals, sortMode) {
       if (!aHas && bHas) return 1;
       return (a.name || '').localeCompare(b.name || '');
     }
-    /* Merge roster + custom into one chronological list — in times mode
-       there's no reason to ghetto custom names to the end; a custom
-       scorer's goal at minute 12 should still appear before a roster
-       scorer's goal at minute 67. */
-    var merged = roster.concat(custom);
+    /* Merge all three buckets into one chronological list — in times
+       mode there's no reason to ghetto any of them to the end. A
+       custom or unknown scorer at 12' should still appear before a
+       roster scorer at 67'. */
+    var merged = roster.concat(custom).concat(unknown);
     merged.sort(timesCmp);
     return merged;
   }
 
-  /* Default 'totals' mode: roster first by jersey, customs alpha at end. */
+  /* Default 'totals' mode: roster first by jersey, customs alpha,
+     then unknowns last (they're TBD entries — keep them at the bottom
+     so the rest of the card reads cleanly while still surfacing the
+     unattributed goal count). */
   roster.sort(function(a, b) {
     var an = parseInt(a.number, 10), bn = parseInt(b.number, 10);
     var aHas = !isNaN(an), bHas = !isNaN(bn);
@@ -2766,7 +2798,7 @@ function aggregateGoalsByPlayer(goals, sortMode) {
     return (a.name || '').localeCompare(b.name || '');
   });
   custom.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
-  return roster.concat(custom);
+  return roster.concat(custom).concat(unknown);
 }
 
 /* ═══════════════════════════════════════════════════════════════

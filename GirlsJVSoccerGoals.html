@@ -588,6 +588,23 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
   font-weight: 500;
   color: var(--text);
 }
+/* Unknown scorer — visually distinct from named scorers so the user
+   can tell at a glance which goals still need attribution. Italic +
+   slightly muted reads as "TBD" without being alarming. */
+.goal-row .goal-name .player-name.unknown {
+  font-style: italic;
+  color: var(--text-2);
+  font-weight: 400;
+}
+.goal-row .goal-name .unknown-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  margin-left: 6px;
+  font-weight: 600;
+  font-style: normal;
+}
 .goal-row .goal-name .custom-tag {
   font-size: 10px;
   text-transform: uppercase;
@@ -704,6 +721,15 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
   margin-left: 6px;
   font-weight: 600;
 }
+.summary-row .summary-name .unknown-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  margin-left: 6px;
+  font-weight: 600;
+  font-style: normal;
+}
 .summary-row .summary-goals {
   font-family: 'Oswald', sans-serif;
   font-weight: 700;
@@ -745,6 +771,154 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
   font-size: 28px;
   letter-spacing: 0.02em;
 }
+
+/* ─── Final Result section ──────────────────────────────────
+   Lives below the Game Total. Three rendered states:
+     - Manual mode: just a message ("not in schedule")
+     - Scheduled, not yet final: small form with WW count + opp
+       score input + "Mark as Final" button.
+     - Final already: same form pre-filled, "Update Result" +
+       "Un-finalize" buttons. If goals tracked diverge from saved
+       scoreUs, a small drift hint appears.
+
+   Color treatment matches the rest of the tool — neutral by
+   default, soft-green tint when the game is final (mirrors the
+   game pill at the top). */
+.final-result {
+  background: #fafbfd;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  transition: background 120ms, border-color 120ms;
+}
+.final-result.is-final {
+  background: #e8f5e8;
+  border-color: #b8d8b8;
+}
+.final-result.is-cancelled {
+  background: #fbe8e8;
+  border-color: #e6c5c5;
+}
+.final-result .fr-header {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.final-result.is-final .fr-header { color: var(--good); }
+.final-result .fr-status-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #e8eef7;
+  color: var(--text-2);
+}
+.final-result.is-final .fr-status-pill {
+  background: var(--good);
+  color: #fff;
+}
+.final-result.is-cancelled .fr-status-pill {
+  background: var(--tool);
+  color: #fff;
+}
+.final-result .fr-message {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+.final-result .fr-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.final-result .fr-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.final-result .fr-ww-score {
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 22px;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.final-result .fr-ww-score .fr-score-suffix {
+  font-family: -apple-system, sans-serif;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-3);
+}
+.final-result .fr-drift-hint {
+  font-size: 11px;
+  color: #b35a00;
+  font-style: italic;
+  margin-left: 6px;
+  font-family: -apple-system, sans-serif;
+}
+.final-result input[type="number"] {
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-style: italic;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--ink);
+  text-align: center;
+  padding: 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  width: 80px;
+  background: #fff;
+}
+.final-result .fr-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.final-result .fr-btn {
+  flex: 1;
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 120ms, opacity 120ms;
+}
+.final-result .fr-btn-primary {
+  background: var(--good);
+  color: #fff;
+  border-color: var(--good);
+}
+.final-result .fr-btn-primary:hover { background: #1f5e2c; }
+.final-result .fr-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.final-result .fr-btn-secondary {
+  background: #fff;
+  color: var(--text-2);
+  border-color: var(--line-2);
+}
+.final-result .fr-btn-secondary:hover { background: #f0f4fa; }
 
 /* ─── Footer ──────────────────────────────────────────────── */
 .foot {
@@ -919,6 +1093,16 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
     <span class="gt-value" id="gt-value">0</span>
   </div>
 
+  <!-- Final Result — appears once a game is selected. Lets the coach
+       mark the game final, enter the opponent's score, and push that
+       back to schedule.json without leaving the Goals tool. WW score
+       is auto-derived from goals tracked (not editable here). For
+       manual-mode games (not in schedule) this section shows an
+       explainer message instead of the form. -->
+  <div class="final-result" id="final-result" style="display:none;">
+    <!-- Contents rendered by renderFinalResultSection() -->
+  </div>
+
   <p class="foot">Waukesha West • <a href="./index.html">All Tools</a></p>
 </div>
 
@@ -956,6 +1140,12 @@ var LS_SCHEDULE_KEY  = 'ww-soccer-schedule-v1';
 var LS_ROSTER_KEY    = 'ww-soccer-roster-v1';
 var LS_PREFS_KEY     = 'ww-soccer-goals-prefs-v1';
 var SCORER_CUSTOM    = '__custom__';
+/* Special "scorer unknown" marker — for live entry when the tracker
+   sees a goal but isn't sure who scored. Renders as italic muted
+   "Unknown" in the goals list, "UNKNOWN" on the cards, and can be
+   fixed later via the edit form by changing the scorer dropdown to
+   a real player or a typed custom name. */
+var SCORER_UNKNOWN   = '__unknown__';
 
 /* ─── State ────────────────────────────────────────────────── */
 /* Map of gameKey → array of goal entries. The whole map is what gets
@@ -987,6 +1177,14 @@ var editingGoalId = null;
    reloads. currentMinute is the picker's current value (always 0–120). */
 var lastEnteredMinute = null;
 var currentMinute = 0;
+
+/* Final Result state. currentScheduleEntryId is the schedule.json
+   game `id` for the currently-selected game when picked from the
+   schedule dropdown — null when in manual mode (no schedule entry
+   to update). frSaving suppresses double-clicks during the network
+   round-trip. */
+var currentScheduleEntryId = null;
+var frSaving = false;
 
 /* ─── Boot order ───────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function() {
@@ -1075,10 +1273,19 @@ function buildGoalsPayload() {
 }
 
 /* Defensive normalizer — anything coming off the wire / disk is
-   coerced into the canonical shape, dropping anything malformed. */
+   coerced into the canonical shape, dropping anything malformed.
+   Three kinds:
+     'roster'  — playerId points at a roster player
+     'custom'  — customName holds a typed name (non-roster scorer)
+     'unknown' — neither field used; tracker saw a goal but didn't
+                 catch who scored. Can be fixed later via the edit
+                 form by switching the dropdown to a real player. */
 function normalizeGoal(g) {
   if (!g || typeof g !== 'object') return null;
-  var kind = (g.kind === 'custom') ? 'custom' : 'roster';
+  var kind;
+  if (g.kind === 'custom')  kind = 'custom';
+  else if (g.kind === 'unknown') kind = 'unknown';
+  else kind = 'roster';
   /* Minute: null is an explicit "unknown" (used by the migration path).
      Otherwise clamp to 0..120. parseInt('', 10) is NaN → null. */
   var minute = null;
@@ -1393,9 +1600,13 @@ function populateScheduleDropdown() {
       statusPart = ' (cancelled)';
     }
     opt.textContent = datePart + ' vs ' + g.opponent + statusPart;
-    /* Stash the game data on the option for retrieval on change. */
+    /* Stash the game data on the option for retrieval on change. id is
+       optional in the legacy schema but every entry in current
+       schedule.json has one — when present, it's the canonical key for
+       updating the entry on save. */
     opt.dataset.date = g.date;
     opt.dataset.opp = g.opponent;
+    opt.dataset.id  = g.id || '';
     sel.appendChild(opt);
   });
   /* Hint message reflects what we found. */
@@ -1414,10 +1625,17 @@ function onScheduleSelect(value) {
   var sel = document.getElementById('gp-schedule-select');
   var opt = sel.options[sel.selectedIndex];
   if (!opt) { clearCurrentGame(); return; }
+  /* Capture the schedule entry id BEFORE setCurrentGame so the Final
+     Result section knows it's a scheduled (not manual) game and can
+     show the "Mark as Final" form rather than the explainer message. */
+  currentScheduleEntryId = opt.dataset.id || null;
   setCurrentGame(opt.dataset.date || '', opt.dataset.opp || '');
 }
 
 function onManualChange() {
+  /* Manual entry never produces a schedule.json link — clear any prior
+     id so the Final Result section renders as the manual-mode message. */
+  currentScheduleEntryId = null;
   var date = (document.getElementById('gp-manual-date').value || '').trim();
   var opp  = (document.getElementById('gp-manual-opp').value  || '').trim();
   if (date && opp) {
@@ -1457,6 +1675,7 @@ function clearCurrentGame() {
   currentGameDate = '';
   currentGameOpp  = '';
   currentGameKey  = null;
+  currentScheduleEntryId = null;
   lastEnteredMinute = null;
   setEntryMinute(0, false);
   document.getElementById('gp-current').style.display = 'none';
@@ -1744,7 +1963,10 @@ function populateRosterDropdown() {
   var sel = document.getElementById('entry-player');
   if (!sel) return;
   var roster = loadRosterPlayers();
+  /* Order: placeholder → Unknown (top so it's a one-tap during chaotic
+     live entry) → roster players → Custom name escape hatch. */
   var html = '<option value="">— Select player —</option>';
+  html += '<option value="' + SCORER_UNKNOWN + '">— Unknown scorer —</option>';
   roster.forEach(function(p) {
     var first = (p.firstName || '').trim();
     var last  = (p.lastName  || '').trim();
@@ -1771,6 +1993,7 @@ function onEntryPlayerChange(value) {
       if (ci) ci.focus();
     }, 0);
   } else {
+    /* Both 'unknown' and roster picks hide the custom-name input. */
     row.classList.remove('with-custom');
     document.getElementById('entry-custom-name').value = '';
   }
@@ -1827,7 +2050,12 @@ function onAddGoal() {
     playerId:   '',
     customName: ''
   };
-  if (playerVal === SCORER_CUSTOM) {
+  if (playerVal === SCORER_UNKNOWN) {
+    /* Tracker isn't sure who scored. The entry is still recorded
+       (with minute + half) so the game total stays accurate; the
+       attribution can be filled in later via the edit form. */
+    goal.kind = 'unknown';
+  } else if (playerVal === SCORER_CUSTOM) {
     var custom = (customInput.value || '').trim();
     if (!custom) {
       if (window.WWCommon) WWCommon.toast('Type the scorer\'s name', 'warn');
@@ -1922,7 +2150,12 @@ function renderGoalRow(g) {
     ? '<div class="goal-min no-min" title="Minute unknown">—</div>'
     : '<div class="goal-min">' + g.minute + '\'</div>';
   var nameHtml = '';
-  if (g.kind === 'custom') {
+  if (g.kind === 'unknown') {
+    /* Unknown scorer — italic muted text, plus a small "TBD" tag so
+       the user remembers to fix it later. */
+    nameHtml = '<span class="player-name unknown">Unknown</span>' +
+               '<span class="unknown-tag">TBD</span>';
+  } else if (g.kind === 'custom') {
     var cn = (g.customName || '').trim() || 'Custom';
     nameHtml = '<span class="player-name">' + WWCommon.escapeHtml(cn.toUpperCase()) +
                '</span><span class="custom-tag">custom</span>';
@@ -1951,7 +2184,12 @@ function renderGoalRow(g) {
 /* ─── Inline edit form ─────────────────────────────────────── */
 function renderGoalEditForm(g) {
   var roster = loadRosterPlayers();
+  /* Order matches the entry form: placeholder → Unknown → roster →
+     Custom. Pre-select whichever matches g.kind so the user starts
+     editing from the current state. */
   var optsHtml = '<option value="">— Select player —</option>';
+  var unknownSel = (g.kind === 'unknown') ? ' selected' : '';
+  optsHtml += '<option value="' + SCORER_UNKNOWN + '"' + unknownSel + '>— Unknown scorer —</option>';
   roster.forEach(function(p) {
     var first = (p.firstName || '').trim();
     var last  = (p.lastName  || '').trim();
@@ -2013,7 +2251,11 @@ function setEditHalf(id, h) {
 function onEditPlayerChange(id, value) {
   var g = findGoalById(id);
   if (!g) return;
-  if (value === SCORER_CUSTOM) {
+  if (value === SCORER_UNKNOWN) {
+    g.kind = 'unknown';
+    g.playerId = '';
+    g.customName = '';
+  } else if (value === SCORER_CUSTOM) {
     g.kind = 'custom';
     g.playerId = '';
   } else {
@@ -2085,13 +2327,19 @@ function findGoalById(id) {
    ═══════════════════════════════════════════════════════════════ */
 function buildSummary() {
   /* Aggregate goals by player. Key shape:
-       roster: 'r:' + playerId
-       custom: 'c:' + lowercased customName
+       roster:  'r:' + playerId
+       custom:  'c:' + lowercased customName
+       unknown: 'u' (single bucket — all unknown goals collapse to one row)
      Custom names case-fold so "Casey" and "casey" don't double-list. */
   var map = {};
   currentGoals().forEach(function(g) {
-    var key, label;
-    if (g.kind === 'custom') {
+    var key;
+    if (g.kind === 'unknown') {
+      key = 'u';
+      if (!map[key]) {
+        map[key] = { kind: 'unknown', name: 'Unknown', number: '', count: 0 };
+      }
+    } else if (g.kind === 'custom') {
       var name = (g.customName || '').trim();
       if (!name) name = '(unnamed)';
       key = 'c:' + name.toLowerCase();
@@ -2113,8 +2361,14 @@ function buildSummary() {
     map[key].count++;
   });
   var arr = Object.keys(map).map(function(k) { return map[k]; });
-  /* Sort: count desc, then jersey # asc (blanks last), then name asc. */
+  /* Sort: unknowns always last (these are TBD entries — keep them
+     visually grouped at the bottom so the user remembers to fix them).
+     Within the rest: count desc, then jersey # asc (blanks last), then
+     name asc. */
   arr.sort(function(a, b) {
+    var aUnk = (a.kind === 'unknown'), bUnk = (b.kind === 'unknown');
+    if (aUnk && !bUnk) return 1;
+    if (!aUnk && bUnk) return -1;
     if (a.count !== b.count) return b.count - a.count;
     var an = parseInt(a.number, 10), bn = parseInt(b.number, 10);
     var aHas = !isNaN(an), bHas = !isNaN(bn);
@@ -2143,10 +2397,16 @@ function renderSummary() {
     var numHtml = r.number
       ? '<div class="summary-num">#' + WWCommon.escapeHtml(r.number) + '</div>'
       : '<div class="summary-num no-num">—</div>';
-    var customTag = (r.kind === 'custom') ? '<span class="custom-tag">custom</span>' : '';
+    var tag = '';
+    var nameClass = '';
+    if (r.kind === 'custom')  tag = '<span class="custom-tag">custom</span>';
+    if (r.kind === 'unknown') {
+      tag = '<span class="unknown-tag">TBD</span>';
+      nameClass = ' style="font-style:italic;color:var(--text-2);"';
+    }
     html += '<div class="summary-row">' +
               numHtml +
-              '<div class="summary-name">' + WWCommon.escapeHtml(r.name) + customTag + '</div>' +
+              '<div class="summary-name"' + nameClass + '>' + WWCommon.escapeHtml(r.name) + tag + '</div>' +
               '<div class="summary-goals"><span class="num">' + r.count + '</span>' +
                 'goal' + (r.count === 1 ? '' : 's') +
               '</div>' +
@@ -2224,6 +2484,323 @@ function renderAll() {
   renderGoalsList();
   renderSummary();
   updateGameTotals();
+  renderFinalResultSection();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FINAL RESULT — mark game final, push score back to schedule.json
+   ═══════════════════════════════════════════════════════════════
+   Five rendered states for the section, all in one container:
+
+     1. No game selected       → section hidden entirely.
+     2. Manual mode game       → explainer message ("not in schedule").
+     3. Schedule mode + active → "Mark as Final" form. WW score is
+                                 derived live from goals tracked;
+                                 opp score is a 0-99 number input.
+     4. Already final          → form pre-filled with saved values,
+                                 "Update Result" + "Un-finalize"
+                                 buttons. Drift hint when goals
+                                 tracked diverge from saved scoreUs.
+     5. Cancelled              → read-only message; user must un-cancel
+                                 from the Schedule tool first.
+
+   The save flow loads the FRESH schedule.json (so concurrent edits
+   from the Schedule tool aren't clobbered), modifies only the matched
+   entry's status / scoreUs / scoreThem fields, and saves back. On
+   conflict-reload (someone updated schedule.json in the gap between
+   our load and save), we re-apply the change against the merged data
+   and save once more. WWCommon's saveJson always writes localStorage
+   synchronously before any await, so even if the GitHub commit fails
+   the local state is durable.
+
+   Un-finalize is "set status back to 'scheduled'" — scoreThem stays
+   in place per the design discussion (an accidental un-finalize
+   shouldn't erase the typed score).
+   ════════════════════════════════════════════════════════════════ */
+
+/* Find a schedule entry by id in the in-memory SCHEDULE_GAMES. Returns
+   the live object reference, so callers can compare scoreUs/scoreThem
+   against current goal counts without re-parsing JSON. */
+function findScheduleEntry(id) {
+  if (!id) return null;
+  for (var i = 0; i < SCHEDULE_GAMES.length; i++) {
+    if (SCHEDULE_GAMES[i].id === id) return SCHEDULE_GAMES[i];
+  }
+  return null;
+}
+
+function renderFinalResultSection() {
+  var box = document.getElementById('final-result');
+  if (!box) return;
+
+  /* State 1: no game selected — hide entirely. */
+  if (!currentGameKey) {
+    box.style.display = 'none';
+    box.className = 'final-result';
+    return;
+  }
+  box.style.display = '';
+
+  /* State 2: manual mode — message only. */
+  if (!currentScheduleEntryId) {
+    box.className = 'final-result';
+    box.innerHTML =
+      '<div class="fr-header">Final Result</div>' +
+      '<div class="fr-message">' +
+        'This game isn&rsquo;t in the season schedule. Add it via the ' +
+        '<a href="./GirlsJVSoccerSchedule.html" target="_blank" rel="noopener">Schedule tool</a> ' +
+        'to mark it final and record the result.' +
+      '</div>';
+    return;
+  }
+
+  /* State 3/4/5 — game IS in schedule. Look up the latest in-memory
+     entry to pull current status / scoreThem / scoreUs. */
+  var entry = findScheduleEntry(currentScheduleEntryId);
+  if (!entry) {
+    /* Schedule entry vanished (deleted via Schedule tool). Treat like
+       manual mode — show the explainer. */
+    box.className = 'final-result';
+    box.innerHTML =
+      '<div class="fr-header">Final Result</div>' +
+      '<div class="fr-message">' +
+        'This game is no longer in the schedule. Add it back via the ' +
+        '<a href="./GirlsJVSoccerSchedule.html" target="_blank" rel="noopener">Schedule tool</a> ' +
+        'to record the result.' +
+      '</div>';
+    return;
+  }
+
+  var liveCount = currentGoals().length;
+  var status    = entry.status || 'scheduled';
+  var savedUs   = (entry.scoreUs   == null) ? null : parseInt(entry.scoreUs,   10);
+  var savedThem = (entry.scoreThem == null) ? null : parseInt(entry.scoreThem, 10);
+
+  /* State 5: cancelled — read-only message. */
+  if (status === 'cancelled') {
+    box.className = 'final-result is-cancelled';
+    box.innerHTML =
+      '<div class="fr-header">Final Result <span class="fr-status-pill">Cancelled</span></div>' +
+      '<div class="fr-message">' +
+        'This game is marked cancelled in the schedule. Un-cancel it via the ' +
+        '<a href="./GirlsJVSoccerSchedule.html" target="_blank" rel="noopener">Schedule tool</a> ' +
+        'first if you need to record a result.' +
+      '</div>';
+    return;
+  }
+
+  var isFinal = (status === 'final');
+
+  /* Drift hint: shown only when game is final AND the live goal count
+     diverges from what's saved in schedule.json. Nudges the user to
+     hit "Update Result" — but doesn't auto-resync (per the design
+     discussion: explicit clicks only). */
+  var driftHtml = '';
+  if (isFinal && savedUs != null && savedUs !== liveCount) {
+    driftHtml = '<span class="fr-drift-hint">↻ saved as ' + savedUs +
+                ' &mdash; re-save to update</span>';
+  }
+
+  /* Pre-fill the opp-score input with whatever's on disk; leave blank
+     when no value is saved yet. The number input has min=0/max=99 to
+     stop accidental typos (no soccer game realistically goes higher). */
+  var oppScoreVal = (savedThem == null) ? '' : String(savedThem);
+
+  var statusPill = isFinal
+    ? '<span class="fr-status-pill">Final ✓</span>'
+    : '<span class="fr-status-pill">Scheduled</span>';
+
+  var primaryLabel = isFinal ? 'Update Result' : 'Mark as Final';
+  var unfinalizeBtn = isFinal
+    ? '<button type="button" class="fr-btn fr-btn-secondary" id="fr-unfinalize-btn" onclick="onUnfinalizeResult()">Un-finalize</button>'
+    : '';
+
+  box.className = 'final-result' + (isFinal ? ' is-final' : '');
+  box.innerHTML =
+    '<div class="fr-header">Final Result ' + statusPill + '</div>' +
+    '<div class="fr-row">' +
+      '<div class="fr-label">WW Score</div>' +
+      '<div class="fr-ww-score">' +
+        liveCount +
+        '<span class="fr-score-suffix">' +
+          'goal' + (liveCount === 1 ? '' : 's') + ' tracked' +
+        '</span>' +
+        driftHtml +
+      '</div>' +
+    '</div>' +
+    '<div class="fr-row">' +
+      '<div class="fr-label">Opp Score</div>' +
+      '<div>' +
+        '<input type="number" id="fr-opp-score" min="0" max="99" inputmode="numeric" value="' +
+          WWCommon.escapeAttr(oppScoreVal) + '" placeholder="0">' +
+      '</div>' +
+    '</div>' +
+    '<div class="fr-actions">' +
+      '<button type="button" class="fr-btn fr-btn-primary" id="fr-save-btn" onclick="onSaveFinalResult()">' +
+        primaryLabel +
+      '</button>' +
+      unfinalizeBtn +
+    '</div>';
+}
+
+/* User clicked "Mark as Final" or "Update Result". Validate the opp
+   score input, then push to schedule.json. WW score is the live goal
+   count — never editable from this form. */
+function onSaveFinalResult() {
+  if (frSaving) return;
+  if (!currentScheduleEntryId) return;
+  var input = document.getElementById('fr-opp-score');
+  var raw = (input.value || '').trim();
+  if (raw === '') {
+    if (window.WWCommon) WWCommon.toast('Enter the opponent\'s score', 'warn');
+    input.focus();
+    return;
+  }
+  var oppScore = parseInt(raw, 10);
+  if (isNaN(oppScore) || oppScore < 0 || oppScore > 99) {
+    if (window.WWCommon) WWCommon.toast('Opponent score must be 0–99', 'warn');
+    input.focus();
+    return;
+  }
+  var ourScore = currentGoals().length;
+  doSaveScheduleResult('final', ourScore, oppScore);
+}
+
+/* User clicked "Un-finalize". Set status back to 'scheduled' but
+   leave scoreThem alone (per design — accidental un-finalize
+   shouldn't erase typed values; user can re-finalize without
+   re-typing). scoreUs is also left alone for symmetry; the next
+   "Mark as Final" will overwrite it with the live count. */
+function onUnfinalizeResult() {
+  if (frSaving) return;
+  if (!currentScheduleEntryId) return;
+  doSaveScheduleResult('scheduled', null, null);
+}
+
+/* Core save: load fresh schedule.json, modify the matched entry,
+   write back. Handles conflict-reload (concurrent Schedule-tool edits)
+   by re-applying the change against the merged data. The status
+   parameter is 'final' or 'scheduled'; scoreUs/scoreThem are only
+   written when they're non-null (i.e. on Mark as Final / Update). */
+function doSaveScheduleResult(status, scoreUs, scoreThem) {
+  if (!window.WWCommon) {
+    /* Degraded mode — common.js failed to load. Best-effort: update
+       SCHEDULE_GAMES in-memory + localStorage so the UI reflects the
+       change locally. The user will need GitHub to actually persist. */
+    var entry = findScheduleEntry(currentScheduleEntryId);
+    if (entry) {
+      entry.status = status;
+      if (scoreUs   != null) entry.scoreUs   = scoreUs;
+      if (scoreThem != null) entry.scoreThem = scoreThem;
+    }
+    renderFinalResultSection();
+    return;
+  }
+
+  setFRSaving(true);
+
+  /* Step 1: load the fresh schedule.json. */
+  WWCommon.loadJson('schedule.json', LS_SCHEDULE_KEY).then(function(loadResult) {
+    if (!loadResult || !loadResult.data || typeof loadResult.data !== 'object') {
+      WWCommon.toast('Could not load schedule', 'warn');
+      setFRSaving(false);
+      return;
+    }
+    var data = loadResult.data;
+    if (applyResultToData(data, currentScheduleEntryId, status, scoreUs, scoreThem) === false) {
+      WWCommon.toast('Game no longer in schedule', 'warn');
+      setFRSaving(false);
+      renderFinalResultSection();
+      return;
+    }
+
+    /* Step 2: save back. */
+    return WWCommon.saveJson('schedule.json', LS_SCHEDULE_KEY, data, 'Goals tool').then(function(saveResult) {
+      if (saveResult && saveResult.action === 'conflict-reloaded' && saveResult.data) {
+        /* Step 3 (rare): someone else updated schedule.json between
+           our load and our save. saveResult.data is the merged remote
+           — re-apply our change to it and try once more. */
+        if (applyResultToData(saveResult.data, currentScheduleEntryId, status, scoreUs, scoreThem) === false) {
+          WWCommon.toast('Game was removed from schedule', 'warn');
+          setFRSaving(false);
+          /* Refresh the dropdown so the user sees the current truth. */
+          refreshScheduleFromGitHub();
+          return;
+        }
+        return WWCommon.saveJson('schedule.json', LS_SCHEDULE_KEY, saveResult.data, 'Goals tool (re-apply)').then(function(r2) {
+          finishSaveResult(r2, status);
+        });
+      } else {
+        finishSaveResult(saveResult, status);
+      }
+    });
+  }).catch(function() {
+    if (window.WWCommon) WWCommon.toast('Save failed', 'warn');
+    setFRSaving(false);
+  });
+}
+
+/* Helper: apply the status / score change to the right entry inside
+   a parsed schedule.json payload. Returns false if the entry is no
+   longer present (so callers can stop & toast). */
+function applyResultToData(data, entryId, status, scoreUs, scoreThem) {
+  var games = Array.isArray(data.games) ? data.games : null;
+  if (!games) return false;
+  var idx = -1;
+  for (var i = 0; i < games.length; i++) {
+    if (games[i] && games[i].id === entryId) { idx = i; break; }
+  }
+  if (idx === -1) return false;
+  games[idx].status = status;
+  if (scoreUs   != null) games[idx].scoreUs   = scoreUs;
+  if (scoreThem != null) games[idx].scoreThem = scoreThem;
+  return true;
+}
+
+/* After a successful save round-trip: refresh in-memory SCHEDULE_GAMES
+   from what we just wrote to localStorage, refresh the dropdown labels
+   (so e.g. "Apr 27 vs Arrowhead" gets a "(3-2)" suffix), re-render the
+   Final Result section, and toast appropriately. */
+function finishSaveResult(saveResult, status) {
+  loadScheduleFromLocal();
+  populateScheduleDropdown();
+  /* Restore the schedule dropdown selection — populateScheduleDropdown
+     resets to the placeholder by default. Selecting by id matches the
+     option's `value` (set in populateScheduleDropdown). */
+  var sel = document.getElementById('gp-schedule-select');
+  if (sel && currentScheduleEntryId) sel.value = currentScheduleEntryId;
+  renderFinalResultSection();
+  setFRSaving(false);
+
+  if (window.WWCommon && typeof WWCommon.toast === 'function') {
+    var localOnly = (saveResult && saveResult.action === 'saved-local-only');
+    if (status === 'final') {
+      WWCommon.toast(localOnly ? 'Saved locally — will sync when GitHub is configured'
+                               : 'Result saved to schedule ✓', 'ok');
+    } else {
+      WWCommon.toast(localOnly ? 'Un-finalized locally — will sync when GitHub is configured'
+                               : 'Game un-finalized', 'ok');
+    }
+  }
+}
+
+/* Toggle the saving state — disables the buttons and updates labels
+   so the user gets feedback during the network round-trip. */
+function setFRSaving(saving) {
+  frSaving = saving;
+  var saveBtn = document.getElementById('fr-save-btn');
+  var unfBtn  = document.getElementById('fr-unfinalize-btn');
+  if (saveBtn) {
+    saveBtn.disabled = saving;
+    if (saving) {
+      saveBtn.dataset.origLabel = saveBtn.textContent;
+      saveBtn.textContent = 'Saving…';
+    } else if (saveBtn.dataset.origLabel) {
+      saveBtn.textContent = saveBtn.dataset.origLabel;
+      delete saveBtn.dataset.origLabel;
+    }
+  }
+  if (unfBtn) unfBtn.disabled = saving;
 }
 
 </script>
