@@ -184,27 +184,43 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
   border-color: var(--ink);
 }
 
+/* Currently-selected game indicator. Two states:
+     - default (no .has-goals): neutral gray-blue. Game is set up but
+       no goals have been tracked yet — calmly waiting for input.
+     - .has-goals: light green. Goals are being tracked — positive
+       confirmation that data is captured. Matches the .loaded/.empty
+       pattern used by the roster badge and the Card tool's goals
+       link status. */
 .gp-current {
-  background: var(--tool-soft);
-  border: 1px solid #e6c5c5;
+  background: #f0f4fa;
+  border: 1px solid #c9d6e6;
   border-radius: 8px;
   padding: 10px 12px;
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: 4px;
+  transition: background 120ms, border-color 120ms;
+}
+.gp-current.has-goals {
+  background: #e8f5e8;
+  border-color: #b8d8b8;
 }
 .gp-current .gp-current-text {
   flex: 1;
   font-family: 'Oswald', sans-serif;
   font-weight: 600;
   font-size: 14px;
-  color: var(--tool-2);
+  color: var(--ink);
   letter-spacing: 0.04em;
   line-height: 1.25;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 120ms;
+}
+.gp-current.has-goals .gp-current-text {
+  color: var(--good);
 }
 .gp-current .gp-current-text small {
   display: block;
@@ -215,6 +231,9 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
   letter-spacing: 0;
   text-transform: none;
   margin-top: 2px;
+}
+.gp-current.has-goals .gp-current-text small {
+  color: #4a8a4a;
 }
 
 .gp-empty-msg {
@@ -1423,17 +1442,12 @@ function setCurrentGame(date, opp) {
      game = clean slate. */
   lastEnteredMinute = null;
   setEntryMinute(getDefaultEntryMinute(), false);
-  /* Update the visual indicator. */
-  var current = document.getElementById('gp-current');
-  var text    = document.getElementById('gp-current-text');
-  var empty   = document.getElementById('gp-empty-msg');
-  var dt = parseDateUTC(date);
-  var label = (dt ? formatShortDate(dt) : date) + ' vs ' + opp;
-  text.innerHTML = WWCommon.escapeHtml(label) +
-    '<small>' + WWCommon.escapeHtml(currentGoals().length + ' goal' + (currentGoals().length === 1 ? '' : 's') + ' tracked') + '</small>';
-  current.style.display = '';
-  empty.style.display = 'none';
-  /* Re-render lists and totals for the new game. */
+  /* Show the game pill and hide the "pick a game" prompt. The pill's
+     text and color state are owned by updateGameTotals (called via
+     renderAll below) so all writes go through one place. */
+  document.getElementById('gp-current').style.display = '';
+  document.getElementById('gp-empty-msg').style.display = 'none';
+  /* Re-render lists, totals, and the pill text/color. */
   renderAll();
   setSectionsDisabled(false);
 }
@@ -2098,20 +2112,35 @@ function applyViewMode() {
 function updateGameTotals() {
   var totalEl = document.getElementById('game-total');
   var valEl   = document.getElementById('gt-value');
+  var pill    = document.getElementById('gp-current');
+  var pillTxt = document.getElementById('gp-current-text');
   var goals = currentGoals();
-  if (!currentGameKey || goals.length === 0) {
+  var hasGoals = goals.length > 0;
+
+  /* Big "Game Total" pill at the bottom — only shows when there are
+     goals to count. */
+  if (!currentGameKey || !hasGoals) {
     totalEl.style.display = 'none';
-    return;
+  } else {
+    totalEl.style.display = '';
+    valEl.textContent = goals.length;
   }
-  totalEl.style.display = '';
-  valEl.textContent = goals.length;
-  /* Also update the "N goals tracked" subline in the current-game pill. */
-  var text = document.getElementById('gp-current-text');
-  if (text && currentGameKey) {
+
+  /* Currently-selected game pill at the top: text + color state.
+     Default (neutral) styling shows "0 goals tracked"; .has-goals
+     flips it green to confirm data is being captured. Both states
+     are calm — neither implies a problem. */
+  if (pill && pillTxt && currentGameKey) {
+    pill.classList.toggle('has-goals', hasGoals);
     var dt = parseDateUTC(currentGameDate);
     var label = (dt ? formatShortDate(dt) : currentGameDate) + ' vs ' + currentGameOpp;
-    text.innerHTML = WWCommon.escapeHtml(label) +
-      '<small>' + goals.length + ' goal' + (goals.length === 1 ? '' : 's') + ' tracked</small>';
+    var checkMark = hasGoals ? ' ✓' : '';
+    pillTxt.innerHTML = WWCommon.escapeHtml(label) +
+      '<small>' + goals.length + ' goal' + (goals.length === 1 ? '' : 's') + ' tracked' + checkMark + '</small>';
+  } else if (pill) {
+    /* No game selected — keep default styling so the next selection
+       starts in the neutral state. */
+    pill.classList.remove('has-goals');
   }
 }
 
