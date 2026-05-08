@@ -1,11 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════
  * WW Girls JV Soccer — Service Worker
  *
- * Caches the static "app shell" so the four pages (index + three tools)
+ * Caches the static "app shell" so the five pages (index + four tools)
  * load even when the device is offline. Data still flows through
  * common.js's existing localStorage fallback, so editing/viewing roster,
- * schedule, and team data continues to work offline; only the GitHub
- * sync is suspended until connectivity returns.
+ * schedule, team, and goal data continues to work offline; only the
+ * GitHub sync is suspended until connectivity returns.
  *
  * Caching strategy:
  *   - Same-origin shell (HTML, JS, JSON, paw mark, manifest):
@@ -21,9 +21,14 @@
  * changes (new HTML structure, common.js API changes, etc.). The
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
+ *
+ * v2 (May 2026): Added GirlsJVSoccerGoals.html to the shell. Bumped
+ * version so devices with a v1 cache evict and re-prime the shell on
+ * next load (otherwise they wouldn't see the new page until a hard
+ * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v1';
+const CACHE_VERSION    = 'v2';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 
@@ -38,6 +43,7 @@ const APP_SHELL_URLS = [
   './GirlsJVSoccerCard.html',
   './GirlsJVSoccerSchedule.html',
   './GirlsJVSoccerRoster.html',
+  './GirlsJVSoccerGoals.html',
   './common.js',
   './manifest.json',
   './Logos/WaukeshaWest.png'
@@ -99,9 +105,9 @@ self.addEventListener('fetch', function(event) {
   /* Cross-origin requests pass through. We don't cache GitHub API
      responses (they carry auth + are mutating), Google Fonts
      (the browser HTTP cache handles them well enough), or cdnjs
-     (html2canvas is bundled in browser cache after first load).
-     Letting them through also avoids any CORS / opaque-response
-     storage issues. */
+     (html2canvas / Sortable are bundled in browser cache after
+     first load). Letting them through also avoids any CORS /
+     opaque-response storage issues. */
   if (url.origin !== self.location.origin) return;
 
   /* Opponent logos: dedicated cache, cache-first with network

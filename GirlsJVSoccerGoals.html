@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>WW Girls JV Soccer — Goal Tracker</title>
+<link rel="icon" type="image/png" href="./Logos/WaukeshaWest.png">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#8a2a2a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Goals">
+<link rel="apple-touch-icon" href="./Logos/WaukeshaWest.png">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Brand palette — same family as the other three tools, with a
+     deep red accent that's this tool's identity. The four tools now
+     read as a set: navy / green / gold / red. */
+  --bg:        #e6e9ef;
+  --surface:   #ffffff;
+  --ink:       #0d1f42;       /* navy — primary brand */
+  --tool:      #8a2a2a;       /* deep red — this tool's accent */
+  --tool-2:    #6a1c1c;       /* deep red, hover */
+  --tool-soft: #fbe8e8;       /* deep red, faintly tinted bg */
+  --good:      #2a7a3a;
+  --warn:      #b07020;
+  --text:      #1a1a1a;
+  --text-2:    #555;
+  --text-3:    #888;
+  --hint:      #9a9fae;
+  --line:      #e0e4ea;
+  --line-2:    #c9d0dc;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  /* Don't allow accidental horizontal scroll on phones with edge-to-edge
+     content; we explicitly constrain max-widths everywhere instead. */
+  overflow-x: hidden;
+}
+
+/* ─── App header ───────────────────────────────────────────── */
+.app-header {
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 14px;
+  /* Top safe-area inset so iOS notch / status bar doesn't overlap when
+     installed as a PWA. */
+  padding-top: max(10px, env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+.app-header .paw {
+  width: 28px; height: 36px;
+  flex-shrink: 0;
+}
+.app-header h1 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-header .back-link {
+  color: rgba(255,255,255,0.85);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.08);
+  flex-shrink: 0;
+  /* iOS tap target */
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+.app-header .back-link:active { background: rgba(255,255,255,0.18); }
+
+/* The deep-red bar under the header is the tool's color marker (parallels
+   the colored tile strip on the index page). */
+.app-header::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  bottom: -3px;
+  height: 3px;
+  background: var(--tool);
+}
+
+/* ─── Container ────────────────────────────────────────────── */
+.container {
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 16px 14px 96px;
+  /* Bottom safe-area inset for iOS PWA home indicator */
+  padding-bottom: max(96px, calc(96px + env(safe-area-inset-bottom)));
+}
+
+.config-mount { margin-bottom: 14px; }
+
+/* ─── Game picker (sticky) ─────────────────────────────────── */
+.game-picker {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 12px 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(13,31,66,0.04);
+}
+
+.section-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+
+.gp-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.gp-row:last-child { margin-bottom: 0; }
+
+select, input[type="date"], input[type="text"], input[type="number"] {
+  width: 100%;
+  /* 16px+ avoids iOS auto-zoom-on-focus */
+  font-size: 16px;
+  padding: 11px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  min-height: 44px;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+}
+select { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%23555' d='M6 8 L0 0 L12 0 Z'/></svg>"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px; }
+select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px; border-color: var(--tool); }
+
+.gp-mode-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.gp-mode-btn {
+  flex: 1;
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 6px;
+  border: 1px solid var(--line-2);
+  background: #fff;
+  color: var(--text-2);
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 36px;
+}
+.gp-mode-btn.active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+.gp-current {
+  background: var(--tool-soft);
+  border: 1px solid #e6c5c5;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.gp-current .gp-current-text {
+  flex: 1;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--tool-2);
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gp-current .gp-current-text small {
+  display: block;
+  font-family: -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-3);
+  letter-spacing: 0;
+  text-transform: none;
+  margin-top: 2px;
+}
+
+.gp-empty-msg {
+  color: var(--text-3);
+  font-size: 13px;
+  text-align: center;
+  padding: 6px 0 2px;
+  font-style: italic;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.4;
+  margin-top: 6px;
+}
+.hint code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  background: #f1f3f7;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* ─── View toggle (Detail / Summary) ───────────────────────── */
+.view-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--line-2);
+  border-radius: 9px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  background: #fff;
+}
+.vt-btn {
+  flex: 1;
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 12px 8px;
+  background: #fff;
+  color: var(--text-2);
+  border: none;
+  cursor: pointer;
+  min-height: 44px;
+  transition: background 100ms;
+}
+.vt-btn.active {
+  background: var(--tool);
+  color: #fff;
+}
+.vt-btn + .vt-btn { border-left: 1px solid var(--line-2); }
+.vt-btn.active + .vt-btn,
+.vt-btn + .vt-btn.active { border-left-color: var(--tool); }
+
+/* ─── Entry form ───────────────────────────────────────────── */
+.entry-form {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 12px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(13,31,66,0.04);
+}
+.entry-form .form-block { margin-bottom: 12px; }
+.entry-form .form-block:last-child { margin-bottom: 0; }
+
+.half-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ht-btn {
+  flex: 1;
+  font-family: 'Oswald', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 12px 8px;
+  background: #fff;
+  color: var(--text-2);
+  border: none;
+  cursor: pointer;
+  min-height: 48px;
+  text-transform: uppercase;
+}
+.ht-btn.active {
+  background: var(--ink);
+  color: #fff;
+}
+.ht-btn + .ht-btn { border-left: 1px solid var(--line-2); }
+.ht-btn.active + .ht-btn,
+.ht-btn + .ht-btn.active { border-left-color: var(--ink); }
+
+.minute-row {
+  display: grid;
+  grid-template-columns: 1fr 64px;
+  gap: 8px;
+  align-items: center;
+}
+.minute-row input[type="number"] {
+  text-align: center;
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-style: italic;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--ink);
+}
+.minute-suffix {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--text-2);
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.scorer-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.scorer-row .custom-name-input { display: none; }
+.scorer-row.with-custom { grid-template-columns: 1fr 1fr; }
+.scorer-row.with-custom .custom-name-input { display: block; }
+
+.add-btn {
+  display: block;
+  width: 100%;
+  background: var(--tool);
+  color: #fff;
+  font-family: 'Oswald', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 14px;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  min-height: 50px;
+  transition: background 100ms;
+}
+.add-btn:active { background: var(--tool-2); }
+.add-btn:disabled {
+  background: #d4c0c0;
+  cursor: not-allowed;
+}
+
+/* Roster status badge under the form. Mirrors the card tool's badge. */
+.roster-badge {
+  margin-top: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.roster-badge.loaded { background: #e8f5e8; color: var(--good); }
+.roster-badge.empty { background: #fff5e8; color: var(--warn); }
+
+/* ─── Goals list ───────────────────────────────────────────── */
+.list-host {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 12px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(13,31,66,0.04);
+}
+.list-host h2 {
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.list-host h2 .count {
+  background: var(--ink);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 9px;
+  margin-left: 6px;
+  letter-spacing: 0;
+}
+
+.empty-state {
+  padding: 22px 14px;
+  text-align: center;
+  color: var(--text-3);
+  font-style: italic;
+  font-size: 13.5px;
+}
+
+.half-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tool);
+  padding: 12px 4px 6px;
+  border-bottom: 1px dashed var(--line);
+  margin-bottom: 4px;
+}
+.half-label:first-child { padding-top: 4px; }
+
+/* Goal row — single goal entry. Layout: [min']  [#NN NAME]  [✎][✕] */
+.goal-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 6px;
+  border-bottom: 1px solid #f3f4f7;
+  min-height: 50px;
+}
+.goal-row:last-child { border-bottom: none; }
+.goal-row .goal-min {
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 16px;
+  color: var(--ink);
+  text-align: center;
+  background: #f1f3f7;
+  border-radius: 6px;
+  padding: 4px 0;
+  letter-spacing: 0.02em;
+}
+.goal-row .goal-min.no-min {
+  color: var(--text-3);
+  font-style: normal;
+  font-weight: 600;
+  font-size: 13px;
+}
+.goal-row .goal-name {
+  font-size: 14.5px;
+  line-height: 1.25;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.goal-row .goal-name .jersey {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+  margin-right: 6px;
+  letter-spacing: 0.02em;
+}
+.goal-row .goal-name .player-name {
+  font-weight: 500;
+  color: var(--text);
+}
+.goal-row .goal-name .custom-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  margin-left: 6px;
+  font-weight: 600;
+}
+.goal-row .goal-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.icon-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-3);
+  font-size: 14px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 100ms, color 100ms;
+}
+.icon-btn:active { background: #f1f3f7; }
+.icon-btn.danger:active { background: #fbe8e8; color: var(--tool); }
+
+/* Inline edit form — replaces a row temporarily */
+.goal-row.editing {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  background: #fafbfd;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 4px 0;
+}
+.edit-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.edit-form-grid .full { grid-column: 1 / -1; }
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.btn-secondary {
+  flex: 1;
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px;
+  border: 1px solid var(--line-2);
+  background: #fff;
+  color: var(--text-2);
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 40px;
+}
+.btn-secondary.primary {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+/* ─── Summary list ─────────────────────────────────────────── */
+.summary-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 6px;
+  border-bottom: 1px solid #f3f4f7;
+  min-height: 52px;
+}
+.summary-row:last-child { border-bottom: none; }
+.summary-row .summary-num {
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--ink);
+  text-align: center;
+  background: #f1f3f7;
+  border-radius: 6px;
+  padding: 6px 0;
+}
+.summary-row .summary-num.no-num {
+  font-style: normal;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.summary-row .summary-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.summary-row .summary-name .custom-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  margin-left: 6px;
+  font-weight: 600;
+}
+.summary-row .summary-goals {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--tool);
+  letter-spacing: 0.04em;
+}
+.summary-row .summary-goals .num {
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-style: italic;
+  font-size: 18px;
+  margin-right: 4px;
+}
+
+/* ─── Game total ──────────────────────────────────────────── */
+.game-total {
+  background: var(--ink);
+  color: #fff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(13,31,66,0.12);
+}
+.game-total .gt-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.75);
+}
+.game-total .gt-value {
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 28px;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Footer ──────────────────────────────────────────────── */
+.foot {
+  text-align: center;
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--hint);
+  padding: 16px 0 6px;
+}
+.foot a {
+  color: var(--text-2);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--hint);
+  padding-bottom: 1px;
+}
+
+/* ─── Disabled state when no game is selected ─────────────── */
+.disabled-section {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ─── Wider viewport (tablet / desktop) ──────────────────── */
+@media (min-width: 720px) {
+  .container { padding: 22px 18px 96px; }
+  .app-header { padding: 12px 22px; }
+  .app-header h1 { font-size: 19px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- HEADER                                                       -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<header class="app-header">
+  <a href="./index.html" class="back-link">← Tools</a>
+  <img src="./Logos/WaukeshaWest.png" alt="WW" class="paw">
+  <h1>Goal Tracker</h1>
+</header>
+
+<div class="container">
+
+  <!-- Shared GitHub config panel — same one common.js mounts for the
+       other three tools, so the PAT carries over automatically. -->
+  <div id="gh-config-mount" class="config-mount"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- GAME PICKER                                                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="game-picker" id="game-picker-section">
+    <div class="section-label">Game</div>
+
+    <!-- Mode row: pick from schedule.json OR enter manually. Mirrors
+         the hybrid Option C from the design spec — schedule dropdown is
+         the path of least friction; manual is an escape hatch for
+         games that aren't in the schedule (scrimmages, tournaments,
+         etc.). -->
+    <div class="gp-mode-row">
+      <button type="button" class="gp-mode-btn active" id="gp-mode-schedule" onclick="setPickerMode('schedule')">From Schedule</button>
+      <button type="button" class="gp-mode-btn" id="gp-mode-manual" onclick="setPickerMode('manual')">Manual</button>
+    </div>
+
+    <!-- Schedule mode -->
+    <div id="gp-schedule-pane">
+      <select id="gp-schedule-select" onchange="onScheduleSelect(this.value)">
+        <option value="">— Select a game —</option>
+      </select>
+      <div class="hint" id="gp-schedule-hint">Loading schedule…</div>
+    </div>
+
+    <!-- Manual mode -->
+    <div id="gp-manual-pane" style="display:none;">
+      <div class="gp-row">
+        <input type="date" id="gp-manual-date" onchange="onManualChange()">
+      </div>
+      <div class="gp-row">
+        <input type="text" id="gp-manual-opp" placeholder="Opponent name" oninput="onManualChange()">
+      </div>
+      <div class="hint">Use this for games not in the season schedule (scrimmages, tournaments, etc.).</div>
+    </div>
+
+    <!-- Currently-selected game indicator. Hidden until both fields resolve. -->
+    <div class="gp-current" id="gp-current" style="display:none;">
+      <div class="gp-current-text" id="gp-current-text"></div>
+    </div>
+    <div class="gp-empty-msg" id="gp-empty-msg">Pick a game above to start tracking goals.</div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- VIEW TOGGLE                                                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="view-toggle">
+    <button type="button" class="vt-btn active" id="vt-detail" onclick="setView('detail')">Detail Entry</button>
+    <button type="button" class="vt-btn" id="vt-summary" onclick="setView('summary')">Summary</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- DETAIL MODE                                                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="detail-section">
+
+    <!-- Entry form — half toggle, minute, scorer dropdown, add button. -->
+    <section class="entry-form" id="entry-form">
+      <div class="form-block">
+        <div class="section-label">Half</div>
+        <div class="half-toggle">
+          <button type="button" class="ht-btn active" id="ht-1" onclick="setHalf(1)">1H</button>
+          <button type="button" class="ht-btn" id="ht-2" onclick="setHalf(2)">2H</button>
+        </div>
+      </div>
+
+      <div class="form-block">
+        <div class="section-label">Minute</div>
+        <div class="minute-row">
+          <input type="number" id="entry-minute" inputmode="numeric" min="1" max="120" placeholder="—">
+          <span class="minute-suffix">min</span>
+        </div>
+      </div>
+
+      <div class="form-block">
+        <div class="section-label">Scorer</div>
+        <!-- Use a flex container in the markup so we can splice in the
+             custom-name input next to the select when needed. -->
+        <div class="scorer-row" id="entry-scorer-row">
+          <select id="entry-player">
+            <option value="">— Select player —</option>
+          </select>
+          <input type="text" class="custom-name-input" id="entry-custom-name" placeholder="Name">
+        </div>
+        <div class="roster-badge empty" id="roster-badge">Roster: not loaded</div>
+      </div>
+
+      <button type="button" class="add-btn" id="add-btn" onclick="onAddGoal()">+ Add Goal</button>
+    </section>
+
+    <!-- Goals list -->
+    <section class="list-host">
+      <h2>Goals <span class="count" id="goals-count" style="display:none;">0</span></h2>
+      <div id="goals-list">
+        <div class="empty-state">No goals tracked yet.</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- SUMMARY MODE                                                 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="summary-section" style="display:none;">
+    <section class="list-host">
+      <h2>Scorers Summary</h2>
+      <div id="summary-list">
+        <div class="empty-state">No goals tracked yet.</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Game total (visible in both views, gives an at-a-glance count) -->
+  <div class="game-total" id="game-total" style="display:none;">
+    <span class="gt-label">Game Total</span>
+    <span class="gt-value" id="gt-value">0</span>
+  </div>
+
+  <p class="foot">Waukesha West • <a href="./index.html">All Tools</a></p>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- COMMON.JS + TOOL LOGIC                                       -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script src="./common.js"></script>
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════
+   GirlsJVSoccerGoals — per-goal tracking with date/opponent context.
+   ─────────────────────────────────────────────────────────────────
+   Owns goals.json (read-write). Reads roster.json (via the localStorage
+   key the Roster tool writes) for the player picker, and reads
+   schedule.json for the game dropdown. Migrates legacy scorersByGame
+   data out of teams.json on first load.
+
+   Game key shape: 'YYYY-MM-DD|opp-lowercased' — same convention the
+   Card tool's old scorersByGame used, so legacy data carries over
+   1:1 during migration.
+
+   Goal entry shape:
+     { id, kind: 'roster'|'custom', playerId, customName, minute, half }
+     - minute is null when unknown (e.g. migrated from old totals-only data)
+     - half is 1 or 2 (mandatory; no extra-time bucket in v1)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Storage keys ─────────────────────────────────────────── */
+var LS_GOALS_KEY     = 'ww-soccer-goals-v1';
+var LS_TEAMS_KEY     = 'ww-soccer-opponents-v1';
+var LS_SCHEDULE_KEY  = 'ww-soccer-schedule-v1';
+var LS_ROSTER_KEY    = 'ww-soccer-roster-v1';
+var LS_PREFS_KEY     = 'ww-soccer-goals-prefs-v1';
+var SCORER_CUSTOM    = '__custom__';
+
+/* ─── State ────────────────────────────────────────────────── */
+/* Map of gameKey → array of goal entries. The whole map is what gets
+   serialized to goals.json. */
+var GOALS_BY_GAME = {};
+
+/* The currently-edited game. Both date and opponent must be set to
+   produce a non-null key; nothing persists when key is null. */
+var currentGameKey  = null;
+var currentGameDate = '';   /* 'YYYY-MM-DD' */
+var currentGameOpp  = '';   /* display-cased opponent name */
+
+/* Read from schedule.json on boot; used to populate the dropdown. */
+var SCHEDULE_GAMES = [];
+
+/* Editor preferences. Half is sticky across goals (typical: set to 1H
+   at kickoff, switch to 2H once at halftime, leave alone). View mode
+   defaults to detail entry per spec. */
+var lastHalf  = 1;
+var viewMode  = 'detail';     /* 'detail' | 'summary' */
+var pickerMode = 'schedule';   /* 'schedule' | 'manual' */
+var editingGoalId = null;
+
+/* Debounced persistence — every mutation calls persistGoals() which
+   coalesces back-to-back changes into one save. 300 ms matches the
+   Card tool's debounce. */
+var persistTimer = null;
+
+/* ─── Boot order ───────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  /* 1. Mount the GitHub config panel (same component the other tools use). */
+  if (window.WWCommon && typeof WWCommon.renderGitHubConfigPanel === 'function') {
+    var mount = document.getElementById('gh-config-mount');
+    if (mount) WWCommon.renderGitHubConfigPanel(mount);
+  }
+
+  /* 2. Load editor prefs (last half, view mode). */
+  loadPrefs();
+
+  /* 3. Hydrate from localStorage immediately so the UI has data on first paint
+        even if the network is slow. */
+  loadGoalsFromLocal();
+  loadScheduleFromLocal();
+  populateScheduleDropdown();
+  populateRosterDropdown();
+  refreshRosterBadge();
+  applyViewMode();
+  applyHalfButtons();
+
+  /* 4. Background refresh from GitHub. Each pull adopts data into memory
+        and re-renders if needed. Migration runs after the goals refresh
+        so we don't migrate stale data and then immediately overwrite it. */
+  refreshScheduleFromGitHub()
+    .then(refreshRosterFromGitHub)
+    .then(refreshGoalsFromGitHub)
+    .then(maybeMigrateFromTeams);
+});
+
+/* ─── Prefs (last half, view mode) ─────────────────────────── */
+function loadPrefs() {
+  try {
+    var raw = localStorage.getItem(LS_PREFS_KEY);
+    if (!raw) return;
+    var p = JSON.parse(raw);
+    if (p && (p.lastHalf === 1 || p.lastHalf === 2)) lastHalf = p.lastHalf;
+    if (p && (p.viewMode === 'detail' || p.viewMode === 'summary')) viewMode = p.viewMode;
+  } catch(e) {}
+}
+function savePrefs() {
+  try {
+    localStorage.setItem(LS_PREFS_KEY, JSON.stringify({
+      lastHalf: lastHalf,
+      viewMode: viewMode
+    }));
+  } catch(e) {}
+}
+
+/* ─── Goal id ──────────────────────────────────────────────── */
+function newGoalId() {
+  return 'go_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+/* ─── Build / parse game key ───────────────────────────────── */
+function buildKey(date, opp) {
+  if (!date || !opp) return null;
+  var d = String(date).trim();
+  var o = String(opp).trim().toLowerCase();
+  if (!d || !o) return null;
+  return d + '|' + o;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STORAGE — load, save, normalize
+   ═══════════════════════════════════════════════════════════════ */
+
+function buildGoalsPayload() {
+  return {
+    version: 1,
+    goalsByGame: GOALS_BY_GAME
+  };
+}
+
+/* Defensive normalizer — anything coming off the wire / disk is
+   coerced into the canonical shape, dropping anything malformed. */
+function normalizeGoal(g) {
+  if (!g || typeof g !== 'object') return null;
+  var kind = (g.kind === 'custom') ? 'custom' : 'roster';
+  /* Minute: null is an explicit "unknown" (used by the migration path).
+     Otherwise clamp to 0..120. parseInt('', 10) is NaN → null. */
+  var minute = null;
+  if (g.minute != null && g.minute !== '') {
+    var m = parseInt(g.minute, 10);
+    if (!isNaN(m)) minute = Math.max(0, Math.min(120, m));
+  }
+  var half = (g.half === 2) ? 2 : 1;
+  return {
+    id:         (typeof g.id === 'string' && g.id) ? g.id : newGoalId(),
+    kind:       kind,
+    playerId:   typeof g.playerId   === 'string' ? g.playerId   : '',
+    customName: typeof g.customName === 'string' ? g.customName : '',
+    minute:     minute,
+    half:       half
+  };
+}
+
+function applyGoalsData(payload) {
+  if (!payload || typeof payload !== 'object') return;
+  var src = payload.goalsByGame;
+  if (!src || typeof src !== 'object' || Array.isArray(src)) {
+    GOALS_BY_GAME = {};
+  } else {
+    var clean = {};
+    Object.keys(src).forEach(function(k) {
+      var arr = src[k];
+      if (!Array.isArray(arr)) return;
+      var normed = arr.map(normalizeGoal).filter(Boolean);
+      if (normed.length) clean[k] = normed;
+    });
+    GOALS_BY_GAME = clean;
+  }
+  /* Re-render whatever is currently visible. */
+  renderAll();
+}
+
+function loadGoalsFromLocal() {
+  try {
+    var raw = localStorage.getItem(LS_GOALS_KEY);
+    if (!raw) return;
+    applyGoalsData(JSON.parse(raw));
+  } catch(e) {}
+}
+
+/* Save: localStorage write happens synchronously inside WWCommon.saveJson
+   before any await, so even a network failure leaves us with consistent
+   local state. */
+function persistGoals() {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(persistGoalsNow, 300);
+}
+function persistGoalsNow() {
+  persistTimer = null;
+  if (!window.WWCommon) {
+    /* Degraded mode — common.js failed to load. Best effort: localStorage only. */
+    try { localStorage.setItem(LS_GOALS_KEY, JSON.stringify(buildGoalsPayload())); } catch(e) {}
+    return;
+  }
+  WWCommon.saveJson('goals.json', LS_GOALS_KEY, buildGoalsPayload(), 'Goals tool')
+    .then(function(result) {
+      if (result && result.action === 'conflict-reloaded' && result.data) {
+        applyGoalsData(result.data);
+      }
+    });
+}
+
+function refreshGoalsFromGitHub() {
+  if (!window.WWCommon) return Promise.resolve();
+  return WWCommon.loadJson('goals.json', LS_GOALS_KEY).then(function(result) {
+    if (result && result.data && result.source === 'github') {
+      applyGoalsData(result.data);
+    }
+  }).catch(function(){});
+}
+
+/* ─── Schedule (read-only) ─────────────────────────────────── */
+function loadScheduleFromLocal() {
+  try {
+    var raw = localStorage.getItem(LS_SCHEDULE_KEY);
+    if (!raw) return;
+    var parsed = JSON.parse(raw);
+    var games = parsed && Array.isArray(parsed.games) ? parsed.games : (Array.isArray(parsed) ? parsed : []);
+    SCHEDULE_GAMES = games.filter(function(g) {
+      return g && typeof g.date === 'string' && typeof g.opponent === 'string' && g.opponent.trim();
+    });
+  } catch(e) { SCHEDULE_GAMES = []; }
+}
+function refreshScheduleFromGitHub() {
+  if (!window.WWCommon) return Promise.resolve();
+  return WWCommon.loadJson('schedule.json', LS_SCHEDULE_KEY).then(function(result) {
+    if (result && result.data) {
+      var games = Array.isArray(result.data.games) ? result.data.games : [];
+      SCHEDULE_GAMES = games.filter(function(g) {
+        return g && typeof g.date === 'string' && typeof g.opponent === 'string' && g.opponent.trim();
+      });
+      populateScheduleDropdown();
+    }
+  }).catch(function(){});
+}
+
+/* ─── Roster (read-only) ───────────────────────────────────── */
+function loadRosterPlayers() {
+  try {
+    var raw = localStorage.getItem(LS_ROSTER_KEY);
+    if (!raw) return [];
+    var parsed = JSON.parse(raw);
+    var arr = Array.isArray(parsed) ? parsed
+            : (parsed && Array.isArray(parsed.players) ? parsed.players : []);
+    var players = arr
+      .filter(function(p) { return p && typeof p.id === 'string'; })
+      .map(function(p) {
+        return {
+          id:        p.id,
+          number:    (p.number == null) ? '' : String(p.number),
+          firstName: typeof p.firstName === 'string' ? p.firstName : '',
+          lastName:  typeof p.lastName  === 'string' ? p.lastName  : ''
+        };
+      });
+    /* Sort by jersey number, blanks last (matches the Roster tool). */
+    players.sort(function(a, b) {
+      var an = parseInt(a.number, 10), bn = parseInt(b.number, 10);
+      var aHas = !isNaN(an), bHas = !isNaN(bn);
+      if (aHas && bHas) return an - bn;
+      if (aHas) return -1;
+      if (bHas) return 1;
+      return (a.lastName || '').localeCompare(b.lastName || '');
+    });
+    return players;
+  } catch(e) { return []; }
+}
+function refreshRosterFromGitHub() {
+  if (!window.WWCommon) return Promise.resolve();
+  return WWCommon.loadJson('roster.json', LS_ROSTER_KEY).then(function() {
+    /* loadJson already mirrors to localStorage. Just re-render anything
+       roster-derived. */
+    populateRosterDropdown();
+    refreshRosterBadge();
+    renderGoalsList();
+    renderSummary();
+  }).catch(function(){});
+}
+
+function findRosterPlayer(id) {
+  if (!id) return null;
+  var roster = loadRosterPlayers();
+  for (var i = 0; i < roster.length; i++) {
+    if (roster[i].id === id) return roster[i];
+  }
+  return null;
+}
+
+/* Display name for a player on the entered-goals list and summary.
+   Mirrors the Card tool's convention: prefer LAST (uppercased), fall
+   back to first, then to "PLAYER". */
+function scorerDisplayName(player) {
+  if (!player) return 'PLAYER';
+  var last  = (player.lastName  || '').trim();
+  var first = (player.firstName || '').trim();
+  if (last)  return last.toUpperCase();
+  if (first) return first.toUpperCase();
+  return 'PLAYER';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MIGRATION — bring forward existing scorersByGame from teams.json
+   ───────────────────────────────────────────────────────────────────
+   Each old entry was { kind, playerId, customName, goals: N } where
+   goals is a count. Expand into N goal entries, each with minute=null
+   and half=1 (we don't know which half they were in retroactively).
+
+   Only runs when goals.json is empty — i.e. first time the new tool
+   ever opens for this user. Subsequent loads see populated GOALS_BY_GAME
+   and skip the migration entirely.
+   ═══════════════════════════════════════════════════════════════ */
+function maybeMigrateFromTeams() {
+  if (Object.keys(GOALS_BY_GAME).length > 0) return Promise.resolve(false);
+  if (!window.WWCommon) return Promise.resolve(false);
+  return WWCommon.loadJson('teams.json', LS_TEAMS_KEY).then(function(result) {
+    if (!result || !result.data) return false;
+    var sbg = result.data.scorersByGame;
+    if (!sbg || typeof sbg !== 'object') return false;
+    var migratedGames = 0;
+    var migratedGoals = 0;
+    Object.keys(sbg).forEach(function(key) {
+      var scorers = sbg[key];
+      if (!Array.isArray(scorers) || !scorers.length) return;
+      var goals = [];
+      scorers.forEach(function(s) {
+        if (!s || typeof s !== 'object') return;
+        var n = parseInt(s.goals, 10);
+        if (isNaN(n) || n < 1) n = 1;
+        for (var i = 0; i < n; i++) {
+          goals.push({
+            id:         newGoalId(),
+            kind:       (s.kind === 'custom') ? 'custom' : 'roster',
+            playerId:   typeof s.playerId === 'string' ? s.playerId : '',
+            customName: typeof s.customName === 'string' ? s.customName : '',
+            minute:     null,
+            half:       1
+          });
+        }
+      });
+      if (goals.length) {
+        GOALS_BY_GAME[key] = goals;
+        migratedGames++;
+        migratedGoals += goals.length;
+      }
+    });
+    if (migratedGames > 0) {
+      persistGoalsNow();   /* immediate save, not debounced */
+      renderAll();
+      if (window.WWCommon && typeof WWCommon.toast === 'function') {
+        WWCommon.toast('Imported ' + migratedGoals + ' goal' + (migratedGoals === 1 ? '' : 's') +
+                       ' from ' + migratedGames + ' game' + (migratedGames === 1 ? '' : 's'), 'ok');
+      }
+      return true;
+    }
+    return false;
+  }).catch(function(){ return false; });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GAME PICKER — schedule mode + manual mode
+   ═══════════════════════════════════════════════════════════════ */
+function setPickerMode(mode) {
+  if (mode !== 'schedule' && mode !== 'manual') mode = 'schedule';
+  pickerMode = mode;
+  document.getElementById('gp-mode-schedule').classList.toggle('active', mode === 'schedule');
+  document.getElementById('gp-mode-manual').classList.toggle('active', mode === 'manual');
+  document.getElementById('gp-schedule-pane').style.display = (mode === 'schedule') ? '' : 'none';
+  document.getElementById('gp-manual-pane').style.display   = (mode === 'manual')   ? '' : 'none';
+  /* Switching modes clears the current selection so the user is forced to
+     reconfirm — avoids the case where a stale dropdown selection silently
+     becomes the active game while the manual fields are showing. */
+  clearCurrentGame();
+}
+
+function populateScheduleDropdown() {
+  var sel = document.getElementById('gp-schedule-select');
+  if (!sel) return;
+  /* Build options sorted by date desc (most recent first); the most
+     recent finished or upcoming games are usually what the user wants. */
+  var sorted = SCHEDULE_GAMES.slice().sort(function(a, b) {
+    return (b.date || '').localeCompare(a.date || '');
+  });
+  /* Reset to placeholder + all games */
+  sel.innerHTML = '<option value="">— Select a game —</option>';
+  sorted.forEach(function(g) {
+    var opt = document.createElement('option');
+    opt.value = g.id || (g.date + '|' + g.opponent.toLowerCase());
+    /* Build a friendly label: "Apr 27 vs Arrowhead (final)" or "May 5 vs Kettle Moraine" */
+    var dt = parseDateUTC(g.date);
+    var datePart = dt ? formatShortDate(dt) : g.date;
+    var statusPart = '';
+    if (g.status === 'final') {
+      var us   = g.scoreUs   == null ? '' : g.scoreUs;
+      var them = g.scoreThem == null ? '' : g.scoreThem;
+      if (us !== '' && them !== '') {
+        statusPart = ' (' + us + '-' + them + ')';
+      } else {
+        statusPart = ' (final)';
+      }
+    } else if (g.status === 'cancelled') {
+      statusPart = ' (cancelled)';
+    }
+    opt.textContent = datePart + ' vs ' + g.opponent + statusPart;
+    /* Stash the game data on the option for retrieval on change. */
+    opt.dataset.date = g.date;
+    opt.dataset.opp = g.opponent;
+    sel.appendChild(opt);
+  });
+  /* Hint message reflects what we found. */
+  var hint = document.getElementById('gp-schedule-hint');
+  if (hint) {
+    if (sorted.length === 0) {
+      hint.textContent = 'No games found in schedule.json. Use Manual mode or open the Schedule tool to add games.';
+    } else {
+      hint.textContent = sorted.length + ' game' + (sorted.length === 1 ? '' : 's') + ' available.';
+    }
+  }
+}
+
+function onScheduleSelect(value) {
+  if (!value) { clearCurrentGame(); return; }
+  var sel = document.getElementById('gp-schedule-select');
+  var opt = sel.options[sel.selectedIndex];
+  if (!opt) { clearCurrentGame(); return; }
+  setCurrentGame(opt.dataset.date || '', opt.dataset.opp || '');
+}
+
+function onManualChange() {
+  var date = (document.getElementById('gp-manual-date').value || '').trim();
+  var opp  = (document.getElementById('gp-manual-opp').value  || '').trim();
+  if (date && opp) {
+    setCurrentGame(date, opp);
+  } else {
+    clearCurrentGame();
+  }
+}
+
+function setCurrentGame(date, opp) {
+  currentGameDate = date;
+  currentGameOpp  = opp;
+  currentGameKey  = buildKey(date, opp);
+  /* Update the visual indicator. */
+  var current = document.getElementById('gp-current');
+  var text    = document.getElementById('gp-current-text');
+  var empty   = document.getElementById('gp-empty-msg');
+  var dt = parseDateUTC(date);
+  var label = (dt ? formatShortDate(dt) : date) + ' vs ' + opp;
+  text.innerHTML = WWCommon.escapeHtml(label) +
+    '<small>' + WWCommon.escapeHtml(currentGoals().length + ' goal' + (currentGoals().length === 1 ? '' : 's') + ' tracked') + '</small>';
+  current.style.display = '';
+  empty.style.display = 'none';
+  /* Re-render lists and totals for the new game. */
+  renderAll();
+  setSectionsDisabled(false);
+}
+
+function clearCurrentGame() {
+  currentGameDate = '';
+  currentGameOpp  = '';
+  currentGameKey  = null;
+  document.getElementById('gp-current').style.display = 'none';
+  document.getElementById('gp-empty-msg').style.display = '';
+  /* Clear schedule dropdown selection so re-entering the same game later
+     fires a change event. */
+  var sel = document.getElementById('gp-schedule-select');
+  if (sel && pickerMode === 'schedule') sel.value = '';
+  renderAll();
+  setSectionsDisabled(true);
+}
+
+function setSectionsDisabled(disabled) {
+  document.getElementById('detail-section').classList.toggle('disabled-section', disabled);
+  document.getElementById('summary-section').classList.toggle('disabled-section', disabled);
+}
+
+/* ─── Date helpers ─────────────────────────────────────────── */
+/* parseDateUTC works around the timezone gotcha where 'YYYY-MM-DD' on
+   some browsers is interpreted as midnight UTC then shifted to local
+   time, sometimes flipping the displayed day backward by one. We build
+   a plain Date from explicit y/m/d in local time so the day always
+   matches what the user typed. */
+function parseDateUTC(s) {
+  if (!s || typeof s !== 'string') return null;
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return null;
+  return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+}
+var MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function formatShortDate(d) {
+  return MONTH_ABBR[d.getMonth()] + ' ' + d.getDate();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ENTRY FORM — half toggle, scorer dropdown, add goal
+   ═══════════════════════════════════════════════════════════════ */
+function setHalf(h) {
+  if (h !== 1 && h !== 2) h = 1;
+  lastHalf = h;
+  applyHalfButtons();
+  savePrefs();
+}
+function applyHalfButtons() {
+  document.getElementById('ht-1').classList.toggle('active', lastHalf === 1);
+  document.getElementById('ht-2').classList.toggle('active', lastHalf === 2);
+}
+
+/* Build the player dropdown from the roster. The "+ Custom name…"
+   sentinel at the end matches the Card tool's pattern so non-roster
+   scorers can still be entered (substitutes from JV up, transfer
+   players not yet in the roster, etc.) */
+function populateRosterDropdown() {
+  var sel = document.getElementById('entry-player');
+  if (!sel) return;
+  var roster = loadRosterPlayers();
+  var html = '<option value="">— Select player —</option>';
+  roster.forEach(function(p) {
+    var first = (p.firstName || '').trim();
+    var last  = (p.lastName  || '').trim();
+    var nameLabel = (first && last) ? (first + ' ' + last)
+                  : last ? last
+                  : first ? first
+                  : '(unnamed)';
+    var label = (p.number ? '#' + p.number + ' ' : '') + nameLabel;
+    html += '<option value="' + WWCommon.escapeAttr(p.id) + '">' + WWCommon.escapeHtml(label) + '</option>';
+  });
+  html += '<option value="' + SCORER_CUSTOM + '">+ Custom name…</option>';
+  sel.innerHTML = html;
+  /* Wire up custom-toggle */
+  sel.onchange = function() { onEntryPlayerChange(this.value); };
+}
+
+function onEntryPlayerChange(value) {
+  var row = document.getElementById('entry-scorer-row');
+  if (value === SCORER_CUSTOM) {
+    row.classList.add('with-custom');
+    /* focus the custom-name input so they can type immediately. */
+    setTimeout(function() {
+      var ci = document.getElementById('entry-custom-name');
+      if (ci) ci.focus();
+    }, 0);
+  } else {
+    row.classList.remove('with-custom');
+    document.getElementById('entry-custom-name').value = '';
+  }
+}
+
+function refreshRosterBadge() {
+  var n = loadRosterPlayers().length;
+  var el = document.getElementById('roster-badge');
+  if (!el) return;
+  if (n > 0) {
+    el.className = 'roster-badge loaded';
+    el.textContent = 'Roster: ' + n + ' player' + (n === 1 ? '' : 's') + ' ✓';
+  } else {
+    el.className = 'roster-badge empty';
+    el.textContent = 'Roster: not loaded — use "+ Custom name…" to enter scorers';
+  }
+}
+
+/* ─── Add goal ─────────────────────────────────────────────── */
+function onAddGoal() {
+  if (!currentGameKey) {
+    if (window.WWCommon) WWCommon.toast('Pick a game above first', 'warn');
+    return;
+  }
+  var minuteInput = document.getElementById('entry-minute');
+  var playerSel   = document.getElementById('entry-player');
+  var customInput = document.getElementById('entry-custom-name');
+
+  var minuteRaw = (minuteInput.value || '').trim();
+  var minute = null;
+  if (minuteRaw !== '') {
+    var m = parseInt(minuteRaw, 10);
+    if (isNaN(m) || m < 0 || m > 120) {
+      if (window.WWCommon) WWCommon.toast('Minute must be 0–120 (or blank)', 'warn');
+      return;
+    }
+    minute = m;
+  }
+  /* Allow blank minute — coaches sometimes know a goal happened but not
+     exactly when. The summary still counts it; the detail row shows "—". */
+
+  var playerVal = playerSel.value;
+  if (!playerVal) {
+    if (window.WWCommon) WWCommon.toast('Pick a scorer', 'warn');
+    return;
+  }
+
+  var goal = {
+    id:         newGoalId(),
+    minute:     minute,
+    half:       lastHalf,
+    kind:       'roster',
+    playerId:   '',
+    customName: ''
+  };
+  if (playerVal === SCORER_CUSTOM) {
+    var custom = (customInput.value || '').trim();
+    if (!custom) {
+      if (window.WWCommon) WWCommon.toast('Type the scorer\'s name', 'warn');
+      return;
+    }
+    goal.kind       = 'custom';
+    goal.customName = custom;
+  } else {
+    goal.kind     = 'roster';
+    goal.playerId = playerVal;
+  }
+
+  if (!GOALS_BY_GAME[currentGameKey]) GOALS_BY_GAME[currentGameKey] = [];
+  GOALS_BY_GAME[currentGameKey].push(goal);
+  persistGoals();
+
+  /* Reset the form for fast next entry. Keep the half (sticky), clear
+     minute + scorer. Refocus minute so the next goal is one tap away. */
+  minuteInput.value = '';
+  playerSel.value = '';
+  customInput.value = '';
+  document.getElementById('entry-scorer-row').classList.remove('with-custom');
+
+  renderAll();
+  setTimeout(function() { minuteInput.focus(); }, 0);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GOALS LIST — detail view, sorted by half then minute
+   ═══════════════════════════════════════════════════════════════ */
+
+function currentGoals() {
+  if (!currentGameKey) return [];
+  return GOALS_BY_GAME[currentGameKey] || [];
+}
+
+/* Sort key: half asc (1 before 2), then minute asc with nulls last. */
+function sortedGoals() {
+  return currentGoals().slice().sort(function(a, b) {
+    if (a.half !== b.half) return a.half - b.half;
+    var am = (a.minute == null), bm = (b.minute == null);
+    if (am && bm) return 0;
+    if (am) return 1;
+    if (bm) return -1;
+    return a.minute - b.minute;
+  });
+}
+
+function renderGoalsList() {
+  var host = document.getElementById('goals-list');
+  if (!host) return;
+  var goals = sortedGoals();
+  var countBadge = document.getElementById('goals-count');
+  if (countBadge) {
+    countBadge.textContent = goals.length;
+    countBadge.style.display = goals.length ? '' : 'none';
+  }
+
+  if (!currentGameKey) {
+    host.innerHTML = '<div class="empty-state">Pick a game first.</div>';
+    return;
+  }
+  if (!goals.length) {
+    host.innerHTML = '<div class="empty-state">No goals tracked yet. Use the form above to add one.</div>';
+    return;
+  }
+
+  /* Group by half so each half gets a divider label. */
+  var html = '';
+  var lastHalfShown = null;
+  goals.forEach(function(g) {
+    if (g.half !== lastHalfShown) {
+      lastHalfShown = g.half;
+      html += '<div class="half-label">' + (g.half === 1 ? '1st Half' : '2nd Half') + '</div>';
+    }
+    if (g.id === editingGoalId) {
+      html += renderGoalEditForm(g);
+    } else {
+      html += renderGoalRow(g);
+    }
+  });
+  host.innerHTML = html;
+}
+
+function renderGoalRow(g) {
+  var minDisp = (g.minute == null)
+    ? '<div class="goal-min no-min" title="Minute unknown">—</div>'
+    : '<div class="goal-min">' + g.minute + '\'</div>';
+  var nameHtml = '';
+  if (g.kind === 'custom') {
+    var cn = (g.customName || '').trim() || 'Custom';
+    nameHtml = '<span class="player-name">' + WWCommon.escapeHtml(cn.toUpperCase()) +
+               '</span><span class="custom-tag">custom</span>';
+  } else {
+    var p = findRosterPlayer(g.playerId);
+    if (p) {
+      var jersey = p.number ? '#' + p.number : '';
+      nameHtml = (jersey ? '<span class="jersey">' + WWCommon.escapeHtml(jersey) + '</span>' : '') +
+                 '<span class="player-name">' + WWCommon.escapeHtml(scorerDisplayName(p)) + '</span>';
+    } else {
+      /* Roster player no longer exists (deleted from roster). Show the
+         id-less placeholder rather than crash. */
+      nameHtml = '<span class="player-name" style="color:var(--text-3);font-style:italic;">(player removed)</span>';
+    }
+  }
+  return '<div class="goal-row" data-id="' + WWCommon.escapeAttr(g.id) + '">' +
+            minDisp +
+            '<div class="goal-name">' + nameHtml + '</div>' +
+            '<div class="goal-actions">' +
+              '<button type="button" class="icon-btn" title="Edit" onclick="startEditGoal(\'' + WWCommon.escapeAttr(g.id) + '\')">✎</button>' +
+              '<button type="button" class="icon-btn danger" title="Delete" onclick="deleteGoal(\'' + WWCommon.escapeAttr(g.id) + '\')">✕</button>' +
+            '</div>' +
+          '</div>';
+}
+
+/* ─── Inline edit form ─────────────────────────────────────── */
+function renderGoalEditForm(g) {
+  var roster = loadRosterPlayers();
+  var optsHtml = '<option value="">— Select player —</option>';
+  roster.forEach(function(p) {
+    var first = (p.firstName || '').trim();
+    var last  = (p.lastName  || '').trim();
+    var nameLabel = (first && last) ? (first + ' ' + last) : (last || first || '(unnamed)');
+    var label = (p.number ? '#' + p.number + ' ' : '') + nameLabel;
+    var sel = (g.kind === 'roster' && g.playerId === p.id) ? ' selected' : '';
+    optsHtml += '<option value="' + WWCommon.escapeAttr(p.id) + '"' + sel + '>' + WWCommon.escapeHtml(label) + '</option>';
+  });
+  var customSel = (g.kind === 'custom') ? ' selected' : '';
+  optsHtml += '<option value="' + SCORER_CUSTOM + '"' + customSel + '>+ Custom name…</option>';
+
+  return '<div class="goal-row editing" data-id="' + WWCommon.escapeAttr(g.id) + '">' +
+    '<div class="edit-form-grid">' +
+      '<div>' +
+        '<div class="section-label">Half</div>' +
+        '<div class="half-toggle">' +
+          '<button type="button" class="ht-btn ' + (g.half === 1 ? 'active' : '') + '" onclick="setEditHalf(\'' + WWCommon.escapeAttr(g.id) + '\',1)">1H</button>' +
+          '<button type="button" class="ht-btn ' + (g.half === 2 ? 'active' : '') + '" onclick="setEditHalf(\'' + WWCommon.escapeAttr(g.id) + '\',2)">2H</button>' +
+        '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="section-label">Minute</div>' +
+        '<input type="number" inputmode="numeric" min="0" max="120" id="edit-minute-' + WWCommon.escapeAttr(g.id) + '" value="' + (g.minute == null ? '' : g.minute) + '" placeholder="—">' +
+      '</div>' +
+      '<div class="full">' +
+        '<div class="section-label">Scorer</div>' +
+        '<select id="edit-player-' + WWCommon.escapeAttr(g.id) + '" onchange="onEditPlayerChange(\'' + WWCommon.escapeAttr(g.id) + '\', this.value)">' + optsHtml + '</select>' +
+      '</div>' +
+      (g.kind === 'custom' ?
+        '<div class="full">' +
+          '<input type="text" id="edit-custom-' + WWCommon.escapeAttr(g.id) + '" value="' + WWCommon.escapeAttr(g.customName || '') + '" placeholder="Name">' +
+        '</div>' : '') +
+    '</div>' +
+    '<div class="edit-actions">' +
+      '<button type="button" class="btn-secondary" onclick="cancelEditGoal()">Cancel</button>' +
+      '<button type="button" class="btn-secondary primary" onclick="saveEditGoal(\'' + WWCommon.escapeAttr(g.id) + '\')">Save</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function startEditGoal(id) {
+  editingGoalId = id;
+  renderGoalsList();
+}
+function cancelEditGoal() {
+  editingGoalId = null;
+  renderGoalsList();
+}
+
+/* The edit form's half toggle mutates the goal in place so the active
+   state shows correctly after re-render, but doesn't persist until
+   Save is tapped. We re-render the row to reflect the toggle. */
+function setEditHalf(id, h) {
+  var g = findGoalById(id);
+  if (!g) return;
+  g.half = (h === 2) ? 2 : 1;
+  renderGoalsList();
+}
+function onEditPlayerChange(id, value) {
+  var g = findGoalById(id);
+  if (!g) return;
+  if (value === SCORER_CUSTOM) {
+    g.kind = 'custom';
+    g.playerId = '';
+  } else {
+    g.kind = 'roster';
+    g.playerId = value;
+    g.customName = '';
+  }
+  renderGoalsList();
+}
+
+function saveEditGoal(id) {
+  var g = findGoalById(id);
+  if (!g) { editingGoalId = null; renderAll(); return; }
+  /* Pull form values back. */
+  var minuteEl = document.getElementById('edit-minute-' + id);
+  if (minuteEl) {
+    var raw = (minuteEl.value || '').trim();
+    if (raw === '') {
+      g.minute = null;
+    } else {
+      var m = parseInt(raw, 10);
+      if (isNaN(m) || m < 0 || m > 120) {
+        if (window.WWCommon) WWCommon.toast('Minute must be 0–120 (or blank)', 'warn');
+        return;
+      }
+      g.minute = m;
+    }
+  }
+  if (g.kind === 'custom') {
+    var customEl = document.getElementById('edit-custom-' + id);
+    if (customEl) g.customName = (customEl.value || '').trim();
+    if (!g.customName) {
+      if (window.WWCommon) WWCommon.toast('Type the scorer\'s name', 'warn');
+      return;
+    }
+  }
+  editingGoalId = null;
+  persistGoals();
+  renderAll();
+}
+
+function deleteGoal(id) {
+  var arr = currentGoals();
+  var idx = -1;
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i].id === id) { idx = i; break; }
+  }
+  if (idx === -1) return;
+  if (!confirm('Delete this goal?')) return;
+  arr.splice(idx, 1);
+  if (arr.length === 0) {
+    /* Clean up the key so empty maps don't accumulate. */
+    delete GOALS_BY_GAME[currentGameKey];
+  }
+  persistGoals();
+  renderAll();
+}
+
+function findGoalById(id) {
+  var arr = currentGoals();
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i].id === id) return arr[i];
+  }
+  return null;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SUMMARY — grouped totals per scorer
+   ═══════════════════════════════════════════════════════════════ */
+function buildSummary() {
+  /* Aggregate goals by player. Key shape:
+       roster: 'r:' + playerId
+       custom: 'c:' + lowercased customName
+     Custom names case-fold so "Casey" and "casey" don't double-list. */
+  var map = {};
+  currentGoals().forEach(function(g) {
+    var key, label;
+    if (g.kind === 'custom') {
+      var name = (g.customName || '').trim();
+      if (!name) name = '(unnamed)';
+      key = 'c:' + name.toLowerCase();
+      if (!map[key]) {
+        map[key] = { kind: 'custom', name: name, number: '', count: 0 };
+      }
+    } else {
+      key = 'r:' + g.playerId;
+      if (!map[key]) {
+        var p = findRosterPlayer(g.playerId);
+        map[key] = {
+          kind:   'roster',
+          name:   p ? scorerDisplayName(p) : '(player removed)',
+          number: p ? p.number : '',
+          count:  0
+        };
+      }
+    }
+    map[key].count++;
+  });
+  var arr = Object.keys(map).map(function(k) { return map[k]; });
+  /* Sort: count desc, then jersey # asc (blanks last), then name asc. */
+  arr.sort(function(a, b) {
+    if (a.count !== b.count) return b.count - a.count;
+    var an = parseInt(a.number, 10), bn = parseInt(b.number, 10);
+    var aHas = !isNaN(an), bHas = !isNaN(bn);
+    if (aHas && bHas && an !== bn) return an - bn;
+    if (aHas && !bHas) return -1;
+    if (!aHas && bHas) return 1;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+  return arr;
+}
+
+function renderSummary() {
+  var host = document.getElementById('summary-list');
+  if (!host) return;
+  if (!currentGameKey) {
+    host.innerHTML = '<div class="empty-state">Pick a game first.</div>';
+    return;
+  }
+  var rows = buildSummary();
+  if (!rows.length) {
+    host.innerHTML = '<div class="empty-state">No goals tracked yet.</div>';
+    return;
+  }
+  var html = '';
+  rows.forEach(function(r) {
+    var numHtml = r.number
+      ? '<div class="summary-num">#' + WWCommon.escapeHtml(r.number) + '</div>'
+      : '<div class="summary-num no-num">—</div>';
+    var customTag = (r.kind === 'custom') ? '<span class="custom-tag">custom</span>' : '';
+    html += '<div class="summary-row">' +
+              numHtml +
+              '<div class="summary-name">' + WWCommon.escapeHtml(r.name) + customTag + '</div>' +
+              '<div class="summary-goals"><span class="num">' + r.count + '</span>' +
+                'goal' + (r.count === 1 ? '' : 's') +
+              '</div>' +
+            '</div>';
+  });
+  host.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VIEW SWITCHING
+   ═══════════════════════════════════════════════════════════════ */
+function setView(mode) {
+  if (mode !== 'detail' && mode !== 'summary') mode = 'detail';
+  viewMode = mode;
+  applyViewMode();
+  savePrefs();
+}
+function applyViewMode() {
+  document.getElementById('vt-detail').classList.toggle('active', viewMode === 'detail');
+  document.getElementById('vt-summary').classList.toggle('active', viewMode === 'summary');
+  document.getElementById('detail-section').style.display  = (viewMode === 'detail')  ? '' : 'none';
+  document.getElementById('summary-section').style.display = (viewMode === 'summary') ? '' : 'none';
+  if (viewMode === 'summary') renderSummary();
+  else renderGoalsList();
+  updateGameTotals();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER + TOTALS
+   ═══════════════════════════════════════════════════════════════ */
+function updateGameTotals() {
+  var totalEl = document.getElementById('game-total');
+  var valEl   = document.getElementById('gt-value');
+  var goals = currentGoals();
+  if (!currentGameKey || goals.length === 0) {
+    totalEl.style.display = 'none';
+    return;
+  }
+  totalEl.style.display = '';
+  valEl.textContent = goals.length;
+  /* Also update the "N goals tracked" subline in the current-game pill. */
+  var text = document.getElementById('gp-current-text');
+  if (text && currentGameKey) {
+    var dt = parseDateUTC(currentGameDate);
+    var label = (dt ? formatShortDate(dt) : currentGameDate) + ' vs ' + currentGameOpp;
+    text.innerHTML = WWCommon.escapeHtml(label) +
+      '<small>' + goals.length + ' goal' + (goals.length === 1 ? '' : 's') + ' tracked</small>';
+  }
+}
+
+function renderAll() {
+  renderGoalsList();
+  renderSummary();
+  updateGameTotals();
+}
+
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SERVICE WORKER REGISTRATION                                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').catch(function() {
+      /* Offline support just doesn't activate; the page still works. */
+    });
+  });
+}
+</script>
+
+</body>
+</html>

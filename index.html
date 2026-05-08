@@ -16,7 +16,7 @@
 * { box-sizing: border-box; }
 
 :root {
-  /* Brand palette — matches the three tools so this page feels like
+  /* Brand palette — matches the four tools so this page feels like
      part of the same product family. */
   --bg:        #e6e9ef;       /* page background, cool gray-blue */
   --surface:   #ffffff;       /* card surfaces */
@@ -24,6 +24,7 @@
   --ink-2:     #1a3a6b;       /* navy hover */
   --accent:    #c9a13a;       /* varsity gold — sparingly, for stripes & marks */
   --good:      #2a7a3a;       /* success green */
+  --tool-red:  #8a2a2a;       /* deep red — Goals tool's accent */
   --text:      #333333;       /* body text */
   --text-2:    #666666;       /* secondary text */
   --hint:      #9a9fae;       /* tertiary text & captions */
@@ -125,6 +126,9 @@ body::before {
 }
 
 /* ─── Tool tiles ───────────────────────────────────────────────── */
+/* Grid scales from 1-up (mobile) → 2-up (tablet) → 4-up (desktop).
+   We jump straight from 1 to 2 instead of forcing a cramped 4-across
+   on narrow tablets. */
 .tools {
   display: grid;
   grid-template-columns: 1fr;
@@ -132,9 +136,16 @@ body::before {
   margin-bottom: 32px;
 }
 
-@media (min-width: 720px) {
+@media (min-width: 560px) {
   .tools {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (min-width: 900px) {
+  .tools {
+    grid-template-columns: repeat(4, 1fr);
     gap: 18px;
   }
 }
@@ -154,7 +165,7 @@ body::before {
 }
 
 /* Each tile gets a thin colored accent strip on the left edge. The
-   three colors loosely match the dominant element of each tool. */
+   four colors loosely match the dominant element of each tool. */
 .tile::before {
   content: '';
   position: absolute;
@@ -162,10 +173,10 @@ body::before {
   width: 4px;
   background: var(--ink);
 }
-.tile.t-card     ::before,
 .tile.t-card::before     { background: var(--ink); }
 .tile.t-schedule::before { background: var(--good); }
 .tile.t-roster::before   { background: var(--accent); }
+.tile.t-goals::before    { background: var(--tool-red); }
 
 .tile:hover, .tile:focus-visible {
   transform: translateY(-2px);
@@ -197,6 +208,13 @@ body::before {
   border-radius: 8px;
 }
 .tile-icon svg { display: block; }
+
+/* Goals tile gets a faint red-tinted icon background to echo its
+   accent strip. The other three keep the navy-tinted default. */
+.tile.t-goals .tile-icon {
+  background: rgba(138, 42, 42, 0.08);
+  color: var(--tool-red);
+}
 
 .tile-title {
   font-family: 'Oswald', sans-serif;
@@ -316,56 +334,6 @@ body::before {
   vertical-align: middle;
 }
 
-/* Page footer (school tagline + photo credit). Replaces the original
-   single-line .foot. Keeps the school tagline in the same Oswald
-   uppercase letterspaced style as before, and adds a small dark pill
-   below it carrying the RLP logo + copyright. Dark container is
-   intentional: the logo source has a black background, and the dark
-   container keeps the integration clean regardless of whether the
-   file later gets a true transparent alpha channel. */
-.page-foot {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-.foot-school {
-  font-family: 'Oswald', sans-serif;
-  font-weight: 500;
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--hint);
-  margin: 0;
-}
-.foot-credit {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  background: #000;
-  border-radius: 10px;
-  padding: 10px 18px 10px 10px;
-}
-.foot-credit-logo {
-  height: 56px;
-  width: auto;
-  display: block;
-  border-radius: 6px;
-}
-.foot-credit-text {
-  font-family: 'Oswald', sans-serif;
-  font-weight: 500;
-  font-size: 13px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.85);
-}
-.foot-credit-copy {
-  color: rgba(255,255,255,0.55);
-  margin-right: 2px;
-}
-
 /* ─── Toast container ─────────────────────────────────────────── */
 /* common.js's toast() targets #toast-container if present. Including
    it here means the GH config panel can show feedback on save/test. */
@@ -395,11 +363,11 @@ body::before {
     <div class="rule"></div>
   </header>
 
-  <!-- ─── Three tool tiles ─────────────────────────────────── -->
+  <!-- ─── Four tool tiles ──────────────────────────────────── -->
   <nav class="tools" aria-label="Social media tools">
 
-    <!-- Card maker — owns teams.json (opponents + per-game scorers,
-         halftime/footer modes, spine text). The flagship tool. -->
+    <!-- Card maker — owns teams.json (opponents + per-game footer/halftime
+         modes, spine text). Reads goals.json for scorer rendering. -->
     <a href="./GirlsJVSoccerCard.html" class="tile t-card">
       <div class="tile-head">
         <div class="tile-icon" aria-hidden="true">
@@ -413,7 +381,7 @@ body::before {
       </div>
       <p class="tile-blurb">
         Build the per-game social card. Manage opponents, set scores,
-        track scorers, halftime &amp; footer modes.
+        halftime &amp; footer modes.
       </p>
       <span class="tile-cta">Open card tool</span>
     </a>
@@ -460,17 +428,39 @@ body::before {
       <span class="tile-cta">Open roster tool</span>
     </a>
 
+    <!-- Goals tracker — owns goals.json (per-goal entries with player,
+         minute, half). Reads roster.json + schedule.json read-only.
+         Card tool reads goals.json to render scorer lists. -->
+    <a href="./GirlsJVSoccerGoals.html" class="tile t-goals">
+      <div class="tile-head">
+        <div class="tile-icon" aria-hidden="true">
+          <!-- Inline SVG: target / goal-net mark -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <circle cx="12" cy="12" r="5.5"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
+          </svg>
+        </div>
+        <h2 class="tile-title">Goals</h2>
+      </div>
+      <p class="tile-blurb">
+        Track goal scorers live during the game. Capture jersey,
+        scorer, minute, and half. Mobile-optimized for entry.
+      </p>
+      <span class="tile-cta">Open goal tracker</span>
+    </a>
+
   </nav>
 
   <!-- ─── Shared GitHub config panel ──────────────────────────── -->
   <!-- common.js mounts the same collapsible panel each tool uses,
-       so configuring the PAT here works for all three tools too
+       so configuring the PAT here works for all four tools too
        (they share localStorage on this origin). -->
   <section class="config-host" aria-label="GitHub sync configuration">
     <div id="gh-config-mount"></div>
     <p class="config-intro">
       <strong>Set this up once.</strong> Paste your GitHub Personal Access
-      Token below to enable cloud sync across all three tools and across
+      Token below to enable cloud sync across all four tools and across
       every device you sign in from. Your token is stored only in this
       browser&rsquo;s local storage.
     </p>
@@ -480,7 +470,7 @@ body::before {
   <section class="about">
     <h2>How this works</h2>
     <p>
-      All three tools save to a single GitHub repository so your data
+      All four tools save to a single GitHub repository so your data
       stays in sync between phone, tablet, and laptop &mdash; and survives
       browser cache clears. Edit on one device, the others pick up the
       change next time you open them.
@@ -491,13 +481,9 @@ body::before {
     </p>
   </section>
 
-  <footer class="page-foot">
-    <p class="foot-school">Waukesha West Wolverines</p>
-    <div class="foot-credit">
-      <img src="./Logos/RobertLandquistPhotography.png" alt="" class="foot-credit-logo">
-      <span class="foot-credit-text"><span class="foot-credit-copy">&copy;</span> Robert Landquist Photography</span>
-    </div>
-  </footer>
+  <p class="foot">
+    Waukesha West Wolverines
+  </p>
 
 </div>
 
@@ -506,7 +492,7 @@ body::before {
 <!-- ─── Mount the shared GitHub config panel ──────────────────── -->
 <!-- common.js renders the panel into #gh-config-mount, exposes
      WWCommon.toast for any feedback the panel needs to surface, and
-     reads/writes the same localStorage keys the three tools use. -->
+     reads/writes the same localStorage keys the four tools use. -->
 <script src="./common.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -518,7 +504,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- ─── Service worker registration ──────────────────────────── -->
-<!-- Caches the four-page app shell + opponent logos so the tools
+<!-- Caches the five-page app shell + opponent logos so the tools
      load when offline. Data still flows through localStorage when
      GitHub is unreachable, courtesy of common.js's existing fallback. -->
 <script>
