@@ -577,20 +577,52 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 
   <hr class="divider">
 
-  <!-- ── SHARED: Current game date ── -->
+  <!-- ── SHARED: Game picker (schedule + manual) ──
+       Schedule mode is the path of least friction — pick from the
+       season schedule and date + opponent name auto-fill (and the
+       logo loads if the opponent matches a saved team). Manual mode
+       is the escape hatch for games that aren't in the schedule
+       (scrimmages, tournaments, etc.). The actual #game-date and
+       #opp-name inputs live inside the manual pane and are kept in
+       sync programmatically when a schedule entry is chosen — this
+       way the existing onGameContextChanged + update wiring all
+       continues to work without any changes downstream. -->
   <div class="field-group">
-    <div class="section-label">Game date</div>
-    <input type="date" id="game-date" onchange="onGameContextChanged(); update();">
-    <div class="hint">Displays on the card and is used in the download filename</div>
+    <div class="section-label">Game</div>
+    <div class="toggle-row" style="margin-bottom:6px;">
+      <button type="button" class="toggle-btn active" id="card-gp-mode-schedule" onclick="setCardPickerMode('schedule')">From Schedule</button>
+      <button type="button" class="toggle-btn" id="card-gp-mode-manual" onclick="setCardPickerMode('manual')">Manual</button>
+    </div>
+    <div id="card-gp-schedule-pane">
+      <select id="card-gp-schedule-select" onchange="onCardScheduleSelect(this.value)">
+        <option value="">— Select a game —</option>
+      </select>
+      <div class="hint" id="card-gp-schedule-hint" style="margin-top:4px;">Loading schedule…</div>
+    </div>
+    <div id="card-gp-manual-pane" style="display:none;">
+      <div class="section-label" style="margin-top:0;">Game date</div>
+      <input type="date" id="game-date" onchange="onGameContextChanged(); update();">
+      <div class="section-label" style="margin-top:6px;">Opponent name</div>
+      <input type="text" id="opp-name" value="Opponent" oninput="update()" onchange="onGameContextChanged()">
+      <div class="hint">Use this for games not in the season schedule.</div>
+    </div>
+    <!-- Hidden form fields exist regardless of mode — schedule picks
+         write into them so all downstream code (game key, card render)
+         keeps working unchanged. When Manual mode is visible the
+         identical inputs above are the visible UI; when Schedule mode
+         is visible these placeholders carry the values written by
+         onCardScheduleSelect. -->
   </div>
 
   <hr class="divider">
 
-  <!-- ── SHARED: Opponent name + logo ── -->
+  <!-- ── SHARED: Opponent logo ──
+       Logo selection is intentionally separate from game identification.
+       Picking from the schedule auto-resolves the logo when the
+       opponent name matches a saved team — but the user can always
+       override with a custom upload or pick a different saved team. -->
   <div class="field-group">
-    <div class="section-label">Opponent</div>
-    <input type="text" id="opp-name" value="Opponent" oninput="update()" onchange="onGameContextChanged()">
-    <div class="section-label" style="margin-top:6px">Quick pick</div>
+    <div class="section-label">Opponent logo</div>
     <select id="opp-select" onchange="pickOpponent(this.value)">
       <option value="">— select a team —</option>
     </select>
@@ -686,8 +718,8 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
         </div>
         <div class="section-label" style="margin-top:8px">Display on card</div>
         <div class="toggle-row">
-          <button class="toggle-btn active" id="btn-scorer-display-totals" onclick="setScorerDisplay('totals')">Total goals</button>
-          <button class="toggle-btn" id="btn-scorer-display-times" onclick="setScorerDisplay('times')">Goals &amp; times</button>
+          <button class="toggle-btn" id="btn-scorer-display-totals" onclick="setScorerDisplay('totals')">Total goals</button>
+          <button class="toggle-btn active" id="btn-scorer-display-times" onclick="setScorerDisplay('times')">Goals &amp; times</button>
         </div>
         <div class="hint" style="margin-top:5px;">Total: <code>#9 SMITH · 3</code> &nbsp;·&nbsp; Times: <code>#9 SMITH 12', 28', 67'</code></div>
       </div>
@@ -2223,6 +2255,167 @@ function setLogoOppHalftime(el, oppN) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   GAME PICKER — schedule mode + manual mode
+   ═══════════════════════════════════════════════════════════════
+   Mirrors the Goals tool's pattern. Schedule mode is the default —
+   pick from a dropdown of games loaded from schedule.json. Manual
+   mode reveals the raw date + opponent-name inputs for off-schedule
+   games (scrimmages, tournaments, friendlies the schedule doesn't
+   cover). Either way, the same #game-date and #opp-name inputs hold
+   the canonical values the rest of the tool reads — schedule mode
+   just sets them programmatically and dispatches the change events
+   the existing wiring listens for.
+
+   On a successful schedule pick, we also try to match the opponent
+   name to a saved team in OPPONENTS so the logo loads automatically.
+   No match (e.g. a new opponent) → the logo block stays unchanged
+   and the user picks one manually.
+   ════════════════════════════════════════════════════════════════ */
+var LS_SCHEDULE_KEY = 'ww-soccer-schedule-v1';
+var SCHEDULE_GAMES = [];
+var cardPickerMode = 'schedule';   /* 'schedule' | 'manual' */
+
+function loadScheduleFromLocal() {
+  try {
+    var raw = localStorage.getItem(LS_SCHEDULE_KEY);
+    if (!raw) return;
+    var parsed = JSON.parse(raw);
+    var games = parsed && Array.isArray(parsed.games) ? parsed.games : (Array.isArray(parsed) ? parsed : []);
+    SCHEDULE_GAMES = games.filter(function(g) {
+      return g && typeof g.date === 'string' && typeof g.opponent === 'string' && g.opponent.trim();
+    });
+  } catch(e) { SCHEDULE_GAMES = []; }
+}
+
+function refreshScheduleFromGitHub() {
+  if (!window.WWCommon) return;
+  WWCommon.loadJson('schedule.json', LS_SCHEDULE_KEY).then(function(result) {
+    if (result && result.data) {
+      var games = Array.isArray(result.data.games) ? result.data.games : [];
+      SCHEDULE_GAMES = games.filter(function(g) {
+        return g && typeof g.date === 'string' && typeof g.opponent === 'string' && g.opponent.trim();
+      });
+      populateCardScheduleDropdown();
+    }
+  }).catch(function(){});
+}
+
+/* Same date helpers the Goals tool uses — copied locally so this
+   module is self-contained. parseDateUTC dodges the timezone gotcha
+   where 'YYYY-MM-DD' becomes midnight-UTC then shifts back a day in
+   some locales. */
+function parseDateUTCCard(s) {
+  if (!s || typeof s !== 'string') return null;
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return null;
+  return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+}
+var MONTH_ABBR_CARD = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function formatShortDateCard(d) {
+  if (!d) return '';
+  return MONTH_ABBR_CARD[d.getMonth()] + ' ' + d.getDate();
+}
+
+function populateCardScheduleDropdown() {
+  var sel = document.getElementById('card-gp-schedule-select');
+  if (!sel) return;
+  /* Sort by date desc — most recent / next-up games first. Coaches are
+     usually building a card for the most recent game, not one from
+     August. */
+  var sorted = SCHEDULE_GAMES.slice().sort(function(a, b) {
+    return (b.date || '').localeCompare(a.date || '');
+  });
+  /* Preserve current selection through repopulate (refresh from GitHub
+     can re-fire this while the user has a game picked). */
+  var prev = sel.value;
+  sel.innerHTML = '<option value="">— Select a game —</option>';
+  sorted.forEach(function(g) {
+    var opt = document.createElement('option');
+    var key = g.date + '|' + g.opponent.toLowerCase();
+    opt.value = key;
+    var dt = parseDateUTCCard(g.date);
+    var datePart = dt ? formatShortDateCard(dt) : g.date;
+    var statusPart = '';
+    if (g.status === 'final') {
+      var us   = g.scoreUs   == null ? '' : g.scoreUs;
+      var them = g.scoreThem == null ? '' : g.scoreThem;
+      statusPart = (us !== '' && them !== '') ? (' (' + us + '-' + them + ')') : ' (final)';
+    } else if (g.status === 'cancelled') {
+      statusPart = ' (cancelled)';
+    }
+    opt.textContent = datePart + ' vs ' + g.opponent + statusPart;
+    opt.dataset.date = g.date;
+    opt.dataset.opp = g.opponent;
+    sel.appendChild(opt);
+  });
+  if (prev) sel.value = prev;
+  var hint = document.getElementById('card-gp-schedule-hint');
+  if (hint) {
+    if (sorted.length === 0) {
+      hint.textContent = 'No games found in schedule.json. Switch to Manual or open the Schedule tool to add games.';
+    } else {
+      hint.textContent = sorted.length + ' game' + (sorted.length === 1 ? '' : 's') + ' available.';
+    }
+  }
+}
+
+function setCardPickerMode(mode) {
+  if (mode !== 'schedule' && mode !== 'manual') mode = 'schedule';
+  cardPickerMode = mode;
+  document.getElementById('card-gp-mode-schedule').classList.toggle('active', mode === 'schedule');
+  document.getElementById('card-gp-mode-manual').classList.toggle('active',   mode === 'manual');
+  document.getElementById('card-gp-schedule-pane').style.display = (mode === 'schedule') ? '' : 'none';
+  document.getElementById('card-gp-manual-pane').style.display   = (mode === 'manual')   ? '' : 'none';
+}
+
+/* User picked a game from the schedule dropdown. Write the date and
+   opponent into the existing #game-date / #opp-name inputs so the
+   downstream wiring (onGameContextChanged + update) fires the same
+   way it does in manual mode, and try to auto-load the logo by
+   name-matching against OPPONENTS. */
+function onCardScheduleSelect(value) {
+  if (!value) return;   /* dropdown reset to placeholder */
+  var sel = document.getElementById('card-gp-schedule-select');
+  var opt = sel.options[sel.selectedIndex];
+  if (!opt) return;
+  var date = opt.dataset.date || '';
+  var opp  = opt.dataset.opp  || '';
+
+  var dateEl = document.getElementById('game-date');
+  var oppEl  = document.getElementById('opp-name');
+  if (dateEl) dateEl.value = date;
+  if (oppEl)  oppEl.value  = opp;
+
+  /* Try to match the opponent name to a saved team for the logo.
+     Match is case-insensitive on the team's `name`. If multiple match
+     (e.g. duplicates in the team list), the first wins — the team
+     manager already prevents true duplicates so this is mostly
+     defensive. */
+  if (Array.isArray(OPPONENTS)) {
+    var oppLower = opp.trim().toLowerCase();
+    var matchIdx = -1;
+    for (var i = 0; i < OPPONENTS.length; i++) {
+      if ((OPPONENTS[i].name || '').trim().toLowerCase() === oppLower) {
+        matchIdx = i;
+        break;
+      }
+    }
+    var oppSelectEl = document.getElementById('opp-select');
+    if (matchIdx !== -1 && oppSelectEl) {
+      oppSelectEl.value = String(matchIdx);
+      pickOpponent(String(matchIdx));   /* also calls update() for us */
+    }
+    /* No match → leave the logo state alone. The user can pick from
+       the Quick pick dropdown or upload a custom logo below. */
+  }
+
+  /* Fire the same hooks the manual inputs would trigger so the rest
+     of the tool reacts to the new game context. */
+  onGameContextChanged();
+  update();
+}
+
+/* ══════════════════════════════════════════════════════════════
    FOOTER MODE + GOAL SCORERS (Final card + Halftime card)
    ══════════════════════════════════════════════════════════════
    The Final card's footer has two interchangeable modes:
@@ -2264,9 +2457,11 @@ var LS_SCORER_DISPLAY_KEY = 'ww-card-scorer-display-v1';
 var GOALS_BY_GAME = {};
 
 /* Display preference (totals vs times). Local to this browser, not
-   synced. Defaults to 'totals' to preserve the v1 visual on first
-   load after upgrade. */
-var scorerDisplay = 'totals';
+   synced. Defaults to 'times' — coaches generally want the chronological
+   list with minutes by default; switching to 'totals' is a deliberate
+   choice for season-summary-style cards. The localStorage value, if
+   present, overrides this default. */
+var scorerDisplay = 'times';
 
 /* The game key (`date|opp-lowercase`) currently rendering. null when
    either field is empty (in which case the card shows "no scorers"). */
@@ -2474,7 +2669,7 @@ function getCurrentGameGoals() {
 
    Custom names are case-folded for dedup (so "Casey" and "casey"
    merge into one entry showing "CASEY 12', 67'"). */
-function aggregateGoalsByPlayer(goals) {
+function aggregateGoalsByPlayer(goals, sortMode) {
   var byKey = {};
   var order = [];
   goals.forEach(function(g) {
@@ -2510,7 +2705,9 @@ function aggregateGoalsByPlayer(goals) {
     /* Push minute only if known; null minutes show as "—" in times mode. */
     byKey[key].minutes.push(g.minute);
   });
-  /* Sort each entry's minutes: known asc, nulls last. */
+  /* Sort each entry's minutes: known asc, nulls last. This is stable
+     across both display modes — the within-row minute ordering is the
+     same chronologically. */
   Object.keys(byKey).forEach(function(k) {
     byKey[k].minutes.sort(function(a, b) {
       var an = (a == null), bn = (b == null);
@@ -2520,11 +2717,46 @@ function aggregateGoalsByPlayer(goals) {
       return a - b;
     });
   });
-  /* Build output sorted by jersey# (blanks last), then custom names alphabetical. */
+
+  /* Outer ordering depends on display mode:
+       - 'totals' (default for jersey#-prefixed lists): jersey# asc,
+         blanks last, customs alphabetical at the end.
+       - 'times'  (chronological list): each entry's earliest minute
+         asc, with nulls (unknown-minute entries) sorted to the end.
+         Ties broken by jersey# then name so the order is stable.
+     The mode is passed in so the same function serves both card-side
+     renders without each caller needing to re-implement sorting. */
   var roster = [], custom = [];
   order.forEach(function(k) {
     (byKey[k].kind === 'custom' ? custom : roster).push(byKey[k]);
   });
+
+  if (sortMode === 'times') {
+    /* Chronological: earliest minute first. byKey[*].minutes is already
+       sorted asc with nulls last, so minutes[0] is each player's first
+       known goal (or null if all of theirs are unknown). */
+    function timesCmp(a, b) {
+      var am = (a.minutes.length && a.minutes[0] != null) ? a.minutes[0] : Infinity;
+      var bm = (b.minutes.length && b.minutes[0] != null) ? b.minutes[0] : Infinity;
+      if (am !== bm) return am - bm;
+      /* Same minute (or both unknown) — fall back to jersey#, then name. */
+      var an = parseInt(a.number, 10), bn = parseInt(b.number, 10);
+      var aHas = !isNaN(an), bHas = !isNaN(bn);
+      if (aHas && bHas && an !== bn) return an - bn;
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    }
+    /* Merge roster + custom into one chronological list — in times mode
+       there's no reason to ghetto custom names to the end; a custom
+       scorer's goal at minute 12 should still appear before a roster
+       scorer's goal at minute 67. */
+    var merged = roster.concat(custom);
+    merged.sort(timesCmp);
+    return merged;
+  }
+
+  /* Default 'totals' mode: roster first by jersey, customs alpha at end. */
   roster.sort(function(a, b) {
     var an = parseInt(a.number, 10), bn = parseInt(b.number, 10);
     var aHas = !isNaN(an), bHas = !isNaN(bn);
@@ -2671,7 +2903,7 @@ function renderScorersList(listEl) {
   listEl.style.fontSize = '';
 
   var goals = getCurrentGameGoals();
-  var entries = aggregateGoalsByPlayer(goals);
+  var entries = aggregateGoalsByPlayer(goals, scorerDisplay);
 
   /* Two-column grid kicks in at 4+ unique scorers (matches the v1
      threshold; the threshold is on # of rendered rows, not goal count). */
@@ -3249,16 +3481,19 @@ if (window.WWCommon && typeof WWCommon.renderGitHubConfigPanel === 'function') {
    If GitHub isn't configured (no PAT) or the request fails, WWCommon falls
    back to localStorage and these become no-ops.
 
-   Order matters: we hydrate the scorer-display preference and the local
-   goals cache *before* the network refreshes so the first paint of the
-   card reflects whatever's on disk. The network calls then update them
-   in place if newer data exists. */
+   Order matters: we hydrate the scorer-display preference, the local
+   goals cache, and the local schedule cache *before* the network
+   refreshes so the first paint reflects whatever's on disk. The
+   network calls then update them in place if newer data exists. */
 loadScorerDisplay();
 applyScorerDisplayButtons();
 loadGoalsFromLocal();
+loadScheduleFromLocal();
+populateCardScheduleDropdown();
 refreshTeamsFromGitHub();
 refreshRosterFromGitHub();
 refreshGoalsFromGitHub();
+refreshScheduleFromGitHub();
 
 
 /* ══════════════════════════════════════════════════════════════
