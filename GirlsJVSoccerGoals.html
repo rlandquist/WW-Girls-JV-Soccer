@@ -988,11 +988,6 @@ var editingGoalId = null;
 var lastEnteredMinute = null;
 var currentMinute = 0;
 
-/* Debounced persistence — every mutation calls persistGoals() which
-   coalesces back-to-back changes into one save. 300 ms matches the
-   Card tool's debounce. */
-var persistTimer = null;
-
 /* ─── Boot order ───────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function() {
   /* 1. Mount the GitHub config panel (same component the other tools use). */
@@ -1126,15 +1121,13 @@ function loadGoalsFromLocal() {
   } catch(e) {}
 }
 
-/* Save: localStorage write happens synchronously inside WWCommon.saveJson
-   before any await, so even a network failure leaves us with consistent
-   local state. */
+/* Save current goals to localStorage + GitHub. Always immediate — every
+   caller is a discrete user action (Add Goal, Delete, Save edit) that
+   should be durable the moment it's confirmed. localStorage is written
+   synchronously inside WWCommon.saveJson before any await, so even if
+   the page is closed before the GitHub commit completes, the data is
+   safe locally and will sync next time the tool opens online. */
 function persistGoals() {
-  if (persistTimer) clearTimeout(persistTimer);
-  persistTimer = setTimeout(persistGoalsNow, 300);
-}
-function persistGoalsNow() {
-  persistTimer = null;
   if (!window.WWCommon) {
     /* Degraded mode — common.js failed to load. Best effort: localStorage only. */
     try { localStorage.setItem(LS_GOALS_KEY, JSON.stringify(buildGoalsPayload())); } catch(e) {}
@@ -1317,7 +1310,7 @@ function maybeMigrateFromTeams() {
       });
       if (migratedGames > 0) {
         didMigrate = true;
-        persistGoalsNow();   /* immediate save of goals.json, not debounced */
+        persistGoals();   /* save immediately after migration so the imported data is durable */
         renderAll();
       }
     }
