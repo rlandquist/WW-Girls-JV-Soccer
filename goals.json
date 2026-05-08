@@ -116,18 +116,26 @@
     "2026-05-11|catholic memorial": [
       {
         "id": "go_mox9yiz0lzt8",
-        "minute": 7,
-        "half": 1,
         "kind": "roster",
         "playerId": "p_modcfhv68mqy",
-        "customName": ""
+        "customName": "",
+        "minute": 7,
+        "half": 1
       },
       {
         "id": "go_mox9yonxt6ov",
-        "minute": 21,
-        "half": 1,
         "kind": "roster",
         "playerId": "p_modcmjfbf5ef",
+        "customName": "",
+        "minute": 21,
+        "half": 1
+      },
+      {
+        "id": "go_moxaoxdfmuw1",
+        "minute": 44,
+        "half": 2,
+        "kind": "roster",
+        "playerId": "p_modcieid2vxw",
         "customName": ""
       }
     ]
