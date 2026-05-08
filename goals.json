@@ -1,4 +1,117 @@
 {
   "version": 1,
-  "goalsByGame": {}
+  "goalsByGame": {
+    "2026-05-02|st augustine prep": [
+      {
+        "id": "go_mox9bm0h5e97",
+        "kind": "roster",
+        "playerId": "p_modckd8lmlbz",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      },
+      {
+        "id": "go_mox9bm0hmouo",
+        "kind": "roster",
+        "playerId": "p_modckd8lmlbz",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      },
+      {
+        "id": "go_mox9bm0hbyzy",
+        "kind": "roster",
+        "playerId": "p_modcg7j4dkv7",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      },
+      {
+        "id": "go_mox9bm0h44sn",
+        "kind": "roster",
+        "playerId": "p_modcg7j4dkv7",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      },
+      {
+        "id": "go_mox9bm0h5qv0",
+        "kind": "roster",
+        "playerId": "p_modcmjfbf5ef",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      },
+      {
+        "id": "go_mox9bm0h1eij",
+        "kind": "roster",
+        "playerId": "p_modcmjfbf5ef",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      },
+      {
+        "id": "go_mox9bm0h15wa",
+        "kind": "roster",
+        "playerId": "p_modcpq9psnf1",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      }
+    ],
+    "2026-05-05|opponent": [
+      {
+        "id": "go_mox9bm0hxtuw",
+        "kind": "roster",
+        "playerId": "p_modcpq9psnf1",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      },
+      {
+        "id": "go_mox9bm0hl67o",
+        "kind": "roster",
+        "playerId": "p_modcpq9psnf1",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      }
+    ],
+    "2026-05-07|badger": [
+      {
+        "id": "go_mox9bm0h5xpc",
+        "kind": "roster",
+        "playerId": "p_modcpq9psnf1",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      },
+      {
+        "id": "go_mox9bm0hbwkd",
+        "kind": "roster",
+        "playerId": "p_modcosrztl6c",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      }
+    ],
+    "2026-05-07|opponent": [
+      {
+        "id": "go_mox9bm0h9s53",
+        "kind": "roster",
+        "playerId": "p_modcpq9psnf1",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      },
+      {
+        "id": "go_mox9bm0htn9z",
+        "kind": "roster",
+        "playerId": "p_modcosrztl6c",
+        "customName": "",
+        "minute": null,
+        "half": 1
+      }
+    ]
+  }
 }
