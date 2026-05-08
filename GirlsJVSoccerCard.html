@@ -55,27 +55,19 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 .folder-btn{width:100%;padding:7px;background:#f0f4fa;color:#0d1f42;border:1px solid #c0cce0;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;}
 .folder-btn:hover{background:#e0e9f7;}
 
-/* ── GOAL SCORERS PICKER (Final-card footer mode + Halftime card) ── */
-.scorers-picker{display:flex;flex-direction:column;gap:5px;}
-.scorer-row{display:grid;grid-template-columns:18px 1fr 56px 26px;gap:5px;align-items:center;}
-.scorer-row.with-custom{grid-template-columns:18px 1fr 1fr 56px 26px;}
-.scorer-row select,.scorer-row input[type="text"]{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:5px;}
-.scorer-row select{height:30px;cursor:pointer;}
-.scorer-row input[type="number"]{font-size:12px;padding:5px 6px;border:1px solid #ddd;border-radius:5px;text-align:center;height:30px;box-sizing:border-box;}
-.scorer-row .scorer-remove{font-size:12px;border:1px solid #e0c0c0;background:#fff;color:#aa3333;border-radius:5px;cursor:pointer;height:30px;padding:0;}
-.scorer-row .scorer-remove:hover{background:#fbeaea;}
-.scorer-row .drag-handle{font-size:14px;color:#bbb;cursor:grab;user-select:none;text-align:center;line-height:30px;height:30px;letter-spacing:-1px;}
-.scorer-row .drag-handle:hover{color:#666;}
-.scorer-row.sortable-chosen .drag-handle{cursor:grabbing;}
-.scorer-row.sortable-ghost{opacity:0.4;background:#f0f4fa;}
-.scorer-add-btn{font-size:12px;padding:7px;background:#f0f4fa;color:#0d1f42;border:1px dashed #c0cce0;border-radius:6px;font-weight:700;cursor:pointer;}
-.scorer-add-btn:hover{background:#e0e9f7;border-style:solid;}
-.scorer-clear-btn{font-size:11px;padding:5px;background:none;color:#888;border:1px solid #d4c0c0;border-radius:5px;cursor:pointer;font-family:inherit;margin-top:4px;width:100%;}
-.scorer-clear-btn:hover{background:#fbeaea;color:#aa3333;border-color:#e0a0a0;}
-.scorer-roster-note{font-size:10px;color:#888;font-style:italic;}
-.roster-badge{font-size:10px;font-weight:700;padding:3px 7px;border-radius:4px;display:inline-block;letter-spacing:.02em;margin-top:3px;}
-.roster-badge.loaded{background:#e8f5e8;color:#2a6a2a;}
-.roster-badge.empty{background:#f5e8e0;color:#8a5a2a;}
+/* ── GOAL SCORERS DISPLAY (Final-card footer mode + Halftime card) ──
+   v2: scorer entry is delegated to GirlsJVSoccerGoals.html, which writes
+   to goals.json. The card-side just renders what's in the file (read-only
+   display, with a totals/times toggle). The picker UI from v1 was removed;
+   the only editor surface now is a link to the Goals tool. */
+.goals-link-block{background:#f0f4fa;border:1px solid #c0cce0;border-radius:6px;padding:9px 10px;display:flex;flex-direction:column;gap:6px;}
+.goals-link-text{font-size:11.5px;color:#444;line-height:1.4;margin:0;}
+.goals-link-text strong{color:#0d1f42;font-weight:700;}
+.goals-link-btn{display:inline-block;text-align:center;font-size:11px;font-weight:700;letter-spacing:.04em;padding:7px 8px;background:#8a2a2a;color:#fff;border-radius:5px;text-decoration:none;text-transform:uppercase;}
+.goals-link-btn:hover{background:#6a1c1c;}
+.goals-link-status{font-size:10px;color:#888;font-style:italic;}
+.goals-link-status.loaded{color:#2a6a2a;font-style:normal;}
+.goals-link-status.empty{color:#8a5a2a;}
 
 /* ── MODE TOGGLE (prominent at top of editor) ── */
 .mode-toggle{display:flex;gap:5px;margin-bottom:2px;}
@@ -678,13 +670,26 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
         </div>
       </div>
 
-      <!-- Goal Scorers picker (shown when footer mode = 'scorers') -->
+      <!-- Goal Scorers (shown when footer mode = 'scorers').
+           Scorer data is owned by the Goals tool (goals.json). This block
+           tells the user where to add/edit scorers and exposes a display
+           toggle that controls how the card renders them: total goals
+           (e.g. "#9 SMITH · 3") or goals + times (e.g. "#9 SMITH 12', 28'"). -->
       <div id="footer-scorers-fields" style="display:none;">
-        <div class="roster-badge empty" id="roster-badge-final">Roster: not loaded</div>
-        <div class="scorers-picker" id="scorers-picker"></div>
-        <button class="scorer-add-btn" onclick="addScorer()" style="margin-top:6px;width:100%;">+ Add scorer</button>
-        <button class="scorer-clear-btn" id="scorer-clear-btn-final" onclick="clearAllScorers()" style="display:none;">↺ Clear all scorers</button>
-        <div class="scorer-roster-note" id="scorer-roster-note" style="margin-top:5px;"></div>
+        <div class="goals-link-block">
+          <p class="goals-link-text">
+            Scorers are managed in the <strong>Goals tool</strong>. Set the
+            same date and opponent there to enter goals for this game.
+          </p>
+          <a href="./GirlsJVSoccerGoals.html" class="goals-link-btn" target="_blank" rel="noopener">Open Goals tool ↗</a>
+          <div class="goals-link-status" id="goals-link-status-final">Loading…</div>
+        </div>
+        <div class="section-label" style="margin-top:8px">Display on card</div>
+        <div class="toggle-row">
+          <button class="toggle-btn active" id="btn-scorer-display-totals" onclick="setScorerDisplay('totals')">Total goals</button>
+          <button class="toggle-btn" id="btn-scorer-display-times" onclick="setScorerDisplay('times')">Goals &amp; times</button>
+        </div>
+        <div class="hint" style="margin-top:5px;">Total: <code>#9 SMITH · 3</code> &nbsp;·&nbsp; Times: <code>#9 SMITH 12', 28', 67'</code></div>
       </div>
     </div>
 
@@ -766,14 +771,19 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
         <div class="hint">Smaller line below the main message — leave blank to hide</div>
       </div>
 
-      <!-- Goal Scorers picker (shown when halftime bottom mode = 'scorers') -->
+      <!-- Goal Scorers (shown when halftime bottom mode = 'scorers').
+           Same Goals-tool link as Final card. The display toggle is
+           shared (one preference for both Final + Halftime cards). -->
       <div id="halftime-scorers-fields" style="display:none;">
-        <div class="roster-badge empty" id="roster-badge-halftime">Roster: not loaded</div>
-        <div class="scorers-picker" id="scorers-picker-halftime"></div>
-        <button class="scorer-add-btn" onclick="addScorer()" style="margin-top:6px;width:100%;">+ Add scorer</button>
-        <button class="scorer-clear-btn" id="scorer-clear-btn-halftime" onclick="clearAllScorers()" style="display:none;">↺ Clear all scorers</button>
-        <div class="scorer-roster-note" id="scorer-roster-note-halftime" style="margin-top:5px;"></div>
-        <div class="hint">Shared with the Final card.</div>
+        <div class="goals-link-block">
+          <p class="goals-link-text">
+            Scorers are managed in the <strong>Goals tool</strong>. The
+            same scorers shown on the Final card render here too.
+          </p>
+          <a href="./GirlsJVSoccerGoals.html" class="goals-link-btn" target="_blank" rel="noopener">Open Goals tool ↗</a>
+          <div class="goals-link-status" id="goals-link-status-halftime">Loading…</div>
+        </div>
+        <div class="hint" style="margin-top:5px;">Display style is set in the Final card&rsquo;s Goal Scorers tab and applies here too.</div>
       </div>
     </div>
 
@@ -1050,7 +1060,6 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
     <div class="modal-foot">
       <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
         <button class="reset-link" onclick="resetTeamsToDefaults()">↺ Clear all teams</button>
-        <button class="reset-link" onclick="clearScorerHistory()">↺ Clear scorer history</button>
       </div>
       <button class="done-btn" onclick="closeTeamManager()">Done</button>
     </div>
@@ -1058,7 +1067,6 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 </div>
 
 <script src="./common.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════
@@ -1205,12 +1213,15 @@ function parseStoredPayload(raw) {
 }
 
 function buildStoredPayload() {
+  /* v2 schema (May 2026): scorersByGame is no longer written. The Goals
+     tool owns goals.json now; teams.json no longer carries per-game
+     scorer data. footerModeByGame and halftimeModeByGame remain — they're
+     card-tool-owned UI preferences. */
   return {
     version: 2,
     spineText: spineText,
     conferences: CONFERENCES,
     teams: OPPONENTS,
-    scorersByGame: SCORER_HISTORY,
     footerModeByGame: FOOTER_MODE_HISTORY,
     halftimeModeByGame: HALFTIME_MODE_HISTORY
   };
@@ -1776,11 +1787,11 @@ function applyTeamsPayload(payload) {
   /* Sync the modal's spine-text input if the modal is currently mounted. */
   var si = document.getElementById('spine-text-input');
   if (si) si.value = spineText;
-  /* If a game is in context, re-apply the per-game scorer state from the
-     freshly loaded history so the picker + card reflect the new data. */
+  /* If a game is in context, re-apply the per-game footer/halftime
+     mode preferences from the freshly loaded teams.json. The scorer
+     list itself comes from goals.json (loaded separately). */
   if (currentGameKey) {
     loadGameStateFromHistory();
-    renderScorersPicker();
     renderScorersOnCard();
     renderScorersOnHalftimeCard();
   }
@@ -1815,15 +1826,14 @@ function refreshTeamsFromGitHub() {
 
 /* Pull roster.json from GitHub on startup. The card tool reads the roster
    via loadRosterPlayers() which hits localStorage, so we just need the
-   latest data to land there. Then re-render any open scorer picker. */
+   latest data to land there. Then re-render the card-side scorer lists
+   so name/jersey changes from the roster tool show up. */
 function refreshRosterFromGitHub() {
   if (!window.WWCommon) return;
   WWCommon.loadJson('roster.json', LS_ROSTER_KEY).then(function(result) {
     if (result && result.data && result.source === 'github') {
-      if ((footerMode === 'scorers' || halftimeMode === 'scorers')
-          && typeof renderScorersPicker === 'function') {
-        renderScorersPicker();
-      }
+      renderScorersOnCard();
+      renderScorersOnHalftimeCard();
     }
   }).catch(function() {});
 }
@@ -2213,31 +2223,53 @@ function setLogoOppHalftime(el, oppN) {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   FOOTER MODE + GOAL SCORERS (Final card)
+   FOOTER MODE + GOAL SCORERS (Final card + Halftime card)
    ══════════════════════════════════════════════════════════════
    The Final card's footer has two interchangeable modes:
      'next'    — the original next-game banner (date / time / opponent)
-     'scorers' — a list of goal scorers pulled from the roster tool
-                 (with a free-text fallback for non-roster scorers)
+     'scorers' — a list of goal scorers pulled from goals.json
+   The Halftime card's bottom area has a parallel toggle:
+     'msg'     — the typed message (default)
+     'scorers' — same scorer list as the Final card
+
+   v2 (May 2026): Scorer entry was extracted into a separate tool —
+   GirlsJVSoccerGoals.html, which owns goals.json. This module is now
+   read-only with respect to scorer data: it loads goals.json on
+   startup, listens for refreshes, and renders the current game's
+   scorers on both cards. The per-game footer/halftime mode toggles
+   still persist into teams.json's footerModeByGame / halftimeModeByGame
+   maps (those are card-tool-owned settings, not scorer data).
+
+   Display modes (toggled in the editor, persisted as a global
+   per-browser preference, NOT per game):
+     'totals' — '#9 SMITH · 3'                     (current style)
+     'times'  — '#9 SMITH 12', 28', 67''           (new style)
+
+   Goal entry shape (from goals.json):
+     { id, kind: 'roster'|'custom', playerId, customName, minute|null, half: 1|2 }
 
    Roster source: localStorage['ww-soccer-roster-v1'] (written by the
-   roster tool in the same browser). We don't write back — picking a
-   scorer here doesn't mutate the roster.
-
-   Scorer state shape: array of { kind, playerId, customName, goals }
-     kind === 'roster' → playerId points at a roster player
-     kind === 'custom' → customName holds the typed name
-   The card renders entries as `#NN NAME · G` (jersey # is omitted for
-   custom scorers and for roster players with no jersey number set).
+   roster tool). We don't write back — looking up a player here doesn't
+   mutate the roster.
    ════════════════════════════════════════════════════════════════ */
 var footerMode = 'next';            /* Final card footer: 'next' | 'scorers' */
 var halftimeMode = 'msg';           /* Halftime card bottom: 'msg' | 'scorers' */
-var scorers = [];                   /* array of scorer entries for the current game (see above) */
 var LS_ROSTER_KEY = 'ww-soccer-roster-v1';
-var SCORER_CUSTOM_SENTINEL = '__custom__';
+var LS_GOALS_KEY  = 'ww-soccer-goals-v1';
+var LS_SCORER_DISPLAY_KEY = 'ww-card-scorer-display-v1';
 
-/* The game key (`date|opp-lowercase`) the picker is currently editing.
-   null when either field is empty (in which case nothing is persisted). */
+/* Per-game goals data, loaded from goals.json. Map: gameKey → array of
+   goal entries. Read-only from the Card tool's perspective — only the
+   Goals tool mutates this. Refreshed on startup and via re-render. */
+var GOALS_BY_GAME = {};
+
+/* Display preference (totals vs times). Local to this browser, not
+   synced. Defaults to 'totals' to preserve the v1 visual on first
+   load after upgrade. */
+var scorerDisplay = 'totals';
+
+/* The game key (`date|opp-lowercase`) currently rendering. null when
+   either field is empty (in which case the card shows "no scorers"). */
 var currentGameKey = null;
 var persistTimer = null;
 
@@ -2253,18 +2285,14 @@ function buildScorerKey() {
   return date + '|' + opp;
 }
 
-/* Save current game state (scorers + footer mode + halftime mode) to history,
-   then write to localStorage and (if linked) to the file. No-op when no game key. */
+/* Persist the per-game footer + halftime mode preferences. Scorer data
+   is no longer written here — that lives in goals.json now and is
+   owned by the Goals tool. SCORER_HISTORY (loaded from teams.json) is
+   left untouched on save so legacy data survives until the Goals tool
+   migrates it. */
 function persistGameStateNow() {
   persistTimer = null;
   if (!currentGameKey) return;
-  if (scorers.length > 0) {
-    SCORER_HISTORY[currentGameKey] = scorers.map(function(s) {
-      return { kind: s.kind, playerId: s.playerId || '', customName: s.customName || '', goals: s.goals || 1 };
-    });
-  } else {
-    delete SCORER_HISTORY[currentGameKey];
-  }
   FOOTER_MODE_HISTORY[currentGameKey]   = footerMode;
   HALFTIME_MODE_HISTORY[currentGameKey] = halftimeMode;
   saveOpponentsToStorage();
@@ -2275,20 +2303,19 @@ function persistGameState() {
   persistTimer = setTimeout(persistGameStateNow, 300);
 }
 
-/* Replace `scorers`, `footerMode`, and `halftimeMode` with whatever was
-   previously saved for currentGameKey. Then re-render the editor + card. */
+/* Restore the saved footerMode and halftimeMode for currentGameKey,
+   then re-render the cards so the new game's scorers appear. The
+   scorer list itself comes from GOALS_BY_GAME (already loaded from
+   goals.json), keyed by currentGameKey. */
 function loadGameStateFromHistory() {
   if (!currentGameKey) {
-    scorers = [];
     /* footerMode and halftimeMode stay where they were — no key, no opinion */
     return;
   }
-  var saved = SCORER_HISTORY[currentGameKey];
-  scorers = Array.isArray(saved) ? saved.slice() : [];
   var savedFooter = FOOTER_MODE_HISTORY[currentGameKey];
   if (savedFooter === 'next' || savedFooter === 'scorers') {
-    /* setFooterMode toggles UI + re-renders + calls update; pass through skipPersist
-       so we don't immediately re-save what we just loaded. */
+    /* skipPersist=true so the load doesn't immediately re-save what
+       it just read. */
     setFooterMode(savedFooter, true);
   }
   var savedHalftime = HALFTIME_MODE_HISTORY[currentGameKey];
@@ -2298,28 +2325,20 @@ function loadGameStateFromHistory() {
 }
 
 /* Fired when the date or opponent input changes. Saves the OLD game's
-   state under its key, then loads the NEW game's saved state.
-   Special case: when transitioning from "no game" (null key) to a fresh
-   game with unsaved in-memory scorers, those scorers are promoted into
-   history under the new key rather than discarded. */
+   per-game preferences first (so a 300ms debounce doesn't lose them),
+   then loads the new game's state. */
 function onGameContextChanged() {
   var newKey = buildScorerKey();
   if (newKey === currentGameKey) return;
-  /* Flush any pending save under the OLD key before switching. No-op
-     if old key was null. */
+  /* Flush any pending save under the OLD key before switching. */
   if (persistTimer) { clearTimeout(persistTimer); persistGameStateNow(); }
-  var oldKey = currentGameKey;
   currentGameKey = newKey;
-  if (newKey && oldKey === null && !SCORER_HISTORY[newKey] && scorers.length > 0) {
-    /* In-memory scorers existed before a game was identified — keep them
-       and persist under the new key. */
-    persistGameState();
-  } else {
-    loadGameStateFromHistory();
-  }
-  renderScorersPicker();
+  loadGameStateFromHistory();
+  /* Re-render the card-side scorer lists for the new game. */
   renderScorersOnCard();
   renderScorersOnHalftimeCard();
+  /* Refresh the editor's "X goals tracked" status hint. */
+  refreshGoalsLinkStatus();
 }
 
 function loadRosterPlayers() {
@@ -2352,8 +2371,7 @@ function loadRosterPlayers() {
   } catch(e) { return []; }
 }
 
-/* Find a roster player by id. Used both to populate the dropdown's
-   selected value and to render the card-side scorer entry. */
+/* Find a roster player by id. Used to render the card-side scorer entry. */
 function findRosterPlayer(id) {
   if (!id) return null;
   var roster = loadRosterPlayers();
@@ -2375,6 +2393,202 @@ function scorerDisplayName(player) {
   return 'PLAYER';
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   GOALS DATA — read goals.json, mirror to memory, refresh on the wire
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Defensive normalizer for individual goal entries. */
+function normalizeGoal(g) {
+  if (!g || typeof g !== 'object') return null;
+  var kind = (g.kind === 'custom') ? 'custom' : 'roster';
+  var minute = null;
+  if (g.minute != null && g.minute !== '') {
+    var m = parseInt(g.minute, 10);
+    if (!isNaN(m)) minute = Math.max(0, Math.min(120, m));
+  }
+  var half = (g.half === 2) ? 2 : 1;
+  return {
+    id:         (typeof g.id === 'string' && g.id) ? g.id : ('go_' + Math.random().toString(36).slice(2,8)),
+    kind:       kind,
+    playerId:   typeof g.playerId   === 'string' ? g.playerId   : '',
+    customName: typeof g.customName === 'string' ? g.customName : '',
+    minute:     minute,
+    half:       half
+  };
+}
+
+function applyGoalsData(payload) {
+  if (!payload || typeof payload !== 'object') {
+    GOALS_BY_GAME = {};
+  } else {
+    var src = payload.goalsByGame;
+    if (!src || typeof src !== 'object' || Array.isArray(src)) {
+      GOALS_BY_GAME = {};
+    } else {
+      var clean = {};
+      Object.keys(src).forEach(function(k) {
+        var arr = src[k];
+        if (!Array.isArray(arr)) return;
+        var normed = arr.map(normalizeGoal).filter(Boolean);
+        if (normed.length) clean[k] = normed;
+      });
+      GOALS_BY_GAME = clean;
+    }
+  }
+  /* Re-render whichever card is currently showing scorers. */
+  renderScorersOnCard();
+  renderScorersOnHalftimeCard();
+  refreshGoalsLinkStatus();
+}
+
+function loadGoalsFromLocal() {
+  try {
+    var raw = localStorage.getItem(LS_GOALS_KEY);
+    if (!raw) return;
+    applyGoalsData(JSON.parse(raw));
+  } catch(e) {}
+}
+
+function refreshGoalsFromGitHub() {
+  if (!window.WWCommon) return;
+  WWCommon.loadJson('goals.json', LS_GOALS_KEY).then(function(result) {
+    if (result && result.data && result.source === 'github') {
+      applyGoalsData(result.data);
+    }
+  }).catch(function(){});
+}
+
+/* All goals for the currently selected game. Empty array when no game
+   key is set or no goals exist for that game. */
+function getCurrentGameGoals() {
+  if (!currentGameKey) return [];
+  return GOALS_BY_GAME[currentGameKey] || [];
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AGGREGATION — group goals by player for the card-side render
+   ═══════════════════════════════════════════════════════════════
+   Returns an array of { kind, playerId, customName, name, number,
+   count, minutes[] } sorted by jersey# asc (blanks last) for roster
+   players, then custom names alphabetically at the end.
+
+   Custom names are case-folded for dedup (so "Casey" and "casey"
+   merge into one entry showing "CASEY 12', 67'"). */
+function aggregateGoalsByPlayer(goals) {
+  var byKey = {};
+  var order = [];
+  goals.forEach(function(g) {
+    var key;
+    if (g.kind === 'custom') {
+      var nm = (g.customName || '').trim() || '(unnamed)';
+      key = 'c:' + nm.toLowerCase();
+      if (!byKey[key]) {
+        byKey[key] = {
+          kind: 'custom',
+          name: nm.toUpperCase(),
+          number: '',
+          count: 0,
+          minutes: []
+        };
+        order.push(key);
+      }
+    } else {
+      key = 'r:' + g.playerId;
+      if (!byKey[key]) {
+        var p = findRosterPlayer(g.playerId);
+        byKey[key] = {
+          kind: 'roster',
+          name: p ? scorerDisplayName(p) : 'PLAYER',
+          number: p ? p.number : '',
+          count: 0,
+          minutes: []
+        };
+        order.push(key);
+      }
+    }
+    byKey[key].count++;
+    /* Push minute only if known; null minutes show as "—" in times mode. */
+    byKey[key].minutes.push(g.minute);
+  });
+  /* Sort each entry's minutes: known asc, nulls last. */
+  Object.keys(byKey).forEach(function(k) {
+    byKey[k].minutes.sort(function(a, b) {
+      var an = (a == null), bn = (b == null);
+      if (an && bn) return 0;
+      if (an) return 1;
+      if (bn) return -1;
+      return a - b;
+    });
+  });
+  /* Build output sorted by jersey# (blanks last), then custom names alphabetical. */
+  var roster = [], custom = [];
+  order.forEach(function(k) {
+    (byKey[k].kind === 'custom' ? custom : roster).push(byKey[k]);
+  });
+  roster.sort(function(a, b) {
+    var an = parseInt(a.number, 10), bn = parseInt(b.number, 10);
+    var aHas = !isNaN(an), bHas = !isNaN(bn);
+    if (aHas && bHas && an !== bn) return an - bn;
+    if (aHas && !bHas) return -1;
+    if (!aHas && bHas) return 1;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+  custom.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+  return roster.concat(custom);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DISPLAY MODE TOGGLE (totals vs times)
+   ═══════════════════════════════════════════════════════════════ */
+function loadScorerDisplay() {
+  try {
+    var v = localStorage.getItem(LS_SCORER_DISPLAY_KEY);
+    if (v === 'totals' || v === 'times') scorerDisplay = v;
+  } catch(e) {}
+}
+function saveScorerDisplay() {
+  try { localStorage.setItem(LS_SCORER_DISPLAY_KEY, scorerDisplay); } catch(e) {}
+}
+function setScorerDisplay(mode) {
+  if (mode !== 'totals' && mode !== 'times') mode = 'totals';
+  scorerDisplay = mode;
+  applyScorerDisplayButtons();
+  saveScorerDisplay();
+  /* Re-render so the card reflects the new format immediately. */
+  renderScorersOnCard();
+  renderScorersOnHalftimeCard();
+}
+function applyScorerDisplayButtons() {
+  var bt = document.getElementById('btn-scorer-display-totals');
+  var bm = document.getElementById('btn-scorer-display-times');
+  if (bt) bt.classList.toggle('active', scorerDisplay === 'totals');
+  if (bm) bm.classList.toggle('active', scorerDisplay === 'times');
+}
+
+/* Hint string under each Goals-tool link button: tells the user how
+   many goals are tracked for the current game so they don't open the
+   Goals tool only to find it empty. */
+function refreshGoalsLinkStatus() {
+  var goals = getCurrentGameGoals();
+  var msg, cls;
+  if (!currentGameKey) {
+    msg = 'Set the game date and opponent above first.';
+    cls = 'goals-link-status empty';
+  } else if (goals.length === 0) {
+    msg = 'No goals tracked yet for this game.';
+    cls = 'goals-link-status empty';
+  } else {
+    msg = goals.length + ' goal' + (goals.length === 1 ? '' : 's') + ' tracked for this game ✓';
+    cls = 'goals-link-status loaded';
+  }
+  ['goals-link-status-final', 'goals-link-status-halftime'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.className = cls;
+    el.textContent = msg;
+  });
+}
+
 /* ── Footer mode toggle ────────────────────────────────────────── */
 function setFooterMode(mode, skipPersist) {
   if (mode !== 'next' && mode !== 'scorers') mode = 'next';
@@ -2388,11 +2602,12 @@ function setFooterMode(mode, skipPersist) {
   /* Toggle card-side content blocks */
   document.getElementById('next-mode-content').hidden    = (mode !== 'next');
   document.getElementById('scorers-mode-content').hidden = (mode !== 'scorers');
-  /* When switching INTO scorers mode, render the picker (it may have
-     never been built yet) and the card list so they show current state. */
+  /* When switching INTO scorers mode, re-render so the card reflects
+     the latest goals and the editor's "N goals tracked" hint is fresh. */
   if (mode === 'scorers') {
-    renderScorersPicker();
-    refreshRosterNote();
+    renderScorersOnCard();
+    refreshGoalsLinkStatus();
+    applyScorerDisplayButtons();
   }
   update();
   /* User toggling the footer mode counts as a per-game preference change.
@@ -2402,8 +2617,7 @@ function setFooterMode(mode, skipPersist) {
 }
 
 /* Halftime card bottom-area toggle: 'msg' (typed message) or 'scorers' (goal
-   scorers list). Mirrors setFooterMode's pattern — toggles editor field
-   visibility, toggles card-side content blocks, persists per game. */
+   scorers list). Mirrors setFooterMode's pattern. */
 function setHalftimeMode(mode, skipPersist) {
   if (mode !== 'msg' && mode !== 'scorers') mode = 'msg';
   halftimeMode = mode;
@@ -2422,193 +2636,16 @@ function setHalftimeMode(mode, skipPersist) {
   var scBlock  = document.getElementById('halftime-scorers-content');
   if (msgBlock) msgBlock.hidden = (mode !== 'msg');
   if (scBlock)  scBlock.hidden  = (mode !== 'scorers');
-  /* When switching INTO scorers mode, render the picker + card line. */
+  /* When switching INTO scorers mode, re-render. */
   if (mode === 'scorers') {
-    renderScorersPicker();
-    refreshRosterNote();
+    renderScorersOnHalftimeCard();
+    refreshGoalsLinkStatus();
   }
   update();
   if (!skipPersist) persistGameState();
 }
 
-/* ── Editor: scorer picker rows ────────────────────────────────── */
-function addScorer() {
-  scorers.push({ kind: 'roster', playerId: '', customName: '', goals: 1 });
-  renderScorersPicker();
-  update();
-  persistGameState();
-}
-function removeScorer(idx) {
-  scorers.splice(idx, 1);
-  renderScorersPicker();
-  update();
-  persistGameState();
-}
-function onScorerSelectChange(idx, value) {
-  if (!scorers[idx]) return;
-  if (value === SCORER_CUSTOM_SENTINEL) {
-    scorers[idx].kind = 'custom';
-    scorers[idx].playerId = '';
-  } else {
-    scorers[idx].kind = 'roster';
-    scorers[idx].playerId = value;
-    scorers[idx].customName = ''; /* clear stale custom text */
-  }
-  renderScorersPicker();
-  update();
-  persistGameState();
-}
-function onScorerCustomNameChange(idx, value) {
-  if (!scorers[idx]) return;
-  scorers[idx].customName = value;
-  update();
-  persistGameState();
-}
-function onScorerGoalsChange(idx, value) {
-  if (!scorers[idx]) return;
-  var n = parseInt(value, 10);
-  if (isNaN(n) || n < 1) n = 1;
-  if (n > 9) n = 9; /* matches the input's max attribute */
-  scorers[idx].goals = n;
-  update();
-  persistGameState();
-}
-
-/* Bulk wipe of the current game's scorers, behind a confirmation. */
-function clearAllScorers() {
-  if (!scorers.length) return;
-  var n = scorers.length;
-  if (!confirm('Clear all ' + n + ' scorer' + (n === 1 ? '' : 's') + '?')) return;
-  scorers = [];
-  renderScorersPicker();
-  update();
-  persistGameState();
-}
-
-/* Wipe the entire scorer history map (ALL games), behind a confirmation.
-   Lives in the team manager modal as a parallel action to "Clear all teams". */
-function clearScorerHistory() {
-  var keys = Object.keys(SCORER_HISTORY);
-  if (!keys.length) {
-    toast('No scorer history to clear');
-    return;
-  }
-  if (!confirm('Clear scorer history for all ' + keys.length + ' game' + (keys.length === 1 ? '' : 's') + '? This cannot be undone.')) return;
-  SCORER_HISTORY = {};
-  FOOTER_MODE_HISTORY = {};
-  HALFTIME_MODE_HISTORY = {};
-  scorers = [];
-  saveOpponentsToStorage();
-  saveTeamsToGitHub();
-  renderScorersPicker();
-  update();
-  toast('Scorer history cleared');
-}
-
-/* Build the picker rows in the editor. Roster is re-read each render
-   so a roster edit in another tab is picked up next time the user
-   touches this section (no live cross-tab sync, but no stale data
-   trapped in a closure either). */
-function renderScorersPicker() {
-  var hosts = [
-    document.getElementById('scorers-picker'),
-    document.getElementById('scorers-picker-halftime')
-  ].filter(Boolean);
-  if (!hosts.length) return;
-  var roster = loadRosterPlayers();
-  var html = '';
-  scorers.forEach(function(s, idx) {
-    var isCustom = (s.kind === 'custom');
-    /* Build the dropdown options string */
-    var opts = '<option value="">— Select player —</option>';
-    roster.forEach(function(p) {
-      /* Dropdown label shows first + last so coaches can disambiguate quickly
-         during a game. The on-card render still uses scorerDisplayName(),
-         which is last-name-only — so this change is editor-side only. */
-      var first = (p.firstName || '').trim();
-      var last  = (p.lastName  || '').trim();
-      var nameLabel = (first && last) ? (first + ' ' + last)
-                    : last ? last
-                    : first ? first
-                    : '(unnamed)';
-      var label = (p.number ? '#' + p.number + ' ' : '') + nameLabel;
-      var sel = (!isCustom && s.playerId === p.id) ? ' selected' : '';
-      opts += '<option value="' + escapeAttr(p.id) + '"' + sel + '>' + escapeHtml(label) + '</option>';
-    });
-    var customSel = isCustom ? ' selected' : '';
-    opts += '<option value="' + SCORER_CUSTOM_SENTINEL + '"' + customSel + '>+ Custom name…</option>';
-
-    var rowClass = 'scorer-row' + (isCustom ? ' with-custom' : '');
-    html += '<div class="' + rowClass + '" data-idx="' + idx + '">';
-    html += '<div class="drag-handle" title="Drag to reorder">⋮⋮</div>';
-    html += '<select onchange="onScorerSelectChange(' + idx + ', this.value)">' + opts + '</select>';
-    if (isCustom) {
-      html += '<input type="text" placeholder="Name" value="' + escapeAttr(s.customName || '') +
-              '" oninput="onScorerCustomNameChange(' + idx + ', this.value)">';
-    }
-    html += '<input type="number" min="1" max="9" value="' + (s.goals || 1) +
-            '" oninput="onScorerGoalsChange(' + idx + ', this.value)" title="Goals">';
-    html += '<button class="scorer-remove" onclick="removeScorer(' + idx + ')" title="Remove">✕</button>';
-    html += '</div>';
-  });
-  hosts.forEach(function(h) {
-    h.innerHTML = html;
-    initSortableOn(h);
-  });
-  /* Show Clear-all button only when there are 3+ scorers — below that
-     threshold removing them one-by-one is fine. */
-  var clearVisible = scorers.length >= 3 ? '' : 'none';
-  var bf = document.getElementById('scorer-clear-btn-final');
-  var bh = document.getElementById('scorer-clear-btn-halftime');
-  if (bf) bf.style.display = clearVisible;
-  if (bh) bh.style.display = clearVisible;
-  /* Roster badge is also tied to picker re-render. */
-  refreshRosterBadges();
-}
-
-/* Attach a Sortable instance to a picker host. Sortable is loaded via CDN —
-   if it failed to load (offline first-visit), drag-to-reorder is disabled
-   gracefully. The handle is the small ⋮⋮ icon at the start of each row.
-   On drop, mutate scorers[] then re-render so all hosts re-sync. */
-function initSortableOn(host) {
-  if (typeof Sortable === 'undefined') return;
-  /* Destroy any prior Sortable on this host so re-renders don't pile up listeners. */
-  if (host._sortable) { try { host._sortable.destroy(); } catch(e){} host._sortable = null; }
-  host._sortable = Sortable.create(host, {
-    handle: '.drag-handle',
-    animation: 150,
-    ghostClass: 'sortable-ghost',
-    chosenClass: 'sortable-chosen',
-    onEnd: function(evt) {
-      if (evt.oldIndex === evt.newIndex) return;
-      var moved = scorers.splice(evt.oldIndex, 1)[0];
-      scorers.splice(evt.newIndex, 0, moved);
-      renderScorersPicker();
-      update();
-      persistGameState();
-    }
-  });
-}
-
-/* Refresh the small roster status badge under the toggle row (Final mode)
-   and at the top of the Halftime scorers section. Tied to picker
-   re-render — no live cross-tab updates. */
-function refreshRosterBadges() {
-  var n = loadRosterPlayers().length;
-  var loaded = n > 0;
-  var text = loaded ? ('Roster: ' + n + ' player' + (n === 1 ? '' : 's') + ' ✓') : 'Roster: not loaded';
-  ['roster-badge-final', 'roster-badge-halftime'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.className = 'roster-badge ' + (loaded ? 'loaded' : 'empty');
-    el.textContent = text;
-  });
-}
-
-/* Tiny helpers — the file doesn't import a templating lib and
-   addScorer/renderScorersPicker need to inject roster-derived strings
-   safely. Keep these scoped here to avoid colliding with anything else
-   in this 2700-line file. */
+/* ── Tiny helpers — escapeHtml/escapeAttr used by render below ─── */
 function escapeHtml(s) {
   if (window.WWCommon && typeof WWCommon.escapeHtml === 'function') return WWCommon.escapeHtml(s);
   if (s == null) return '';
@@ -2619,64 +2656,51 @@ function escapeAttr(s) {
   return escapeHtml(s);
 }
 
-/* Hint shown under the picker when the roster is empty or unavailable.
-   Updates both the Final-mode note and the Halftime-mode note. */
-function refreshRosterNote() {
-  var n = loadRosterPlayers().length;
-  var msg = (n === 0)
-    ? 'No roster found in this browser. Use "+ Custom name…" to type scorers, or open the roster tool to populate ' + LS_ROSTER_KEY + '.'
-    : n + ' player' + (n === 1 ? '' : 's') + ' loaded from roster. Pick from dropdown or use "+ Custom name…" for non-roster scorers.';
-  ['scorer-roster-note', 'scorer-roster-note-halftime'].forEach(function(id) {
-    var note = document.getElementById(id);
-    if (note) note.textContent = msg;
-  });
-}
-
 /* ── Card-side render: scorer list + shrink-to-fit ─────────────── */
-/* Layout rules (per Rob, Session 7):
+/* Layout rules (preserved from v1, per Rob's Session 7 decisions):
      - 1–3 scorers: vertical single-column list
      - 4+ scorers : 2-column grid
      - If the rendered list overflows the container's fixed height, JS
        reduces the font-size in 1px steps (down to 8px floor) instead
        of letting the container grow into the surrounding card sections.
-   This single helper drives BOTH the Final-card scorers footer and the
-   Halftime-card bottom-area scorers list — same HTML format, same
-   shrink-to-fit logic. CSS scopes per-card colors and max-heights. */
+   v2: Aggregates goals.json entries by player; respects the totals/
+   times display toggle. */
 function renderScorersList(listEl) {
   if (!listEl) return;
   /* Reset font-size before measuring so each render starts fresh */
   listEl.style.fontSize = '';
-  /* Two-column grid kicks in at 4+ scorers */
-  listEl.classList.toggle('two-col', scorers.length >= 4);
 
-  if (!scorers.length) {
+  var goals = getCurrentGameGoals();
+  var entries = aggregateGoalsByPlayer(goals);
+
+  /* Two-column grid kicks in at 4+ unique scorers (matches the v1
+     threshold; the threshold is on # of rendered rows, not goal count). */
+  listEl.classList.toggle('two-col', entries.length >= 4);
+
+  if (!entries.length) {
     listEl.innerHTML = '<span class="scorer-empty">No scorers added yet</span>';
     return;
   }
 
   var html = '';
-  scorers.forEach(function(s) {
-    var name, number = '';
-    if (s.kind === 'custom') {
-      name = (s.customName || '').trim().toUpperCase() || 'PLAYER';
+  entries.forEach(function(e) {
+    var prefix = e.number ? '#' + escapeHtml(e.number) + ' ' : '';
+    var nameEsc = escapeHtml(e.name);
+    var detail;
+    if (scorerDisplay === 'times') {
+      /* Format minutes: known minutes show as "12'", null minutes as "—".
+         Comma-separated. */
+      var mins = e.minutes.map(function(m) {
+        return (m == null) ? '—' : (m + '\'');
+      }).join(', ');
+      detail = ' ' + mins;
     } else {
-      var p = findRosterPlayer(s.playerId);
-      if (p) {
-        name = scorerDisplayName(p);
-        number = p.number || '';
-      } else {
-        /* No player chosen yet (or roster player was deleted). Show a
-           placeholder so the user gets immediate feedback after clicking
-           "+ Add scorer" — the row updates the moment they pick someone. */
-        name = '(SELECT PLAYER)';
-      }
+      /* totals (default) — same format as v1: "· N" */
+      detail = ' <span style="opacity:.6">·</span> ' + e.count;
     }
-    var prefix = number ? '#' + escapeHtml(number) + ' ' : '';
-    var goals  = s.goals || 1;
-    html += '<span class="scorer-entry">' + prefix + escapeHtml(name) +
-            ' <span style="opacity:.6">·</span> ' + goals + '</span>';
+    html += '<span class="scorer-entry">' + prefix + nameEsc + detail + '</span>';
   });
-  listEl.innerHTML = html || '<span class="scorer-empty">No scorers added yet</span>';
+  listEl.innerHTML = html;
 
   /* Shrink-to-fit: container height is fixed, content must adapt. */
   fitScorersList(listEl);
@@ -3182,10 +3206,8 @@ function setMode(mode) {
   } else if (mode === 'halftime') {
     drawPatternCanvasHalftime(currentPattern);
     updateHalftime();  /* re-measure headline now that card is visible */
-    /* Render picker + halftime scorers line — same reasoning as score mode:
-       the card must be visible for the shrink-to-fit measurements to work. */
-    renderScorersPicker();
-    refreshRosterNote();
+    /* Re-render the halftime scorers list — the card must be visible
+       for the shrink-to-fit measurements to work. */
     renderScorersOnHalftimeCard();
   } else {
     drawPatternCanvasPreview(currentPattern);
@@ -3225,9 +3247,18 @@ if (window.WWCommon && typeof WWCommon.renderGitHubConfigPanel === 'function') {
 /* After first paint, pull the latest data from GitHub. These are async and
    non-blocking; if GitHub returns newer data, applyTeamsPayload re-renders.
    If GitHub isn't configured (no PAT) or the request fails, WWCommon falls
-   back to localStorage and these become no-ops. */
+   back to localStorage and these become no-ops.
+
+   Order matters: we hydrate the scorer-display preference and the local
+   goals cache *before* the network refreshes so the first paint of the
+   card reflects whatever's on disk. The network calls then update them
+   in place if newer data exists. */
+loadScorerDisplay();
+applyScorerDisplayButtons();
+loadGoalsFromLocal();
 refreshTeamsFromGitHub();
 refreshRosterFromGitHub();
+refreshGoalsFromGitHub();
 
 
 /* ══════════════════════════════════════════════════════════════

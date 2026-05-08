@@ -313,26 +313,114 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
 .ht-btn.active + .ht-btn,
 .ht-btn + .ht-btn.active { border-left-color: var(--ink); }
 
-.minute-row {
+/* Minute picker — horizontal scrolling strip. Lets the user flick
+   through nearby minutes (e.g. entering goals at 23' then 28' is just
+   a quick swipe), with -/+ buttons for fine-grained nudges. The
+   selected minute is centered in the strip and highlighted. CSS
+   scroll-snap handles the snap-to-cell behavior; JS reads which cell
+   is centered after a scroll settles, then mirrors that into the
+   hidden input the form reads on Add. */
+.minute-picker {
   display: grid;
-  grid-template-columns: 1fr 64px;
-  gap: 8px;
-  align-items: center;
+  grid-template-columns: 44px 1fr 44px;
+  gap: 6px;
+  align-items: stretch;
 }
-.minute-row input[type="number"] {
-  text-align: center;
+.mp-arrow {
+  background: #fff;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--ink);
+  cursor: pointer;
+  min-height: 56px;
+  user-select: none;
+  -webkit-user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.mp-arrow:active { background: #f0f4fa; }
+.mp-arrow:disabled {
+  color: #ccc;
+  background: #fafafa;
+  cursor: not-allowed;
+}
+.mp-strip-wrap {
+  position: relative;
+  height: 56px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+/* Center marker — sits behind the cells, pointer-events disabled so
+   scrolling/tapping passes through to the strip below it. */
+.mp-indicator {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 56px;
+  background: rgba(138, 42, 42, 0.06);
+  border-left: 1px solid var(--tool);
+  border-right: 1px solid var(--tool);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 1;
+}
+.mp-strip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE/Edge legacy */
+  /* Padding lets first/last cells scroll-snap to dead-center. The
+     56px / 2 = 28px subtraction matches the cell width below. */
+  padding: 0 calc(50% - 28px);
+}
+.mp-strip::-webkit-scrollbar { display: none; }
+.mp-cell {
+  flex: 0 0 56px;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: 'Arial Black', Arial, sans-serif;
   font-style: italic;
-  font-size: 18px;
   font-weight: 900;
-  color: var(--ink);
+  font-size: 16px;
+  color: #aaa;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 100ms, font-size 100ms;
+  z-index: 2;   /* above the indicator so text is sharp */
+  position: relative;
 }
-.minute-suffix {
+.mp-cell.active {
+  color: var(--ink);
+  font-size: 22px;
+}
+.mp-suffix-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
   font-family: 'Oswald', sans-serif;
-  font-size: 13px;
-  letter-spacing: 0.1em;
-  color: var(--text-2);
-  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--text-3);
   text-transform: uppercase;
 }
 
@@ -754,10 +842,19 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
 
       <div class="form-block">
         <div class="section-label">Minute</div>
-        <div class="minute-row">
-          <input type="number" id="entry-minute" inputmode="numeric" min="1" max="120" placeholder="—">
-          <span class="minute-suffix">min</span>
+        <div class="minute-picker">
+          <button type="button" class="mp-arrow" id="mp-minus" onclick="adjustMinute(-1)" aria-label="Decrease minute">−</button>
+          <div class="mp-strip-wrap">
+            <div class="mp-indicator" aria-hidden="true"></div>
+            <div class="mp-strip" id="entry-minute-strip" role="listbox" aria-label="Goal minute">
+              <!-- cells injected by buildMinuteStrip() -->
+            </div>
+          </div>
+          <button type="button" class="mp-arrow" id="mp-plus" onclick="adjustMinute(1)" aria-label="Increase minute">+</button>
         </div>
+        <div class="mp-suffix-row">Min &nbsp;·&nbsp; Tap or swipe to choose</div>
+        <!-- Hidden field that onAddGoal reads. Kept in sync by setEntryMinute. -->
+        <input type="hidden" id="entry-minute" value="0">
       </div>
 
       <div class="form-block">
@@ -863,6 +960,15 @@ var viewMode  = 'detail';     /* 'detail' | 'summary' */
 var pickerMode = 'schedule';   /* 'schedule' | 'manual' */
 var editingGoalId = null;
 
+/* Minute picker state. lastEnteredMinute is the minute of the last
+   successfully-added goal in this session — the next entry's minute
+   defaults to this so consecutive goals are quick to log (typical
+   pattern: enter at 12', then 14', then 23' — each entry pre-fills
+   to the previous). Cleared on game change; not persisted across
+   reloads. currentMinute is the picker's current value (always 0–120). */
+var lastEnteredMinute = null;
+var currentMinute = 0;
+
 /* Debounced persistence — every mutation calls persistGoals() which
    coalesces back-to-back changes into one save. 300 ms matches the
    Card tool's debounce. */
@@ -879,7 +985,14 @@ document.addEventListener('DOMContentLoaded', function() {
   /* 2. Load editor prefs (last half, view mode). */
   loadPrefs();
 
-  /* 3. Hydrate from localStorage immediately so the UI has data on first paint
+  /* 3. Build the minute picker DOM and wire its handlers BEFORE any
+        scroll / set-minute call would be made. The strip itself is just
+        121 cells (0–120); the scroll listener decides which one is
+        centered after the user flicks. */
+  buildMinuteStrip();
+  setEntryMinute(0, false);
+
+  /* 4. Hydrate from localStorage immediately so the UI has data on first paint
         even if the network is slow. */
   loadGoalsFromLocal();
   loadScheduleFromLocal();
@@ -889,9 +1002,11 @@ document.addEventListener('DOMContentLoaded', function() {
   applyViewMode();
   applyHalfButtons();
 
-  /* 4. Background refresh from GitHub. Each pull adopts data into memory
+  /* 5. Background refresh from GitHub. Each pull adopts data into memory
         and re-renders if needed. Migration runs after the goals refresh
-        so we don't migrate stale data and then immediately overwrite it. */
+        so we don't migrate stale data and then immediately overwrite it.
+        maybeMigrateFromTeams now also cleans up teams.json by removing
+        scorersByGame after migration succeeds (or any time it's seen). */
   refreshScheduleFromGitHub()
     .then(refreshRosterFromGitHub)
     .then(refreshGoalsFromGitHub)
@@ -1112,60 +1227,109 @@ function scorerDisplayName(player) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MIGRATION — bring forward existing scorersByGame from teams.json
+   MIGRATION + CLEANUP — bring forward existing scorersByGame from
+   teams.json, then strip that field out so teams.json doesn't carry
+   stale duplicate data forever.
    ───────────────────────────────────────────────────────────────────
-   Each old entry was { kind, playerId, customName, goals: N } where
-   goals is a count. Expand into N goal entries, each with minute=null
-   and half=1 (we don't know which half they were in retroactively).
+   Migration step (one-shot): each old entry was { kind, playerId,
+   customName, goals: N } where goals is a count. Expand into N goal
+   entries, each with minute=null and half=1 (we don't know which half
+   they were in retroactively). Only runs when goals.json is empty —
+   subsequent loads see populated GOALS_BY_GAME and skip migration.
 
-   Only runs when goals.json is empty — i.e. first time the new tool
-   ever opens for this user. Subsequent loads see populated GOALS_BY_GAME
-   and skip the migration entirely.
+   Cleanup step (every load when needed): if teams.json still has a
+   non-empty scorersByGame field, save a cleaned copy back to GitHub
+   without that field. This runs even when migration is skipped — so
+   if device A migrated yesterday but device B's teams.json copy
+   somehow regained the field (e.g. someone restored an old backup),
+   device B will clean it up next time the Goals tool opens. The
+   cleanup never deletes other fields (teams[], spineText,
+   footerModeByGame, halftimeModeByGame, conferences) — only
+   scorersByGame is targeted.
+
+   Safety: the Card tool no longer writes scorersByGame as of v2, so
+   once teams.json is cleaned the field stays gone unless someone
+   manually re-introduces it.
    ═══════════════════════════════════════════════════════════════ */
 function maybeMigrateFromTeams() {
-  if (Object.keys(GOALS_BY_GAME).length > 0) return Promise.resolve(false);
   if (!window.WWCommon) return Promise.resolve(false);
   return WWCommon.loadJson('teams.json', LS_TEAMS_KEY).then(function(result) {
-    if (!result || !result.data) return false;
-    var sbg = result.data.scorersByGame;
-    if (!sbg || typeof sbg !== 'object') return false;
-    var migratedGames = 0;
-    var migratedGoals = 0;
-    Object.keys(sbg).forEach(function(key) {
-      var scorers = sbg[key];
-      if (!Array.isArray(scorers) || !scorers.length) return;
-      var goals = [];
-      scorers.forEach(function(s) {
-        if (!s || typeof s !== 'object') return;
-        var n = parseInt(s.goals, 10);
-        if (isNaN(n) || n < 1) n = 1;
-        for (var i = 0; i < n; i++) {
-          goals.push({
-            id:         newGoalId(),
-            kind:       (s.kind === 'custom') ? 'custom' : 'roster',
-            playerId:   typeof s.playerId === 'string' ? s.playerId : '',
-            customName: typeof s.customName === 'string' ? s.customName : '',
-            minute:     null,
-            half:       1
-          });
+    if (!result || !result.data || typeof result.data !== 'object') return false;
+    var teamsData = result.data;
+    var sbg = teamsData.scorersByGame;
+    /* If the field is missing or already empty, there's nothing to do —
+       cleanup not needed, migration already ran. */
+    if (!sbg || typeof sbg !== 'object' || Array.isArray(sbg)) return false;
+    var hasLegacyData = Object.keys(sbg).length > 0;
+    if (!hasLegacyData) return false;
+
+    /* ── Migration: only expand if we don't already have goal data.
+       If GOALS_BY_GAME is populated, we've already migrated on a
+       previous run (or another device migrated and we pulled the
+       result via refreshGoalsFromGitHub). In that case we skip
+       expansion but still proceed to cleanup. */
+    var didMigrate = false;
+    var migratedGames = 0, migratedGoals = 0;
+    if (Object.keys(GOALS_BY_GAME).length === 0) {
+      Object.keys(sbg).forEach(function(key) {
+        var scorers = sbg[key];
+        if (!Array.isArray(scorers) || !scorers.length) return;
+        var goals = [];
+        scorers.forEach(function(s) {
+          if (!s || typeof s !== 'object') return;
+          var n = parseInt(s.goals, 10);
+          if (isNaN(n) || n < 1) n = 1;
+          for (var i = 0; i < n; i++) {
+            goals.push({
+              id:         newGoalId(),
+              kind:       (s.kind === 'custom') ? 'custom' : 'roster',
+              playerId:   typeof s.playerId === 'string' ? s.playerId : '',
+              customName: typeof s.customName === 'string' ? s.customName : '',
+              minute:     null,
+              half:       1
+            });
+          }
+        });
+        if (goals.length) {
+          GOALS_BY_GAME[key] = goals;
+          migratedGames++;
+          migratedGoals += goals.length;
         }
       });
-      if (goals.length) {
-        GOALS_BY_GAME[key] = goals;
-        migratedGames++;
-        migratedGoals += goals.length;
+      if (migratedGames > 0) {
+        didMigrate = true;
+        persistGoalsNow();   /* immediate save of goals.json, not debounced */
+        renderAll();
       }
-    });
-    if (migratedGames > 0) {
-      persistGoalsNow();   /* immediate save, not debounced */
-      renderAll();
-      if (window.WWCommon && typeof WWCommon.toast === 'function') {
-        WWCommon.toast('Imported ' + migratedGoals + ' goal' + (migratedGoals === 1 ? '' : 's') +
-                       ' from ' + migratedGames + ' game' + (migratedGames === 1 ? '' : 's'), 'ok');
-      }
-      return true;
     }
-    return false;
+
+    /* ── Cleanup: write teams.json back without scorersByGame. We
+       preserve everything else exactly as-is (teams[], spineText,
+       footerModeByGame, halftimeModeByGame, conferences, version, etc.)
+       so this stays orthogonal to the Card tool's responsibilities.
+       The save uses LS_TEAMS_KEY so the Card tool's localStorage
+       cache picks up the cleaned copy on the next load. */
+    var cleaned = {};
+    Object.keys(teamsData).forEach(function(k) {
+      if (k !== 'scorersByGame') cleaned[k] = teamsData[k];
+    });
+    return WWCommon.saveJson('teams.json', LS_TEAMS_KEY, cleaned, 'Goals tool migration')
+      .then(function(saveResult) {
+        var cleanedOK = saveResult && (saveResult.action === 'saved' || saveResult.action === 'saved-local-only');
+        if (window.WWCommon && typeof WWCommon.toast === 'function') {
+          if (didMigrate && cleanedOK) {
+            WWCommon.toast('Imported ' + migratedGoals + ' goal' + (migratedGoals === 1 ? '' : 's') +
+                           ' from ' + migratedGames + ' game' + (migratedGames === 1 ? '' : 's') +
+                           ' & cleaned teams.json', 'ok');
+          } else if (didMigrate) {
+            WWCommon.toast('Imported ' + migratedGoals + ' goal' + (migratedGoals === 1 ? '' : 's') +
+                           ' from ' + migratedGames + ' game' + (migratedGames === 1 ? '' : 's'), 'ok');
+          } else if (cleanedOK) {
+            WWCommon.toast('Cleaned up legacy scorer data in teams.json', 'ok');
+          }
+        }
+        return didMigrate;
+      });
   }).catch(function(){ return false; });
 }
 
@@ -1252,6 +1416,13 @@ function setCurrentGame(date, opp) {
   currentGameDate = date;
   currentGameOpp  = opp;
   currentGameKey  = buildKey(date, opp);
+  /* Game changed → reset the per-game minute defaulting state. The
+     picker should start at the highest existing minute for this game
+     (or 0 if none), so a coach reopening a game in progress can pick
+     up where they left off. lastEnteredMinute is per-session; new
+     game = clean slate. */
+  lastEnteredMinute = null;
+  setEntryMinute(getDefaultEntryMinute(), false);
   /* Update the visual indicator. */
   var current = document.getElementById('gp-current');
   var text    = document.getElementById('gp-current-text');
@@ -1271,6 +1442,8 @@ function clearCurrentGame() {
   currentGameDate = '';
   currentGameOpp  = '';
   currentGameKey  = null;
+  lastEnteredMinute = null;
+  setEntryMinute(0, false);
   document.getElementById('gp-current').style.display = 'none';
   document.getElementById('gp-empty-msg').style.display = '';
   /* Clear schedule dropdown selection so re-entering the same game later
@@ -1315,6 +1488,162 @@ function setHalf(h) {
 function applyHalfButtons() {
   document.getElementById('ht-1').classList.toggle('active', lastHalf === 1);
   document.getElementById('ht-2').classList.toggle('active', lastHalf === 2);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MINUTE PICKER — horizontal scrolling strip
+   ───────────────────────────────────────────────────────────────────
+   The strip holds 121 cells (0–120). The selected minute is the cell
+   centered in the viewport. Three control surfaces:
+     - The strip itself: flick/swipe horizontally; scroll-snap rests
+       on a cell, then a debounced scroll listener reads which cell
+       is centered and commits it to currentMinute.
+     - Tapping a cell: scrolls to that cell smoothly.
+     - The −/+ arrow buttons: nudge by 1.
+
+   The hidden #entry-minute input mirrors currentMinute at all times,
+   so onAddGoal can read it the same way it always has.
+
+   getDefaultEntryMinute() returns the minute we want the form to
+   pre-fill with on entry, in priority order:
+     1. lastEnteredMinute — set after each successful Add this session.
+     2. The highest minute among existing goals for the current game.
+     3. 0.
+   ═══════════════════════════════════════════════════════════════ */
+function buildMinuteStrip() {
+  var strip = document.getElementById('entry-minute-strip');
+  if (!strip) return;
+  var html = '';
+  for (var i = 0; i <= 120; i++) {
+    html += '<div class="mp-cell" data-min="' + i + '" role="option">' + i + '</div>';
+  }
+  strip.innerHTML = html;
+  /* Wire scroll + click. Scroll is debounced because a flick fires
+     dozens of events; we only want to commit a value once the strip
+     has come to rest on a snap point. */
+  strip.addEventListener('scroll', onMinuteStripScroll, { passive: true });
+  strip.addEventListener('click', onMinuteStripClick);
+}
+
+var minuteScrollTimer = null;
+function onMinuteStripScroll() {
+  if (minuteScrollTimer) clearTimeout(minuteScrollTimer);
+  minuteScrollTimer = setTimeout(function() {
+    minuteScrollTimer = null;
+    commitMinuteFromScrollPosition();
+  }, 90);
+}
+
+/* Read which cell is closest to the strip's center and commit that as
+   the current minute. Doesn't re-scroll — it's just translating the
+   user's gesture into a number. */
+function commitMinuteFromScrollPosition() {
+  var strip = document.getElementById('entry-minute-strip');
+  if (!strip) return;
+  /* Skip when the form is hidden (offsetParent === null) — measurements
+     are unreliable and there's nothing to commit anyway. */
+  if (strip.offsetParent === null) return;
+  var center = strip.scrollLeft + strip.clientWidth / 2;
+  var cells = strip.children;
+  var closest = null, minDist = Infinity;
+  for (var i = 0; i < cells.length; i++) {
+    var c = cells[i];
+    var cCenter = c.offsetLeft + c.offsetWidth / 2;
+    var dist = Math.abs(cCenter - center);
+    if (dist < minDist) { minDist = dist; closest = c; }
+  }
+  if (!closest) return;
+  var m = parseInt(closest.getAttribute('data-min'), 10);
+  if (isNaN(m)) return;
+  /* Only update if it changed — avoids redundant active-class churn. */
+  if (m !== currentMinute) setEntryMinute(m, false);
+}
+
+function onMinuteStripClick(e) {
+  var cell = e.target.closest('.mp-cell');
+  if (!cell) return;
+  var m = parseInt(cell.getAttribute('data-min'), 10);
+  if (!isNaN(m)) setEntryMinute(m, true);
+}
+
+/* Update the picker to show minute m. When doScroll is true, animate
+   the strip to center that cell; when false, just update the active
+   class and hidden input (used by the scroll listener which has
+   already moved the strip). */
+function setEntryMinute(m, doScroll) {
+  if (m == null || isNaN(m)) m = 0;
+  m = Math.max(0, Math.min(120, parseInt(m, 10)));
+  currentMinute = m;
+  /* Mirror to the hidden input the form reads on Add. */
+  var hidden = document.getElementById('entry-minute');
+  if (hidden) hidden.value = String(m);
+  /* Active class on the centered cell. */
+  var strip = document.getElementById('entry-minute-strip');
+  if (strip) {
+    var cells = strip.children;
+    for (var i = 0; i < cells.length; i++) {
+      var c = cells[i];
+      var cm = parseInt(c.getAttribute('data-min'), 10);
+      c.classList.toggle('active', cm === m);
+    }
+    if (doScroll) scrollMinuteStripTo(m, true);
+  }
+  /* Disable −/+ at boundaries. */
+  var minus = document.getElementById('mp-minus');
+  var plus  = document.getElementById('mp-plus');
+  if (minus) minus.disabled = (m <= 0);
+  if (plus)  plus.disabled  = (m >= 120);
+}
+
+function scrollMinuteStripTo(m, smooth) {
+  var strip = document.getElementById('entry-minute-strip');
+  if (!strip) return;
+  var cell = strip.querySelector('[data-min="' + m + '"]');
+  if (!cell) return;
+  /* If the strip is currently hidden (offsetParent === null), clientWidth
+     reads as 0 and the math goes wrong. Defer until visible by using
+     requestAnimationFrame; if still hidden then, just set scrollLeft
+     directly using a best-effort offset. */
+  function doScroll() {
+    var stripWidth = strip.clientWidth;
+    if (!stripWidth) {
+      /* Strip is hidden. Set the property directly so when it becomes
+         visible the position is approximately right. The scroll-snap
+         engine will fine-tune on the next frame. */
+      strip.scrollLeft = cell.offsetLeft - cell.offsetWidth;
+      return;
+    }
+    var target = cell.offsetLeft - (stripWidth - cell.offsetWidth) / 2;
+    if (typeof strip.scrollTo === 'function') {
+      strip.scrollTo({ left: target, behavior: smooth ? 'smooth' : 'auto' });
+    } else {
+      strip.scrollLeft = target;
+    }
+  }
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(doScroll);
+  } else {
+    doScroll();
+  }
+}
+
+function adjustMinute(delta) {
+  setEntryMinute(currentMinute + delta, true);
+}
+
+function getDefaultEntryMinute() {
+  /* 1. The minute of the last Add this session takes priority. */
+  if (lastEnteredMinute != null) return lastEnteredMinute;
+  /* 2. The highest minute among the current game's existing goals. */
+  var highest = null;
+  currentGoals().forEach(function(g) {
+    if (g.minute != null && (highest == null || g.minute > highest)) {
+      highest = g.minute;
+    }
+  });
+  if (highest != null) return highest;
+  /* 3. Default to 0 (kickoff). */
+  return 0;
 }
 
 /* Build the player dropdown from the roster. The "+ Custom name…"
@@ -1380,18 +1709,19 @@ function onAddGoal() {
   var playerSel   = document.getElementById('entry-player');
   var customInput = document.getElementById('entry-custom-name');
 
+  /* The minute picker keeps a number 0–120 in the hidden input at all
+     times, so this read should always be a valid integer. Defensive
+     parse anyway in case some other code path leaves it blank. */
   var minuteRaw = (minuteInput.value || '').trim();
-  var minute = null;
+  var minute = 0;
   if (minuteRaw !== '') {
     var m = parseInt(minuteRaw, 10);
     if (isNaN(m) || m < 0 || m > 120) {
-      if (window.WWCommon) WWCommon.toast('Minute must be 0–120 (or blank)', 'warn');
+      if (window.WWCommon) WWCommon.toast('Minute must be 0–120', 'warn');
       return;
     }
     minute = m;
   }
-  /* Allow blank minute — coaches sometimes know a goal happened but not
-     exactly when. The summary still counts it; the detail row shows "—". */
 
   var playerVal = playerSel.value;
   if (!playerVal) {
@@ -1424,15 +1754,20 @@ function onAddGoal() {
   GOALS_BY_GAME[currentGameKey].push(goal);
   persistGoals();
 
+  /* Track the just-added minute so the next entry pre-fills here.
+     Typical pattern: enter at 12', then 14', then 23' — each entry
+     starts where the last ended, and the user just nudges or scrolls
+     to the new time. */
+  lastEnteredMinute = goal.minute;
+
   /* Reset the form for fast next entry. Keep the half (sticky), clear
-     minute + scorer. Refocus minute so the next goal is one tap away. */
-  minuteInput.value = '';
+     scorer, set minute back to the just-entered minute. */
   playerSel.value = '';
   customInput.value = '';
   document.getElementById('entry-scorer-row').classList.remove('with-custom');
+  setEntryMinute(lastEnteredMinute, true);
 
   renderAll();
-  setTimeout(function() { minuteInput.focus(); }, 0);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1744,8 +2079,16 @@ function applyViewMode() {
   document.getElementById('vt-summary').classList.toggle('active', viewMode === 'summary');
   document.getElementById('detail-section').style.display  = (viewMode === 'detail')  ? '' : 'none';
   document.getElementById('summary-section').style.display = (viewMode === 'summary') ? '' : 'none';
-  if (viewMode === 'summary') renderSummary();
-  else renderGoalsList();
+  if (viewMode === 'summary') {
+    renderSummary();
+  } else {
+    renderGoalsList();
+    /* Re-center the minute strip on the current value. The strip's
+       scrollLeft resets to 0 when its parent flips from display:none
+       back to visible — without this, the picker would silently land
+       on minute 0 every time the user toggles back to Detail Entry. */
+    scrollMinuteStripTo(currentMinute, false);
+  }
   updateGameTotals();
 }
 
