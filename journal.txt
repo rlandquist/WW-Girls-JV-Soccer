@@ -273,4 +273,154 @@ already-cached devices.]
 
 === Journal Entry 2026-05-08T23:30:00.000000+00:00 ===
 2026-05-08-19-06-47-ww-soccer-goals-tool-build.txt
-[SUPERSEDES the prior entry for this transcript, which was written at compaction and only covered work through "partway into hold-to-repeat." Full session: built and shipped mobile-optimized GirlsJVSoccerGoals.html with horizontal scrollable minute picker (hold-to-repeat ± buttons, last-minute defaulting, sticky-half toggle, schedule+manual game picker mirroring goal-tracker pattern, immediate save on every Add/Delete/Edit). Surgical-edited Card tool to read scorers from goals.json with totals/times display toggle (default 'times'; totals sorts roster→custom→unknown by jersey then alpha, times sorts chronologically by earliest minute with all kinds interleaved); removed Sortable.js CDN, scorer-history clear button, picker UI; replaced with link to Goals tool plus display-mode toggle. Added schedule+manual game picker to Card tool with auto-logo-match on schedule pick. Updated index.html and manifest.json to 4-tile order (Card · Goals · Schedule · Roster). Goals tool game pill color states reworked from red ("looks like an error") to neutral gray-blue with green when goals tracked. Phase 1: Unknown-scorer 'kind' added to both tools — top-of-dropdown option in Goals tool entry+edit forms, italic-muted "Unknown" rendering with TBD tag in goal list and summary (always-last sort to surface for follow-up), single "UNKNOWN" bucket on cards (last in totals, chronologically-placed in times). Phase 2: Final Result section in Goals tool below Game Total — five render states (no-game / manual-mode-message / scheduled-not-final / final / cancelled), auto-derived WW score from live goal count, 0-99 opp score input, Mark-Final + Update-Result + Un-finalize buttons, drift hint when live goal count diverges from saved scoreUs (Option A: manual re-save, with the hint text). schedule.json write-back loads fresh + applies only the targeted entry's status/scoreUs/scoreThem (preserves version/layout/all other fields), handles SHA conflict-reload by re-applying against merged data and saving once more. Un-finalize sets status='scheduled' and leaves scoreThem intact (deliberate: accidental un-finalize shouldn't erase typed values). Card tool no longer writes scorersByGame to teams.json; Goals tool migration runs once to expand legacy scorersByGame entries into goal rows in goals.json and clean teams.json. Smoke tests: 8/8 hold-to-repeat state machine, 7/7 dual-sort with custom interleaving, 8/8 unknown-scorer aggregation including 3-kind interleaving and bucket collapse, 24/24 Phase 2 schedule write logic including 0-0 tie drift edge case and field-preservation across version/layout. Final state: 6 deployable files in /mnt/user-data/outputs/ (GirlsJVSoccerGoals.html, GirlsJVSoccerCard.html, index.html, sw.js, manifest.json, goals.json). Session complete; system fully end-to-end with goal entry → final result → schedule update flow without leaving the Goals tool, while preserving the ability to do all of that from the Schedule tool too.]
+[Multi-feature session on the WW Girls JV Soccer tools (already-deployed
+GitHub-API-canonical architecture with PWA wrapping). New
+GirlsJVSoccerGoals.html tool added end-to-end with cross-tool
+integration. Built mobile-optimized goal tracker with horizontal
+scrollable minute picker, sticky-half toggle, schedule+manual game
+picker, and immediate save on every Add/Delete/Edit (no debounce — keeps
+data durable against accidental closes). Surgical-edited the Card tool
+to read scorers from goals.json instead of teams.json's scorersByGame,
+with a new totals/times display toggle and a matching schedule+manual
+game picker. Updated index.html and manifest.json to 4-tile order
+(Card · Goals · Schedule · Roster) so Goals sits adjacent to Card in
+the workflow. Bumped sw.js CACHE_VERSION from 'v1' to 'v2' so existing
+PWA installs evict their v1 shell on next visit and pick up the new
+Goals.html plus the modified Card.html.
+
+Goals tool internals: goals.json schema is {version:1,
+goalsByGame:{[gameKey]:[entry,...]}} where gameKey =
+"YYYY-MM-DD|opp-lowercased" and each entry = {id, kind:
+'roster'|'custom'|'unknown', playerId, customName, minute|null, half:
+1|2}. New localStorage keys: 'ww-soccer-goals-v1' (data),
+'ww-soccer-goals-prefs-v1' (half/view), 'ww-card-scorer-display-v1'
+(Card tool's totals/times pref). Card tool also reads
+'ww-soccer-schedule-v1' now for its new picker. Minute picker is a
+121-cell strip (0–120, 56px wide each, scroll-snap-type:x mandatory +
+scroll-snap-align:center, deep-red center indicator marks the active
+cell). Three input surfaces: scroll/swipe (debounced 90ms listener
+picks the cell closest to center after rest), tap a cell directly
+(smooth scroll to it), or use the −/+ arrow buttons for ±1 nudges.
+Buttons support hold-to-repeat: tap = 1, hold (>400ms) = 1 + 400ms
+grace + auto-advance every 120ms (~8 min/sec) until release or
+boundary. Implementation uses pointerdown/up/cancel/leave for
+cross-platform mouse+touch+pen with a didRepeat flag so the trailing
+click after a hold doesn't add a stray +1; keyboard Enter/Space
+increments via the normal click handler. Default minute on game
+selection = highest minute among existing goals (so reopening a game
+in progress lands near where you left off), or 0 for a fresh game;
+after each Add, lastEnteredMinute holds the just-added value as the
+next entry's default (clusters at 12', 14', 23' need only minor
+scrolling). One-shot migration on first Goals-tool boot expands legacy
+teams.json scorersByGame entries (one row per game, {goals:N} count)
+into N individual goal rows in goals.json (minute=null, half=1, since
+neither was tracked retroactively), then saves a cleaned teams.json
+without the scorersByGame field. Card tool's buildStoredPayload no
+longer writes scorersByGame so the cleanup persists.
+
+Phase 1 — Unknown scorer: third 'kind' value added to goal entries
+alongside 'roster' and 'custom'. Unknown sits at the TOP of both
+entry-form and edit-form scorer dropdowns ("— Unknown scorer —") since
+live entry of "I saw a goal but missed who" needs one tap, not
+scrolling past the roster. Renders italic-muted in the Goals tool list
+and summary with a "TBD" tag, and is always-last sorted in the summary
+so unattributed goals stay surfaced for follow-up. Card tool
+aggregates all unknowns for one game into a single "UNKNOWN" bucket
+(no jersey #) — placed last in totals mode, interleaved chronologically
+by earliest minute in times mode. Edit-form dropdown supports switching
+from 'unknown' → roster/custom for the fix-it-later workflow when the
+tracker figures out who scored.
+
+Phase 2 — Final Result section: lives in the Goals tool below the Game
+Total, visible whenever a game is selected. Five render states keyed
+off currentScheduleEntryId × entry status: no-game (hidden), manual-mode
+(explainer linking to Schedule tool, no save UI), scheduled-not-final
+(Mark-Final form), already-final (Update-Result + Un-finalize buttons,
+drift hint), cancelled (read-only, points back to Schedule tool). WW
+score is auto-derived from currentGoals().length and never editable
+here (forces consistency with the goal list); opp score is a 0–99
+number input pre-filled with saved scoreThem. Drift hint appears only
+when the game is final AND saved scoreUs ≠ live goal count: "↻ saved
+as N — re-save to update" (Option A: manual re-save with hint, chosen
+over Option B auto-resync because cross-tool concurrent edits make
+silent writes surprising). schedule.json write-back loads fresh,
+applies only the targeted entry's status/scoreUs/scoreThem (preserves
+version, layout, and every other game byte-for-byte), saves back.
+SHA-conflict path re-applies the change against merged data and saves
+once more — handles the "Schedule tool wrote between our load and our
+save" race. Save button shows "Saving…" + disabled state during the
+round-trip; toasts cover success ("Result saved to schedule ✓"),
+local-only ("Saved locally — will sync when GitHub is configured"),
+missing-entry ("Game no longer in schedule"), failure ("Save failed").
+Un-finalize sets status='scheduled' but leaves scoreThem intact —
+accidental un-finalize shouldn't erase typed values.
+
+Card tool restructuring: both Final-card and Halftime-card scorer
+editor tabs lost their picker UI entirely — replaced with a
+.goals-link-block notice ("Scorers are managed in the Goals tool…")
++ "Open Goals tool ↗" button + status hint that color-states between
+.empty ("No goals tracked yet for this game") and .loaded ("3 goals
+tracked for this game ✓"). Final-card tab additionally got the
+display-mode toggle (Total goals / Goals & times); the preference is
+global per-browser and applies to both cards. Removed: Sortable.js CDN,
+"Clear scorer history" button from team manager modal, ~700 lines of
+editor JS (addScorer/removeScorer/onScorerSelectChange/
+onScorerCustomNameChange/onScorerGoalsChange/clearAllScorers/
+clearScorerHistory/renderScorersPicker/initSortableOn/
+refreshRosterBadges, the `scorers` working array, the
+SCORER_CUSTOM_SENTINEL). New: GOALS_BY_GAME map, scorerDisplay state,
+loadGoalsFromLocal/refreshGoalsFromGitHub/applyGoalsData,
+aggregateGoalsByPlayer (dual-sort: jersey-then-alpha for totals,
+earliest-minute for times — three-kind interleaving in times so a
+custom or unknown scorer at 12' shows above a roster scorer at 67'),
+refreshGoalsLinkStatus. Goals tool game pill color states (the pill
+at top of the editor showing the currently-selected game) reworked
+from red ("looks like an error") to neutral gray-blue with
+green-when-goals-tracked.
+
+Process notes: two bug fixes worth recording for design rationale.
+(1) Picker-doesn't-scroll-on-reselect: first pass had
+setEntryMinute(getDefaultEntryMinute(), false) in setCurrentGame — the
+false meant currentMinute and the active-cell highlight updated but
+the strip never actually scrolled. Picking a game with existing goals
+lit up cell 67 invisibly off-screen while the visible strip stayed
+parked at cell 0. Caught on user feedback ("picker doesn't default to
+last goal's minute"); fix was the boolean flip to true. The doScroll
+param shows up in several callers and the right value depends on
+whether the form is currently visible (boot init = false, view-mode
+toggle = false, game-pick = true). (2) .unknown-tag CSS scope catch:
+rule was scoped to .goal-row .goal-name .unknown-tag only, then I
+used the same class inside .summary-row. Caught on a final grep
+before shipping; added the matching .summary-row .summary-name
+.unknown-tag rule. Lesson: when adding a class for a shared semantic
+marker (here "TBD"), check ALL the surfaces that render with that
+class — don't just clone the existing pattern from one parent. Both
+phases (Unknown scorer + Final Result) followed a "review-and-comment
+first, build second" pattern: user asked an open question, I surfaced
+subquestions and tradeoffs (auto-derived vs editable WW score;
+just-final vs final+cancelled+un-finalize; always-show vs require-goals;
+drift handling Option A vs B), user picked, then I implemented.
+Produced cleaner first-pass code than ad-hoc back-and-forth would have
+— particularly valuable here because the features spanned HTML + CSS
++ JS + cross-tool coordination + a new write path to a file owned by
+another tool. Worth carrying forward for any multi-touch feature.
+
+Final deliverables: GirlsJVSoccerGoals.html (~99KB, new file),
+GirlsJVSoccerCard.html (~166KB, modified — was ~157KB pre-session,
++9KB net after removing ~700 lines of picker JS and adding the Goals
+integration + sort logic + schedule picker), index.html (~17KB,
+4-tile reorder), manifest.json (~2KB, 4 shortcuts), sw.js (~8KB,
+CACHE_VERSION='v2'), goals.json (40-byte empty starter
+{"version":1,"goalsByGame":{}}). All HTML well-formed (HTMLParser
+validation passed), all inline JS parses with node --check. Smoke
+tests: 8/8 hold-to-repeat state machine, 7/7 dual-sort with custom
+interleaving, 8/8 unknown-scorer aggregation including three-kind
+interleaving and bucket collapse, 24/24 Phase 2 schedule-write logic
+including 0-0 tie drift edge case and field preservation across
+version/layout. Remaining tasks for Rob: deploy the 6 files to repo
+root (Card, Goals, index, manifest, sw, goals.json), commit, push to
+main, confirm sw.js v2 is what gets served so existing PWA installs
+evict their v1 cache and pick up the new Goals.html. First device to
+open the Goals tool after deploy runs the migration once (expands
+legacy scorersByGame → goal rows + cleans teams.json) and toasts the
+result.]
