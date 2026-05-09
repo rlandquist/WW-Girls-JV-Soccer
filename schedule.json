@@ -99,7 +99,9 @@
       "status": "scheduled",
       "scoreUs": null,
       "scoreThem": null,
-      "time": "4:30 PM"
+      "time": "4:30 PM",
+      "venue": "Waukesha West Statdium",
+      "address": ""
     },
     {
       "id": "g_mocxj4ah5kxf",
