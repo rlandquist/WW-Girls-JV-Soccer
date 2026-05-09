@@ -115,20 +115,12 @@
     ],
     "2026-05-05|kettle moraine": [
       {
-        "id": "go_moxlx1pg38tx",
-        "minute": 0,
-        "half": 1,
-        "kind": "roster",
-        "playerId": "p_modcpq9psnf1",
-        "customName": ""
-      },
-      {
         "id": "go_moxlxdhar5b3",
-        "minute": 0,
-        "half": 1,
         "kind": "roster",
         "playerId": "p_modcpq9psnf1",
-        "customName": ""
+        "customName": "",
+        "minute": 0,
+        "half": 1
       }
     ]
   }
