@@ -112,16 +112,6 @@
         "minute": null,
         "half": 1
       }
-    ],
-    "2026-05-11|catholic memorial": [
-      {
-        "id": "go_moxr02cvukxg",
-        "minute": 4,
-        "half": 1,
-        "kind": "roster",
-        "playerId": "p_modcn7kcybqo",
-        "customName": ""
-      }
     ]
   }
 }
