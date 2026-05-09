@@ -646,3 +646,26 @@ Conversation-flow notes worth recording for next session:
     file-by-file uploads. Default to it next time, and only
     fall back to asking for uploads if the clone fails or
     the repo is private.]
+
+=== Journal Entry 2026-05-08T19:30:00.000000+00:00 ===
+2026-05-08-19-30-00-ww-soccer-roster-positions-toggle.txt
+[Short follow-up session on the WW Girls JV Soccer tools (already-deployed
+GitHub-API-canonical architecture). Added a Show/Hide toggle for the Position
+column on the roster card in GirlsJVSoccerRoster.html. New editor field-group
+("Position column") with Show/Hide buttons sits directly under the existing
+"List layout" group, mirroring its toggle-row pattern. New SHOW_POSITIONS
+boolean state, loadShowPositions() loader (defaults to true so existing
+rosters are unchanged), setShowPositions() setter, and updatePositionsToggle()
+button-state helper — all patterned exactly on the existing LAYOUT plumbing.
+Persistence wired through the full chain: localStorage payload (saveRoster +
+the LS write inside applyRosterData), GitHub roster.json payload
+(saveRosterToGitHub), JSON export/import payload, and applyRosterData
+adoption from incoming payloads. Rendering uses a new `.no-pos` CSS class
+on the `.rows-block` container: it overrides grid-template-columns to drop
+the 56px Position track and hides the `.ppos-card` row cells and `.phead-pos`
+header cell. Works for both single- and double-column list layouts via
+descendant selectors — no per-cell changes needed in renderPlayerRow or the
+headerHTML helpers; the cells are still emitted, just hidden when the class
+is on. Single rowsClass variable computed once at the top of renderCardContent
+combines the `double` and `no-pos` flags as needed. File grew 1879 → 1959
+lines (+80). No other files touched.]
