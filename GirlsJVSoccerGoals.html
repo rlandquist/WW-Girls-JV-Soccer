@@ -1647,7 +1647,8 @@ function populateScheduleDropdown() {
     } else if (g.status === 'cancelled') {
       statusPart = ' (cancelled)';
     }
-    opt.textContent = datePart + ' vs ' + g.opponent + statusPart;
+    var sep = (g.location === 'away') ? ' at ' : ' vs ';
+    opt.textContent = datePart + sep + g.opponent + statusPart;
     /* Stash the game data on the option for retrieval on change. id is
        optional in the legacy schema but every entry in current
        schedule.json has one — when present, it's the canonical key for
@@ -2513,11 +2514,17 @@ function updateGameTotals() {
   /* Currently-selected game pill at the top: text + color state.
      Default (neutral) styling shows "0 goals tracked"; .has-goals
      flips it green to confirm data is being captured. Both states
-     are calm — neither implies a problem. */
+     are calm — neither implies a problem.
+
+     Separator reflects home/away when the game came from the schedule
+     ('vs' for home, 'at' for away). Manual-mode games (no schedule
+     entry) default to 'vs' since there's no home/away info available. */
   if (pill && pillTxt && currentGameKey) {
     pill.classList.toggle('has-goals', hasGoals);
     var dt = parseDateUTC(currentGameDate);
-    var label = (dt ? formatShortDate(dt) : currentGameDate) + ' vs ' + currentGameOpp;
+    var entry = currentScheduleEntryId ? findScheduleEntry(currentScheduleEntryId) : null;
+    var sep = (entry && entry.location === 'away') ? ' at ' : ' vs ';
+    var label = (dt ? formatShortDate(dt) : currentGameDate) + sep + currentGameOpp;
     var checkMark = hasGoals ? ' ✓' : '';
     pillTxt.innerHTML = WWCommon.escapeHtml(label) +
       '<small>' + goals.length + ' goal' + (goals.length === 1 ? '' : 's') + ' tracked' + checkMark + '</small>';

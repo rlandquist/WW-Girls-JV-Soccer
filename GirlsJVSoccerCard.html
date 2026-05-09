@@ -2356,7 +2356,8 @@ function populateCardScheduleDropdown() {
     } else if (g.status === 'cancelled') {
       statusPart = ' (cancelled)';
     }
-    opt.textContent = datePart + ' vs ' + g.opponent + statusPart;
+    var sep = (g.location === 'away') ? ' at ' : ' vs ';
+    opt.textContent = datePart + sep + g.opponent + statusPart;
     opt.dataset.date = g.date;
     opt.dataset.opp = g.opponent;
     sel.appendChild(opt);
