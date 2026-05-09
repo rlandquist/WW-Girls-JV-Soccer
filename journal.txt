@@ -910,3 +910,241 @@ or changes a JSON schema should treat the README + journal entry as
 deliverables, not as a follow-up. Future-session checklist proposal:
 before declaring a release "shipped," re-grep the README for the old
 file count / schema field / shortcut list and update in place.]
+
+=== Journal Entry 2026-05-08T03:00:00.000000+00:00 ===
+2026-05-08-ww-soccer-architecture-improvements.txt
+[Long architecture-improvements session covering the backlog Rob inventoried
+in the 2026-05-08 docs-catchup session. Session started with a 16-item review
+of the codebase (delivered in chat as a prioritized list), Rob picked items
+1-9 plus 11-13 to execute (skip 4-6 as already done; defer 10, 14, 15).
+Reality came in slightly different — items 4 (conflict detection), 5 (back-link
+wording), and 6 (Goals photo-credit) were verified already-shipped, so the
+actual work was 1, 2, 3, 7, 8, 9, 11, 12, 13.
+
+UPLOAD-DRIVEN WORKFLOW: This session was the first where I explicitly asked
+for the current files instead of working from project_knowledge fragments.
+Worth keeping as the default for future surgical-edit sessions on this
+project — the project_knowledge view turned out to be stale on the Goals
+tool's photo-credit work in particular, which would have led me to "fix"
+something that was already fixed. Rule of thumb: any session that's going
+to run str_replace against a file >50KB should ask for upload first.
+
+ITEM-BY-ITEM SUMMARY:
+
+Item 1 (target="_blank" on Card → Goals links breaks PWA standalone mode):
+Two anchors in GirlsJVSoccerCard.html (footer-scorers block at line 720,
+halftime-scorers block at line 819) had target="_blank" rel="noopener".
+Inside an installed iOS PWA those punted the user to Safari, breaking the
+standalone-app feel. Removed both attributes. Verified zero remaining
+target="_blank" in Card after edits.
+
+Item 2 (game-key normalization):
+Card and Goals were already building keys identically (trim+lowercase) but
+inline in each file — meaning future tools could drift. Centralized into
+WWCommon.buildGameKey(date, opp) in common.js with the canonical contract:
+returns null when either field is empty after trimming, otherwise returns
+'YYYY-MM-DD|opp-lowercased'. Card's buildScorerKey() and Goals' buildKey()
+now delegate to this helper, with inline fallbacks if common.js failed
+to load. Both fallback paths are byte-identical to what they replaced —
+no behavior change, just a single source of truth.
+
+Item 3 (BroadcastChannel for cross-tab live updates):
+common.js opens a BroadcastChannel('ww-soccer-sync') once at module load.
+Each tab gets a per-load TAB_ID (random + millis) so it can ignore its own
+broadcasts. Inside doSaveJson and the conflict-forced retry path, calls
+broadcastFileSaved(filename) AFTER the successful PUT response. Conflict-
+reloaded path explicitly does NOT broadcast — no GitHub write happened, so
+other tabs would already see the same remote state via their own startup
+loads. Public helper WWCommon.onFileSaved(callback) returns an
+unsubscribe function and lets tools subscribe to broadcasts.
+
+Tool-side: each tool (Card / Goals / Schedule / Roster) registers an
+onFileSaved listener at the end of its init/startup chain. Card subscribes
+to all four files (it reads everything). Goals subscribes to roster +
+schedule + goals. Schedule subscribes to teams + schedule. Roster
+subscribes to roster only. Listener handler dispatches on filename to
+call the existing refreshXxxFromGitHub() function — no new code path,
+just the existing one triggered by a different event. Browsers without
+BroadcastChannel (very old Safari) degrade silently — bc is null, no
+live update, but everything else still works.
+
+Item 7 (last-synced timestamp on the GH config pill):
+common.js was already calling setSyncTime(filename) on every successful
+save and exposing getSyncTime() — only the UI display was missing. Added:
+- formatRelativeTime(ms) helper: 'just now' / 'Nm ago' / 'Nh ago' /
+  'Nd ago', falls back to "Mon DD" past 30 days.
+- getMostRecentSyncTime() helper: scans GH_SYNC_TIMES_KEY for the latest
+  timestamp across all files. Surfaces "the freshest thing we've talked
+  to GitHub about" rather than guessing per-tool.
+- refreshPanel() updated to also write into a [data-summary-text]
+  element (the existing 'GitHub Sync' summary span got that data
+  attribute). Format: 'GitHub Sync · synced 2m ago' / '· not yet
+  synced' / no suffix when no token configured.
+- 60-second tick lazily started on first panel mount via
+  startPanelTick(). Cheap — no network, just a localStorage read +
+  textContent assignment per mounted panel. Started lazily so pages
+  without the panel pay nothing.
+
+Item 8 (line ending normalization):
+The session went deeper than originally scoped. Original ask was just to
+fix Roster's mixed CRLF+LF (1832 CRLF + 127 bare LF per the 2026-05-02
+journal entry). When I checked uploads, found Card was ALSO mixed (3197
+CRLF + 579 bare LF) — the journal had described it as uniform CRLF. Not
+worth alarm: probably an editor that flipped some lines mid-session
+months ago. Rob then asked the broader question and we agreed on Option
+C — normalize the WHOLE project to LF (modern web/git default, matches
+Goals + index.html + common.js which were already LF). Final state:
+all 6 files pure LF, zero CRLF, zero stray CR bytes. Sizes dropped:
+Card -3247 bytes, Schedule -1821, Roster -1970 (each removed CR is
+one byte). HTMLParser passed and node --check passed on all inline
+JS after normalization. Recommended .gitattributes with
+'* text=auto eol=lf' to prevent regression.
+
+Item 9 (build-date comments):
+'<!-- Build: 2026-05-08 -->' inserted immediately after <!DOCTYPE html>
+in all five HTMLs (Card, Goals, Schedule, Roster, index). One-line
+mechanical change. Rule for future sessions: bump the date when
+shipping changes — view-source on the deployed page is the cheapest
+way to confirm a deploy actually landed (vs SW serving an old cached
+shell).
+
+Item 11 (drift hint in Card tool):
+New element <div id="ww-score-drift-hint"> inserted under the score
+inputs. New function updateDriftHint() called from update() (which
+runs on every keystroke). Logic: hidden unless currentGameKey is set,
+GOALS_BY_GAME has at least one goal for that key, AND parsed
+ww-score input value !== goals.length. When shown: italic 11px
+warning-amber (#b35a00, matching the Goals tool's own drift hint)
+text reading 'Goals tool has 3, WW score is 2 — check.' Cheap to
+recompute on every keystroke (small dictionary lookup + array length);
+no DOM thrash when state hasn't changed because we set textContent +
+display unconditionally.
+
+Item 12 (token-expiration warning):
+GitHub's fine-grained PAT API doesn't return an expiration date, so
+age-based heuristic is the cleanest available signal. Added:
+- New localStorage key 'gh-token-saved-at-v1' set on saveGitHubConfig
+  when the token VALUE changes (not just owner/repo). Cleared in
+  clearGitHubConfig.
+- getTokenAgeDays() helper, exposed in public API.
+- maybeShowTokenAgeWarning(): if age >= 340 days (default PAT expiry
+  is 365), surface a yellow toast "GitHub token is N days old —
+  consider renewing soon." Once-per-tab via sessionStorage flag
+  TOKEN_WARN_SESSION_KEY. Defer 1.5s so it doesn't race startup
+  toasts (e.g. roster-loaded confirmations). Called from
+  renderGitHubConfigPanel on first mount.
+
+Item 13 (end-of-season export/import):
+New <section class="backup"> on index.html, between the GH config
+panel and the about strip. Two buttons + a hidden file input. Export
+loads all four JSONs via WWCommon.loadJson (so it gets the freshest
+data the browser knows about — GitHub if reachable, localStorage
+fallback otherwise), bundles into envelope shape:
+  { backupVersion: 1, exportedAt: ISO, source: '...',
+    files: { 'teams.json': {...}, 'goals.json': {...},
+             'schedule.json': {...}, 'roster.json': {...} } }
+Trigger download via Blob + objectURL. Filename
+'ww-soccer-backup-YYYY-MM-DD.json'.
+Import: file picker → JSON.parse → envelope shape validation →
+summary confirm → per-file confirm → sequential WWCommon.saveJson
+(intentionally serial, not parallel — parallel would self-induce
+409s by all four PUTs racing each other against fresh SHAs). Result
+collation: restored / skipped (user cancelled, or conflict-reloaded
+which means we adopted remote instead of overwriting it) / failed.
+Final status line summarizes counts. Conflict dialog from common.js
+fires per-file as needed.
+
+ITEMS NOT EXECUTED (verified already done):
+- Item 4: showConflictDialog and the 409/422 → conflict path were
+  already fully wired in common.js. Card and Schedule already handle
+  the conflict-reloaded action correctly. Skipped.
+- Item 5: All four tools already use "← Tools" wording (not "Main").
+  Verified by grep. Skipped.
+- Item 6: Goals tool DOES have the photo-credit pill, in document
+  flow at the bottom of the page (rather than fixed-position like
+  the other three) — appropriate for the mobile-first layout. The
+  project_knowledge view I'd been working from earlier missed this.
+  Skipped.
+
+ITEMS DEFERRED PER ROB:
+- Item 10: True 192/512 maskable PNG icons for the manifest. Still on
+  TODO from 2026-04-26.
+- Item 14: Card's Total goals / Goals & times toggle visual hierarchy
+  cleanup (now that scorer entry moved to the Goals tool, the toggle
+  is the only Card-side scorer control left and looks slightly
+  orphaned next to the "Open Goals tool ↗" button).
+- Item 15: Multi-conference UI. Schema is general, but Card's modal
+  has a single C8 checkbox column. When a second conference gets
+  added, the modal needs to grow into a dropdown or multiple checkbox
+  columns.
+
+DELIVERY MECHANICS:
+Rob deploys via GitHub web UI (drag-and-drop file upload), not git CLI
+or GitHub Desktop. Discussed mid-session — recommended GitHub Desktop
+for future workflow but agreed web upload is fine for this session.
+Built TWO file packages to support a clean two-commit history without
+requiring local git:
+  Step 1: just Card / Schedule / Roster with line endings normalized
+          (no feature changes). Verified byte-identical to originals
+          after CRLF→LF collapse.
+  Step 2: all 6 final files (line endings + features). Validated
+          via HTMLParser + node --check.
+Upload sequence: Step 1 first ("Normalize line endings to LF
+(whitespace only)"), then Step 2 ("Add cross-tab sync, drift hint,
+last-synced display, backup/restore, build dates"). Two clean commits,
+neither tied up with the other; future git blame stays useful because
+the whitespace flip lives in its own commit.
+
+VALIDATION GATES:
+Every file passed:
+  - HTMLParser feed (no parse errors)
+  - Inline-script extraction + node --check (syntax OK)
+  - Line-ending audit (zero CRLF, zero stray CR after final
+    normalization)
+common.js separately passed node --check at every checkpoint.
+
+DOCS:
+README updated in the same session — added: "Cross-tab live updates"
+subsection under Daily use, drift hint mention in game-day workflow,
+new "Backup and restore" H2 section between Daily use and Opponent
+logos, "Telling deployed builds apart" subsection in developer notes
+covering the build-date comment convention, "common.js — public
+helpers" subsection covering the new helper surface
+(buildGameKey, onFileSaved, formatRelativeTime, getMostRecentSyncTime,
+getTokenAgeDays), "localStorage keys" subsection inventorying all
+keys in use across the project, and "Line endings" subsection
+documenting the LF convention plus VS Code / .gitattributes setup
+hints. Token-section setup walkthrough now mentions the auto-warning
+at 340 days. GH config panel section now mentions the
+"synced Nm ago" pill text.
+
+BACKLOG ITEMS NOTED FOR FUTURE SESSIONS:
+- Drop the deferred items 10, 14, 15 from the original backlog when
+  Rob is ready.
+- Consider a shareTarget API for the manifest so the Card tool's
+  PNG download can be shared directly to social media (vs.
+  download-then-upload).
+- The backup envelope currently uses native confirm() dialogs for
+  per-file restore; could be modalized using the existing .gh-modal
+  CSS pattern if Rob wants nicer UX for what is admittedly a rare
+  admin action.
+- The "current version" line in the README's Rolling out an update
+  section now says "v2 (May 2026 — added Goals tool to the shell)"
+  — bump to v3 if a future session needs force-refresh-on-reload
+  behavior; the current v2 + stale-while-revalidate is fine for
+  the changes shipped this session.
+
+PROCESS NOTES:
+- Asking for uploads first, then doing surgical edits, then running
+  HTMLParser + node --check before declaring done — this is the
+  right pattern for this project's mix of large HTMLs and small
+  shared common.js. Caught zero bugs this session; would have caught
+  any structural break before delivery.
+- Two-commit packaging via web UI works well as an alternative to
+  local git. Worth offering proactively in future sessions when
+  shipping mixed (refactor + feature) changes.
+- common.js is becoming the right place for cross-cutting concerns.
+  Worth defending against drift: every helper that more than one
+  tool would benefit from belongs there, not duplicated inline.
+  This session moved buildGameKey from the Card+Goals duplication
+  pattern into common.js as a model.]
