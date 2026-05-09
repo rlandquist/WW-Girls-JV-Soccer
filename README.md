@@ -1,12 +1,13 @@
 # WW Girls JV Soccer Tools
 
-Three social-media tools for Waukesha West Girls JV Soccer:
+Four social-media tools for Waukesha West Girls JV Soccer:
 
 - **Card** — build the per-game social card with scorers and final score
+- **Goals** — track goal scorers live during the game (jersey, minute, half)
 - **Schedule** — lay out the season schedule, log results
 - **Roster** — manage players, jerseys, captains, coaching staff
 
-All three save to this GitHub repository so your data stays in sync between phone, tablet, and laptop. Edit on one device, the others pick up the change next time you open them.
+All four save to this GitHub repository so your data stays in sync between phone, tablet, and laptop. Edit on one device, the others pick up the change next time you open them.
 
 **Public URL:** https://rlandquist.github.io/WW-Girls-JV-Soccer/
 
@@ -23,21 +24,36 @@ Each tool is a self-contained HTML page served from GitHub Pages. When you save:
 When you open a tool on a different device, it reads the JSON files via the GitHub API to pull the latest data, then writes that to `localStorage`. From then on, you have local cached copies for offline use.
 
 ```
-/                              ← repo root, served as GitHub Pages
-├── index.html                 ← landing page (you start here)
-├── GirlsJVSoccerCard.html     ← card tool
-├── GirlsJVSoccerSchedule.html ← schedule tool
-├── GirlsJVSoccerRoster.html   ← roster tool
-├── common.js                  ← shared GitHub-sync library
-├── manifest.json              ← PWA manifest (makes the site installable)
-├── sw.js                      ← service worker (caches app shell for offline)
-├── teams.json                 ← owned by Card tool (read-write)
-├── schedule.json              ← owned by Schedule tool
-├── roster.json                ← owned by Roster tool
+/                                ← repo root, served as GitHub Pages
+├── index.html                   ← landing page (you start here)
+├── GirlsJVSoccerCard.html       ← card tool
+├── GirlsJVSoccerGoals.html      ← goal tracker (mobile-first)
+├── GirlsJVSoccerSchedule.html   ← schedule tool
+├── GirlsJVSoccerRoster.html     ← roster tool
+├── common.js                    ← shared GitHub-sync library
+├── manifest.json                ← PWA manifest (makes the site installable)
+├── sw.js                        ← service worker (caches app shell for offline)
+├── teams.json                   ← owned by Card tool (read-write)
+├── goals.json                   ← owned by Goals tool (read-write)
+├── schedule.json                ← owned by Schedule tool
+├── roster.json                  ← owned by Roster tool
 └── Logos/
-    ├── WaukeshaWest.png       ← school paw mark (do not rename)
-    └── …                      ← opponent logos
+    ├── WaukeshaWest.png         ← school paw mark (do not rename)
+    ├── Classic8.png             ← Classic 8 conference badge
+    ├── RobertLandquistPhotography.png ← photo credit mark
+    └── …                        ← opponent logos, CamelCase filenames
 ```
+
+### Who reads/writes what
+
+| File | Card | Goals | Schedule | Roster |
+|---|:-:|:-:|:-:|:-:|
+| `teams.json` | RW | R | R | — |
+| `goals.json` | R | RW | — | — |
+| `schedule.json` | R | RW¹ | RW | — |
+| `roster.json` | R | R | — | RW |
+
+¹ Goals can mark a scheduled game final (writes `status` / `scoreUs` / `scoreThem`); the Schedule tool remains the primary editor for everything else.
 
 ---
 
@@ -71,7 +87,7 @@ This token is *fine-grained*: it can only touch this one repo, and only modify f
 
 The token lives in your browser's `localStorage` for this site only. It's not sent anywhere except to GitHub when the tools commit changes. It does **not** sync between devices — you'll repeat this step on each phone, tablet, or laptop you want to use the tools from.
 
-You only need to do this on **one** of the four pages. The landing page is easiest, but any of them works. All four share localStorage on the same origin.
+You only need to do this on **one** of the five pages. The landing page is easiest, but any of them works. All five share localStorage on the same origin.
 
 ### 3. Pin to your home screen (optional but recommended)
 
@@ -82,23 +98,24 @@ The tools are installable as a Progressive Web App, which means they get a real 
 2. Scroll down and tap **Add to Home Screen**.
 3. Edit the name if you want, then tap **Add**.
 
-You can install from any of the four pages. The icon's name comes from the page you installed from:
+You can install from any of the five pages. The icon's name comes from the page you installed from:
 
 | Installed from | Home-screen name |
 |---|---|
 | Landing page | WW Soccer |
 | Card tool | Soccer Card |
+| Goals tool | Goals |
 | Schedule tool | Schedule |
 | Roster tool | Roster |
 
-If you want quick-tap access to the Card tool during a game, install from the Card tool page directly. You can install all four if you want — they're separate icons but share the same data underneath.
+If you want quick-tap access to the Goals tool during a game, install from the Goals tool page directly. You can install all five if you want — they're separate icons but share the same data underneath.
 
 **Android (Chrome or Edge)**
 1. Open the browser menu (⋮ in the top right).
 2. Tap **Install app** (or **Add to Home screen** depending on the browser).
 3. Confirm.
 
-On Android, long-pressing the installed app icon also reveals three jump-shortcuts: Card / Schedule / Roster.
+On Android, long-pressing the installed app icon also reveals four jump-shortcuts: Card / Goals / Schedule / Roster.
 
 ---
 
@@ -111,6 +128,18 @@ Update teams.json — 2026-04-26 14:32 (Card tool)
 ```
 
 You'll see a green toast confirming each save.
+
+### Game-day workflow
+
+The Card and Goals tools are designed to work as a pair on game day:
+
+1. **Before the game** — open the Card tool, set the date and opponent, build the preview/match-day card.
+2. **During the game** — open the Goals tool on your phone. Pick the game from the schedule dropdown (or use Manual mode for a non-scheduled game). Tap **Add Goal** as goals happen — pick the scorer, set the minute, set 1st/2nd half. The form pre-fills the next minute and remembers the half so entry stays fast.
+3. **At halftime** — open the Card tool's halftime mode. Scorers tracked so far render automatically.
+4. **After the game** — back in Goals, tap **Mark as Final**, enter the opponent's score, save. This writes `status: "final"` plus both scores back to `schedule.json` so the Schedule tool reflects the result.
+5. **For the post-game card** — open the Card tool, switch the footer to "Goal Scorers" mode. The list pulls live from `goals.json` keyed by date + opponent.
+
+The game key shape is `YYYY-MM-DD|opponent-lowercased`, shared between Card and Goals so the tools stay aligned without ever needing to talk to each other directly.
 
 ### Conflict handling
 
@@ -143,19 +172,27 @@ The filename is **case-sensitive** on GitHub Pages. `KettleMoraine.png` and `ket
 
 The school's own paw mark (`WaukeshaWest.png`) is referenced by code as the canonical school logo. Don't rename or remove it.
 
+### Custom-typed opponents (Schedule tool)
+
+If you type an opponent name in Schedule that isn't in the managed teams list, the tool derives the logo path by stripping whitespace and appending `.png` — so typing "Kettle Moraine" resolves to `./Logos/KettleMoraine.png`. Drop a matching PNG into `/Logos/` and it'll pick up automatically. Managed teams (with their own `file` field) always win over the derived path.
+
+### Conference badges
+
+Teams can be flagged with a conference (currently just Classic 8 / `classic-8`). When set, the Card and Schedule tools render a small white-circle badge in the corner of the opponent's logo using `Logos/Classic8.png`. Flag a team via the Card tool's **Manage teams** modal (the C8 checkbox column). Custom-typed opponents can't carry conference flags — only managed teams.
+
 ---
 
 ## Offline behavior
 
 Once you've visited the site at least once, it works offline:
 
-- The four pages load from cache (managed by `sw.js`)
+- The five pages load from cache (managed by `sw.js`)
 - Your data loads from `localStorage` (managed by `common.js`)
 - Opponent logos load from cache (cached on demand the first time you view a card featuring each opponent)
 
 When you save while offline, the save fails with a toast saying GitHub is unreachable, but the change stays in `localStorage` and your tool keeps working with the new data. Next time you save while online, the change commits normally.
 
-So you can use the tools at an away game with no signal — viewing, editing, and downloading PNG cards all keep working. Once you're back on Wi-Fi, your local edits sync to GitHub on the next save.
+So you can use the tools at an away game with no signal — viewing, editing, tracking goals, and downloading PNG cards all keep working. Once you're back on Wi-Fi, your local edits sync to GitHub on the next save.
 
 ---
 
@@ -169,6 +206,11 @@ So you can use the tools at an away game with no signal — viewing, editing, an
 **"I don't see the latest data on this device"**
 - Pull-to-refresh, or close and reopen the tab. The tool re-fetches from GitHub on every page load.
 - If the data still looks stale, hard-reload (long-press refresh on mobile, or Ctrl+Shift+R on desktop) to bypass the service worker cache.
+
+**"Goals I entered don't show up on the Card"**
+- Card and Goals match games by `date + opponent (lowercased)`. Make sure both tools have the exact same date and opponent name. Trailing whitespace counts as a different game.
+- The Card tool refreshes goals on page load. If Goals saves while Card is already open, reload Card to pick up the new entries.
+- Switch the Card's footer to **Goal Scorers** mode (the toggle is in the editor sidebar). The default mode is the next-game banner, not scorers.
 
 **"I need to roll back a change"**
 1. Go to https://github.com/rlandquist/WW-Girls-JV-Soccer
@@ -196,32 +238,58 @@ After the next page load, the tools will see the rolled-back data.
 
 Push changes to `main`. GitHub Pages rebuilds in 1–2 minutes. Devices with open tabs continue using the cached shell until they reload.
 
-If your change affects how data is read or written (any `common.js` change, or anything that breaks compatibility with existing localStorage entries), bump `CACHE_VERSION` in `sw.js` so the service worker evicts the old shell on the next page load:
+If your change affects how data is read or written (any `common.js` change, any new HTML page, or anything that breaks compatibility with existing localStorage entries), bump `CACHE_VERSION` in `sw.js` so the service worker evicts the old shell on the next page load:
 
 ```js
 // sw.js, near the top
-const CACHE_VERSION = 'v1';   // bump to 'v2', 'v3', etc.
+const CACHE_VERSION = 'v2';   // bump to 'v3', 'v4', etc.
 ```
+
+Current version: `v2` (May 2026 — added Goals tool to the shell).
 
 ### JSON schema notes
 
-**`teams.json`** — owned by Card tool. Schedule tool reads `teams[]` only and ignores everything else.
+**`teams.json`** — owned by Card tool. Schedule tool reads `teams[]` and `conferences` only and ignores everything else. As of v2, scorer data lives in `goals.json` (the Goals tool); legacy `scorersByGame` data in older `teams.json` files is migrated out automatically on first load of the Goals tool.
 
 ```jsonc
 {
   "version": 2,
   "teams": [
-    { "name": "Arrowhead", "file": "Arrowhead.png" },
-    { "name": "Badger",    "file": "Badger.png"    }
+    { "name": "Arrowhead", "file": "Arrowhead.png", "conference": "classic-8" },
+    { "name": "Badger",    "file": "Badger.png",    "conference": null        }
   ],
-  "spineText": "...",          // card-specific
-  "scorersByGame": { },        // card-specific
-  "footerModeByGame": { },     // card-specific
-  "halftimeModeByGame": { }    // card-specific
+  "conferences": {
+    "classic-8": { "name": "Classic 8", "logo": "Classic8.png" }
+  },
+  "spineText": "...",                  // card-specific
+  "footerModeByGame": { },             // card-specific: gameKey → 'next' | 'scorers'
+  "halftimeModeByGame": { }            // card-specific: gameKey → 'msg'  | 'scorers'
+  // NOTE: scorersByGame is no longer written here — see goals.json
 }
 ```
 
-**`schedule.json`** — owned by Schedule tool.
+**`goals.json`** — owned by Goals tool. Read by the Card tool to render scorer lists on the Final and Halftime cards.
+
+```jsonc
+{
+  "version": 1,
+  "goalsByGame": {
+    // Game key shape: 'YYYY-MM-DD|opponent-lowercased' (matches Card tool)
+    "2026-08-22|arrowhead": [
+      {
+        "id":         "g1abc",
+        "kind":       "roster",      // 'roster' | 'custom' | 'unknown'
+        "playerId":   "p1abc",       // set when kind === 'roster'
+        "customName": "",            // set when kind === 'custom'
+        "minute":     12,            // 0..120, or null for unknown minute
+        "half":       1              // 1 | 2
+      }
+    ]
+  }
+}
+```
+
+**`schedule.json`** — owned by Schedule tool. Goals can mark a game final (status + both scores).
 
 ```jsonc
 {
@@ -238,7 +306,7 @@ const CACHE_VERSION = 'v1';   // bump to 'v2', 'v3', etc.
       "time": "5:00 PM"
     }
   ],
-  "layout": "single"           // 'single' | 'double'
+  "layout": "single"           // 'single' | 'double' (card column arrangement)
 }
 ```
 
@@ -257,7 +325,8 @@ const CACHE_VERSION = 'v1';   // bump to 'v2', 'v3', etc.
     {
       "id": "p1abc",
       "number": 7,
-      "name": "Jane Smith",
+      "firstName": "Jane",
+      "lastName": "Smith",
       "positions": ["MF", "F"],
       "captain": false,
       "year": "10"
@@ -266,7 +335,9 @@ const CACHE_VERSION = 'v1';   // bump to 'v2', 'v3', etc.
 }
 ```
 
-Each tool's `applyXxxData()` helper is the source of truth for parsing — see `common.js`'s `loadJson()` and the tool-specific `applyTeamsPayload()` / `applyScheduleData()` / `applyRosterData()` for full details.
+Legacy player records with a single `"name": "Jane Smith"` field still load — `normalizePlayer()` splits "Last, First" on the comma if present, otherwise treats the whole thing as `lastName`. Saves always write the new `firstName` / `lastName` shape.
+
+Each tool's `applyXxxData()` helper is the source of truth for parsing — see `common.js`'s `loadJson()` and the tool-specific `applyTeamsPayload()` / `applyGoalsData()` / `applyScheduleData()` / `applyRosterData()` for full details.
 
 ### Optional polish
 
@@ -278,17 +349,21 @@ The PWA manifest currently points all icon sizes at the single `WaukeshaWest.png
 
 | File | What it does |
 |---|---|
-| `index.html` | Landing page with three tool tiles + shared GH config panel |
-| `GirlsJVSoccerCard.html` | Per-game card builder. Owns `teams.json`. |
+| `index.html` | Landing page with four tool tiles + shared GH config panel |
+| `GirlsJVSoccerCard.html` | Per-game card builder. Owns `teams.json`. Reads `goals.json`. |
+| `GirlsJVSoccerGoals.html` | Live goal tracker (mobile-first). Owns `goals.json`. Reads `roster.json` + `schedule.json`. |
 | `GirlsJVSoccerSchedule.html` | Season schedule. Owns `schedule.json`, reads `teams.json`. |
 | `GirlsJVSoccerRoster.html` | Roster + coaching staff. Owns `roster.json`. |
-| `common.js` | Shared GitHub-sync library used by all four pages |
+| `common.js` | Shared GitHub-sync library used by all five pages |
 | `manifest.json` | PWA manifest — makes the site installable |
 | `sw.js` | Service worker — caches app shell + opponent logos for offline |
-| `teams.json` | Opponent list + card-specific state |
+| `teams.json` | Opponent list + conferences + card-specific state |
+| `goals.json` | Per-game goal entries (player, minute, half) |
 | `schedule.json` | Season schedule |
 | `roster.json` | Player roster + coaching staff |
 | `Logos/WaukeshaWest.png` | School paw mark — do not rename |
+| `Logos/Classic8.png` | Classic 8 conference badge (rendered as overlay on opponent logos) |
+| `Logos/RobertLandquistPhotography.png` | Photo-credit mark, shown in a black pill on each page |
 | `Logos/*.png` | Opponent logos, CamelCase filenames |
 
 ---
