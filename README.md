@@ -27,7 +27,7 @@ When you open a tool on a different device, it reads the JSON files via the GitH
 /                                ← repo root, served as GitHub Pages
 ├── index.html                   ← landing page (you start here)
 ├── GirlsJVSoccerCard.html       ← card tool
-├── GirlsJVSoccerGoals.html      ← goal tracker (mobile-first)
+├── GirlsJVSoccerGoals.html      ← goal tracker
 ├── GirlsJVSoccerSchedule.html   ← schedule tool
 ├── GirlsJVSoccerRoster.html     ← roster tool
 ├── common.js                    ← shared GitHub-sync library
@@ -130,6 +130,12 @@ Update teams.json — 2026-04-26 14:32 (Card tool)
 ```
 
 You'll see a green toast confirming each save.
+
+### On a phone
+
+All four tools now render natively at phone width. The editor stacks above the card, both full-width. A sticky navy header (paw + tool name + ← Tools) sits at the top — the same pattern Goals has used since launch, now consistent across all four. Tap **Hide editor** to collapse the editor and give the card preview the full screen; tap again to bring it back. The card preview scrolls horizontally on its own if it overflows the viewport, so a 440 px or 800 px card never breaks the page layout.
+
+Form fields are sized so iOS Safari doesn't auto-zoom on focus. Safe-area insets handle iPhone notches and the home indicator when the tools are installed as PWAs.
 
 ### Game-day workflow
 
@@ -272,10 +278,10 @@ If your change affects how data is read or written (any `common.js` change, any 
 
 ```js
 // sw.js, near the top
-const CACHE_VERSION = 'v2';   // bump to 'v3', 'v4', etc.
+const CACHE_VERSION = 'v3';   // bump to 'v4', 'v5', etc.
 ```
 
-Current version: `v2` (May 2026 — added Goals tool to the shell).
+Current version: `v3` (May 2026 — unified app-shell across Card / Schedule / Roster; previous `v2` added Goals tool to the shell). Bumping forces a clean install on first reload; without a bump, returning users still pick up the new shell on their second reload via stale-while-revalidate.
 
 ### Telling deployed builds apart
 
@@ -287,6 +293,8 @@ Each HTML carries a build-date comment immediately after the `<!DOCTYPE html>` l
 ```
 
 View source on the deployed site (or "show source" in the browser dev tools) to see which build is active. Bump the date when shipping changes — it's the cheapest way to confirm a deploy actually landed and the service worker isn't serving an old cached shell.
+
+The `2026-05-08` build introduced the unified app-shell — sticky navy header on Card / Schedule / Roster matching Goals, with a mobile-friendly stacked layout below 900 px. If you see the old in-editor "← Tools" link instead of the header, you're on a stale cached shell; hard-reload to pick up the current build.
 
 ### `common.js` — public helpers
 
@@ -444,7 +452,7 @@ The PWA manifest currently points all icon sizes at the single `WaukeshaWest.png
 |---|---|
 | `index.html` | Landing page with four tool tiles + shared GH config panel |
 | `GirlsJVSoccerCard.html` | Per-game card builder. Owns `teams.json`. Reads `goals.json`. |
-| `GirlsJVSoccerGoals.html` | Live goal tracker (mobile-first). Owns `goals.json`. Reads `roster.json` + `schedule.json`. |
+| `GirlsJVSoccerGoals.html` | Live goal tracker. Owns `goals.json`. Reads `roster.json` + `schedule.json`. |
 | `GirlsJVSoccerSchedule.html` | Season schedule. Owns `schedule.json`, reads `teams.json`. |
 | `GirlsJVSoccerRoster.html` | Roster + coaching staff. Owns `roster.json`. |
 | `common.js` | Shared GitHub-sync library used by all five pages |
