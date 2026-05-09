@@ -1212,9 +1212,14 @@ var currentGameOpp  = '';   /* display-cased opponent name */
 /* Read from schedule.json on boot; used to populate the dropdown. */
 var SCHEDULE_GAMES = [];
 
-/* Editor preferences. Half is sticky across goals (typical: set to 1H
-   at kickoff, switch to 2H once at halftime, leave alone). View mode
-   defaults to detail entry per spec. */
+/* Editor state. `lastHalf` stays sticky across goals during a session
+   (set 1H at kickoff, switch to 2H at halftime, leave alone), but is
+   NOT persisted across page loads — instead, `setCurrentGame()`
+   recomputes it from the goals already logged for the chosen game:
+   2H if any 2nd-half goal exists, 1H otherwise. So fresh games and
+   fresh page loads start at 1H; reopening a game already in 2H lands
+   on 2H without the user having to re-tap. `viewMode` is a real
+   user preference and DOES persist via savePrefs(). */
 var lastHalf  = 1;
 var viewMode  = 'detail';     /* 'detail' | 'summary' */
 var pickerMode = 'schedule';   /* 'schedule' | 'manual' */
@@ -1294,20 +1299,22 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-/* ─── Prefs (last half, view mode) ─────────────────────────── */
+/* ─── Prefs (view mode only) ───────────────────────────────────
+   Half toggle was previously persisted here too but became confusing:
+   tapping 2H mid-game would stick it as 2H for every future page load,
+   regardless of which game was open. Half is now derived from goals
+   data per-game in setCurrentGame(). */
 function loadPrefs() {
   try {
     var raw = localStorage.getItem(LS_PREFS_KEY);
     if (!raw) return;
     var p = JSON.parse(raw);
-    if (p && (p.lastHalf === 1 || p.lastHalf === 2)) lastHalf = p.lastHalf;
     if (p && (p.viewMode === 'detail' || p.viewMode === 'summary')) viewMode = p.viewMode;
   } catch(e) {}
 }
 function savePrefs() {
   try {
     localStorage.setItem(LS_PREFS_KEY, JSON.stringify({
-      lastHalf: lastHalf,
       viewMode: viewMode
     }));
   } catch(e) {}
@@ -1735,6 +1742,14 @@ function setCurrentGame(date, opp) {
      of "pre-fill so I don't have to scroll." */
   lastEnteredMinute = null;
   setEntryMinute(getDefaultEntryMinute(), true);
+  /* Default the half toggle from goals already logged for this game.
+     If any 2nd-half goal exists the user is presumably mid-2H and
+     should land on 2H; otherwise default to 1H. Fresh games and fresh
+     page loads thus start at 1H, while reopening a game already in
+     2H skips the redundant tap. */
+  var existingGoals = (currentGameKey && GOALS_BY_GAME[currentGameKey]) || [];
+  lastHalf = existingGoals.some(function(g) { return g.half === 2; }) ? 2 : 1;
+  applyHalfButtons();
   /* Show the game pill and hide the "pick a game" prompt. The pill's
      text and color state are owned by updateGameTotals (called via
      renderAll below) so all writes go through one place. */
@@ -1752,6 +1767,11 @@ function clearCurrentGame() {
   currentScheduleEntryId = null;
   lastEnteredMinute = null;
   setEntryMinute(0, false);
+  /* No game = no context for sticky half. Reset the toggle so the next
+     game-pick starts from a clean 1H state (until setCurrentGame
+     overrides based on that game's goals). */
+  lastHalf = 1;
+  applyHalfButtons();
   document.getElementById('gp-current').style.display = 'none';
   document.getElementById('gp-empty-msg').style.display = '';
   /* Clear schedule dropdown selection so re-entering the same game later
@@ -1791,7 +1811,7 @@ function setHalf(h) {
   if (h !== 1 && h !== 2) h = 1;
   lastHalf = h;
   applyHalfButtons();
-  savePrefs();
+  /* No savePrefs() here — half is now per-game-derived, not persisted. */
 }
 function applyHalfButtons() {
   document.getElementById('ht-1').classList.toggle('active', lastHalf === 1);
