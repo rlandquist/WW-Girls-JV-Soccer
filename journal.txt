@@ -1192,3 +1192,157 @@ Files touched: GirlsJVSoccerCard.html (188 → 189 KB), GirlsJVSoccerSchedule.ht
 Worth considering later: (a) if real-device testing shows the flicker is jarring, add body.exporting { overflow-x: hidden; } to suppress the brief horizontal scrollbar that may flash during capture — left out of the initial fix because adding overflow on body could affect html2canvas's clip walk; safer to verify behavior first; (b) the underlying html2canvas v1.4 clip-rectangle behavior is the actual root cause — a future upgrade to html2canvas v2 (or a switch to a different rasterizer like dom-to-image) might make the body.exporting toggle unnecessary, in which case it can be ripped out cleanly; (c) consider extracting a tiny common.js helper like WWCommon.captureCardPNG(node, options) that bakes in the body.exporting toggle, the 3× scale, and the useCORS handshake — would dedupe ~6 nearly-identical html2canvas blocks across the three tools. Not urgent; the duplication is small enough that the indirection isn't yet worth it.
 
 Process note: the bug was discoverable only on a real phone — the desktop browser viewport at the 900 px breakpoint never exposes the clip behavior because Chrome dev tools' mobile emulation doesn't perfectly mirror html2canvas's clip-walk on every responsive layout. For future mobile-responsive work touching html2canvas, recommend testing with an actual phone before declaring done.]
+
+=== Journal Entry 2026-05-09T16:30:00.000000+00:00 ===
+2026-05-09-16-30-00-mobile-polish-and-ux-pass.txt
+[Single session of mobile + UX refinements on the deployed v2 app
+(post-Goals, post-conferences). All five HTML pages touched —
+Card, Schedule, Roster, Goals, index — almost entirely CSS, with
+one Goals JS behavior change. No data-layer changes; fully
+backward-compatible with existing localStorage and goals.json
+shapes. README does not need updates; CACHE_VERSION bump in sw.js
+from 'v2' to 'v3' recommended for fast shell rollout but not
+required (stale-while-revalidate will catch up).
+
+Mobile photo-credit pill, round 1 — Card/Schedule/Roster: The pill
+was position:fixed bottom-center, which on a phone (where the
+card preview is taller than viewport) floated over the bottom of
+the preview while the user scrolled. Hooked into each file's
+existing @media (max-width: 900px) block. Roster and Schedule
+already had a .photo-credit mobile rule that shrank the pill
+(logo 36px, text 10px) but kept it fixed — extended those to
+also switch position to static, drop the translateX transform,
+add align-self:center, and use margin-bottom: max(8px,
+env(safe-area-inset-bottom)) for the iOS home indicator. Card had
+no override; added one matching the same shape. The pill now sits
+in document flow below the card preview on phones, full-fidelity
+fixed on desktop.
+
+Mobile photo-credit pill, round 2 — index and Goals: Both pages
+rendered the pill at 56px logo + 13px text at every breakpoint,
+which wrapped "© Robert Landquist Photography" to two lines on
+phones below ~360px. Added matching @media (max-width: 900px)
+shrink rules to both files, mirroring Card/Schedule/Roster (logo
+36px, text 10px, tighter padding). Single-line on phones now,
+desktop unchanged.
+
+Goals half-toggle defaulting: lastHalf was being persisted via
+the prefs blob (LS_PREFS_KEY). Once a coach tapped 2H during a
+game, every future page load reopened on 2H regardless of which
+game was selected. Reworked: loadPrefs() no longer reads lastHalf,
+savePrefs() no longer writes it, setHalf() no longer calls
+savePrefs(). lastHalf is now a session-scoped in-memory variable
+that starts at 1 and is recomputed inside setCurrentGame() from
+the chosen game's existing goals — if any goal in
+GOALS_BY_GAME[currentGameKey] has half===2 we land on 2H, else
+1H. clearCurrentGame() resets to 1. Old prefs blobs with lastHalf
+still in localStorage are benign: the field is silently ignored
+on load and dropped from the next savePrefs() write (triggered
+by viewMode toggle). Edge case noted but not fixed: if a user
+picks a game on a fresh device before refreshGoalsFromGitHub()
+finishes, the recompute uses the empty local cache and lands on
+1H even when 2H goals exist remotely. Could re-evaluate inside
+applyGoalsData() with current-game checks; left for later.
+
+Mobile double-column rendering — Schedule + Roster: Each file's
+@media (max-width: 900px) block contained a 12-line "force
+single-column on phones" override (#card-inner.double-layout
+{ width: 440px !important; } plus .rows-block.double display
+collapse). The original rationale was that 800px wide on a 375px
+phone would be unusable even with horizontal scroll. The user
+disagreed: would rather keep their saved double-column preference
+visible on mobile and accept the horizontal scroll. Removed both
+override blocks. The existing .card-container { overflow-x: auto }
+on mobile handles the scroll, and the existing body.exporting
+.card-container override during html2canvas already lifts the
+clip and the width:100% so PNG export captures the full 800px
+natural width. Verified the export path was unaffected.
+
+Goals dim-when-no-game: setSectionsDisabled() and the .disabled-
+section CSS class were already present (opacity:0.5; pointer-
+events:none) but only covered #detail-section and #summary-section,
+and were only invoked by clearCurrentGame — so the initial page
+load showed all sections at full opacity even though no game was
+picked. Three changes: (1) expanded setSectionsDisabled to also
+toggle .view-toggle and #final-result, with null guards so it can
+be called pre-DOM-ready; (2) added setSectionsDisabled(true) to
+the synchronous tail of DOMContentLoaded (after applyHalfButtons)
+so the page lands dimmed; (3) restyled .gp-empty-msg from small
+italic gray to bolder var(--ink) navy with a leading ↑ arrow
+prefix pointing back at the picker. Together these make the
+"select a game" step the obvious entry point.
+
+Tools-button size bump: The ← Tools back-link inside each
+app-header was 13px font, 7px·11px padding, 32px min-height —
+small as a tap target. Bumped to 14px / 9px·14px / 40px-min on
+all four tool pages. Also dropped the mobile media-query override
+that was making the button SMALLER on phones (12px / 6px·10px) —
+the new desktop size carries through on mobile, where 40px reads
+as a real tap target. Goals back-link kept its slightly-different
+font-weight 500 (others are 600) to preserve the existing per-page
+nuance; only the dimensional metrics were unified.
+
+Per-tool accent line under header: Goals had .app-header::after
+(3px line, var(--tool) #8a2a2a red) under its navy header; the
+other three tools didn't. Added matching ::after rules to Card,
+Schedule, Roster using each tool's tile color from index.html:
+Schedule #2a7a3a (matches index --good), Roster #c9a13a (matches
+--accent), Goals red unchanged. For Card the literal index tile
+color is navy (--ink #0d1f42) — invisible against the navy header.
+Caught this before applying; substituted #3a6090, a lighter-navy
+variant that preserves Card's navy identity while being visibly
+distinct. Flagged the substitution to the user and got explicit
+approval. Worth remembering: a "use the same color" instruction
+needs a sanity check when the source color matches the destination
+background — variable names don't catch that.
+
+Goals icon swap: The Goals tile on index had a target/dartboard
+icon (three concentric circles via the original "target / goal-
+net mark" comment) — off-theme for a goal tracker. Used the
+visualizer to render three SVG candidates inline in chat — goal
+net (upside-down U + 4 mesh lines), scoreboard (rect + two zero
+circles + colon dots), and ball + net composition — each at
+22×22 inside the actual 38×38 red-tinted tile container so the
+user could see them in deployed context. User picked the goal
+net. Stayed at viewBox 0 0 24 24, stroke-width 1.8, stroke
+currentColor — matches the other three tile icons' shape
+language.
+
+Removed Goals page bottom footer: <p class="foot">Waukesha West
+• <a href="./index.html">All Tools</a></p> was duplicating the
+prominent ← Tools back-link in the app-header at the top of the
+page. Removed it and the orphaned .foot / .foot a CSS rules.
+
+Editing methodology: Each file copied from /mnt/user-data/uploads
+to /home/claude/work, edited via str_replace, then verified with
+HTMLParser + node --check on inline scripts before copying to
+outputs. Diff-vs-upload was printed at the end of each batch so
+the user could review the surgical surface before deploying.
+Multi-turn working set kept in /home/claude/work across the
+session — the diffs in later turns therefore showed earlier-turn
+changes too (flagged this in responses each time so the user knew
+what they were getting).
+
+Files shipped (in /mnt/user-data/outputs/):
+  - GirlsJVSoccerCard.html      (~190 KB)
+  - GirlsJVSoccerSchedule.html  (~76 KB)
+  - GirlsJVSoccerRoster.html    (~82 KB)
+  - GirlsJVSoccerGoals.html     (~111 KB)
+  - index.html                  (~30 KB)
+
+Conversation-flow notes for next time:
+- When the user is choosing between visual options, render them
+  inline via the visualizer at the actual deployed size and color.
+  Way faster than describing options in prose. (Goals icon swap.)
+- Imagine the result before applying when colors are involved.
+  "Use index's --ink for Card's accent line" reads sensibly until
+  you remember Card's header IS --ink. Catch it before shipping
+  invisible CSS.
+- The user's pattern across the session was: describe a problem,
+  let me ask clarifying questions, then ship. Keeping the question
+  count to 1–2 per turn (vs full discovery interview) matched
+  their pace well.
+- README didn't need updates this session because the work was
+  pure UX polish. Worth saying so explicitly when the user asks
+  "if needed" — gives them confidence the doc isn't drifting
+  silently.]
