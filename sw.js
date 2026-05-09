@@ -22,13 +22,25 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
+ * v3 (May 2026): Mobile + UX polish pass — photo-credit pill un-fixes
+ * on phones and shrinks on index/Goals; Schedule and Roster allow
+ * double-column layout on mobile (with horizontal scroll); Goals
+ * dims its sections until a game is picked and recomputes the
+ * half-toggle from goals data per game; Tools back-link enlarged on
+ * all four tool pages; per-tool accent line under each header;
+ * Goals tile icon swapped from target to goal-net; trailing
+ * "Waukesha West • All Tools" footer removed from Goals. App-shell
+ * URL list unchanged — the bump just forces v2-cached devices to
+ * re-fetch the updated HTML/CSS/SVG instead of waiting on stale-
+ * while-revalidate.
+ *
  * v2 (May 2026): Added GirlsJVSoccerGoals.html to the shell. Bumped
  * version so devices with a v1 cache evict and re-prime the shell on
  * next load (otherwise they wouldn't see the new page until a hard
  * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v2';
+const CACHE_VERSION    = 'v3';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 
