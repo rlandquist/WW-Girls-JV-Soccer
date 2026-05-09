@@ -669,3 +669,244 @@ headerHTML helpers; the cells are still emitted, just hidden when the class
 is on. Single rowsClass variable computed once at the top of renderCardContent
 combines the `double` and `no-pos` flags as needed. File grew 1879 → 1959
 lines (+80). No other files touched.]
+
+=== Journal Entry 2026-05-04T00:00:00.000000+00:00 ===
+2026-05-04-ww-soccer-goals-tool-extraction.txt
+[RECONSTRUCTED ENTRY — written 2026-05-08 to fill a journal gap. Date
+is approximate (sometime between 2026-05-02 photo-credit session and
+2026-05-08); content is reconstructed from in-source comments
+("v2 (May 2026)" markers in GirlsJVSoccerCard.html and sw.js), the
+shipped GirlsJVSoccerGoals.html file itself, manifest.json's shortcuts
+list, and sw.js's APP_SHELL_URLS. If the original session log resurfaces
+with conflicting detail, prefer it over this reconstruction.
+
+NEW TOOL: GirlsJVSoccerGoals.html (the "Goals tool"). Per-goal tracking
+with date/opponent context — extracted out of the Card tool's
+scorers-picker UI so live game-day entry isn't gated behind opening a
+desktop-shaped editor. Owns a new file goals.json (read-write). Reads
+roster.json (player picker) and schedule.json (game dropdown). The
+Card tool is now read-only with respect to scorer data — its picker UI
+was removed and replaced with a "Goals tool" link block + a display-
+mode toggle (totals vs times).
+
+Game key shape: 'YYYY-MM-DD|opponent-lowercased' — matches the Card
+tool's old scorersByGame convention exactly, so legacy data carries
+over 1:1 during migration.
+
+Goal entry shape:
+  { id, kind: 'roster'|'custom'|'unknown',
+    playerId, customName, minute, half }
+  - minute is null when unknown (e.g. migrated from old totals-only
+    data, or live entry where the tracker missed the time)
+  - half is 1 or 2 (mandatory; no extra-time bucket in v1)
+  - 'unknown' kind is for when the tracker saw a goal but isn't sure
+    who scored — entry is still recorded so the game total stays
+    accurate, attribution can be filled in later via the edit form.
+
+Migration + cleanup (maybeMigrateFromTeams in Goals tool):
+  Step 1 — Migration (one-shot): reads scorersByGame from teams.json.
+  Each old entry was { kind, playerId, customName, goals: N } where
+  goals is a count. Expands each into N goal entries with minute=null
+  and half=1 (we don't know which half retroactively). Only runs when
+  goals.json is empty — subsequent loads see populated GOALS_BY_GAME
+  and skip expansion.
+  Step 2 — Cleanup (every load when needed): if teams.json still has a
+  non-empty scorersByGame field, save a cleaned copy back to GitHub
+  without that field. Preserves teams[], spineText, footerModeByGame,
+  halftimeModeByGame, conferences, version. Runs even when migration
+  is skipped — so device B picks up the cleaned teams.json on next
+  load. Card tool no longer writes scorersByGame as of v2, so once
+  cleaned the field stays gone.
+
+Goals-tool design — mobile-first, distinct from the desktop-shaped
+Card/Schedule/Roster:
+  - .app-header sticky at top, navy background, paw + "Goal Tracker"
+    title + "← Tools" back-link
+  - Deep-red bar (#8a2a2a) under the header is this tool's color
+    marker (parallels the colored tile strip on the index page)
+  - .container max-width 540px, 16px+ font sizes on inputs (avoids
+    iOS auto-zoom-on-focus), 44px min-height tap targets, safe-area
+    insets (env(safe-area-inset-top) and -bottom) for iOS PWA
+  - Game picker has schedule mode (dropdown of games sorted desc by
+    date) and manual mode (free date + opp inputs). Pill at the top
+    shows current selection with goal count; flips green when goals
+    are tracked
+  - Goals list grouped by half, sorted by minute asc, nulls last.
+    Row layout: [min']  [#NN NAME]  [✎][✕]
+  - Add Goal form: minute input + half toggle + scorer dropdown +
+    custom-name input (shown when "Custom name…" picked) + Unknown
+    option. After save, form resets but keeps the half (sticky) and
+    pre-fills the next minute to lastEnteredMinute.
+  - Final Result section: 5 rendered states based on schedule entry.
+    Lets the coach mark a scheduled game final right from Goals —
+    enter opp's score (WW score is auto-derived from goals tracked,
+    not editable), tap "Mark as Final". Save flow loads FRESH
+    schedule.json so concurrent edits aren't clobbered, modifies only
+    the matched entry's status/scoreUs/scoreThem fields, saves back.
+    On conflict-reload, re-applies the change against merged data.
+    Un-finalize sets status back to 'scheduled' but preserves
+    scoreThem (per design: an accidental un-finalize shouldn't erase
+    the typed score).
+  - Drift hint: when goals tracked diverge from saved scoreUs on a
+    final game, a small italic warning appears.
+
+Card tool changes (15+ surgical edits to GirlsJVSoccerCard.html):
+  - Removed the entire scorers-picker UI (renderScorersPicker, the
+    drag-to-reorder Sortable.js wiring from session 11, the per-row
+    inputs, the Clear-all button, the roster badge that lived in the
+    picker header).
+  - Replaced with .goals-link-block: navy-tinted bg, "Scorers are
+    managed in the Goals tool" copy, a deep-red "Open Goals tool ↗"
+    button (target="_blank" rel="noopener"), and a status line
+    showing "N scorers loaded" / "No scorers yet" / "Loading…".
+  - Display-mode toggle preserved (totals vs times — global per-
+    browser pref, not per-game).
+  - GOALS_BY_GAME global added; refreshGoalsFromGitHub() loads
+    goals.json on startup. setLogoOppScore/Halftime now read from
+    GOALS_BY_GAME[currentGameKey] instead of from teams.json's
+    scorersByGame.
+  - persistGameStateNow() simplified — only footerModeByGame and
+    halftimeModeByGame still get written (those are card-tool-owned
+    settings); SCORER_HISTORY no longer touched on save (left
+    initialized so legacy data survives until Goals tool migrates).
+  - Card-tool schedule dropdown added (mirrors Goals'): coaches now
+    pick a scheduled game from a dropdown to populate date+opp
+    instead of typing them manually, so the gameKey stays consistent
+    between tools without trailing-whitespace gotchas. Manual entry
+    still works.
+
+Index page (index.html): added a 4th tile for Goals with the deep-red
+accent (--tool-red: #8a2a2a). Tile order is Card / Goals / Schedule /
+Roster — Goals slots in second so it pairs with Card visually (track
+during, build after). Grid breakpoints adjusted: 1-up mobile → 2-up
+tablet (560px) → 4-up desktop (900px), up from 1-up → 2-up → 3-up.
+
+Manifest (manifest.json): added a Goals shortcut. Now 4 jump-shortcuts
+total. Description updated to "build cards, manage schedule, edit
+roster, track goals". Maskable + any icons unchanged.
+
+Service worker (sw.js): CACHE_VERSION bumped 'v1' → 'v2'. APP_SHELL_URLS
+gained './GirlsJVSoccerGoals.html'. Comment header updated to mention
+"five pages (index + four tools)" and document the v2 reason. The
+v1 → v2 bump means devices with a v1 cache evict and re-prime the shell
+on next load — without it, already-cached devices wouldn't see the
+new Goals page until a hard reload.
+
+What did NOT change in this release:
+  - common.js untouched (Goals tool uses the existing WWCommon API as-is)
+  - Schedule and Roster tools untouched
+  - teams.json schema unchanged (scorersByGame is still parsed for
+    migration, just no longer written)
+  - The photo-credit pill from the 2026-05-02 session was NOT added
+    to the Goals tool (different mobile-first layout — no editor
+    sidebar to anchor it, and a fixed-position pill would compete
+    with the bottom safe-area inset). Decision: leave Goals
+    credit-less for now, revisit if Rob wants it.
+
+Known gap left for future sessions:
+  - Card tool's Goals-tool link uses target="_blank", which inside an
+    iOS PWA opens Safari rather than another standalone window —
+    breaks the installed-app feel. Fix: drop target/rel, or detect
+    display-mode: standalone and conditionally remove. Filed as
+    backlog, not blocking.
+  - No cross-tab live updates: if Goals saves while Card is open in
+    another tab, Card doesn't see the new goal until reload. A
+    BroadcastChannel('ww-soccer-sync') ping in common.js's saveJson
+    would solve this for ~5 lines of code. Filed for next session.
+  - No documentation update accompanied this release — README still
+    described "three tools," lacked a Goals row in the file table,
+    and had no goals.json schema. (Closed in 2026-05-08 docs session.)]
+
+
+=== Journal Entry 2026-05-08T00:00:00.000000+00:00 ===
+2026-05-08-ww-soccer-docs-catchup.txt
+[Documentation-only session. No code changes. Reviewed full repo state
+against the journal and found significant doc drift — README and
+journal had not caught up with the May 2026 Goals-tool extraction or
+the 2026-05-02 conferences + photo-credit + back-link work in the way
+Rob's "reproducible from journal alone" goal requires.
+
+Inconsistencies inventoried (full review delivered to Rob in chat):
+  1. README opens with "Three social-media tools" — should be four.
+  2. README's bullet list, ASCII repo tree, file inventory table, and
+     setup walkthroughs all referenced 3 tools / 4 pages. Real state:
+     4 tools / 5 pages.
+  3. README's teams.json schema example still listed scorersByGame as
+     a card-specific field. Reality: scorersByGame is migrated OUT by
+     the Goals tool on first load and never written by the Card tool
+     anymore. teams.json schema also missing the conferences map and
+     per-team conference field added 2026-05-02.
+  4. No goals.json schema documented at all.
+  5. README's roster.json schema showed players with a single name
+     field. Real shape is firstName + lastName (legacy name string
+     still loads via normalizePlayer's "Last, First" splitter).
+  6. README's CACHE_VERSION example showed 'v1' — sw.js is at 'v2'.
+  7. README's Logos table didn't list Classic8.png or
+     RobertLandquistPhotography.png even though all four pages
+     reference the latter and the Card+Schedule render the former as
+     conference badges.
+  8. Android shortcut count described as "three" — manifest.json
+     ships four (Card, Goals, Schedule, Roster).
+  9. Journal had no entry for the Goals-tool extraction — a
+     substantial release referenced in source comments
+     ("v2 (May 2026): Scorer entry was extracted into a separate
+     tool" in Card; "v2 (May 2026): Added GirlsJVSoccerGoals.html
+     to the shell" in sw.js) but no session entry summarizing it.
+ 10. Back-link wording inconsistent: Card/Schedule/Roster use
+     "← Main"; Goals uses "← Tools". Both link to ./. Cosmetic only,
+     not fixed in this session.
+
+Files changed:
+  - README.md — full rewrite to reflect current 4-tool / 5-page
+    state. Added: Goals tool to opening list and bullet list, Goals
+    row to file inventory, goals.json + Classic8.png +
+    RobertLandquistPhotography.png to Logos table, "Who reads/writes
+    what" matrix, Game-day workflow narrative, Custom-typed
+    opponents subsection, Conference badges subsection, "Goals I
+    entered don't show up on the Card" troubleshooting entry,
+    goals.json schema block, updated teams.json schema (conferences
+    map + per-team conference field, scorersByGame removed with a
+    migration note), updated roster.json schema (firstName/lastName
+    + legacy fallback note), CACHE_VERSION example bumped to v2 with
+    a "current version: v2" callout. Repo-tree ASCII updated. Setup
+    walkthrough updated to "five pages."
+  - journal.txt — appended two entries: the reconstructed
+    Goals-tool extraction entry (date 2026-05-04, explicitly flagged
+    as reconstructed from source-comment landmarks), and this entry
+    documenting the docs-catchup session itself.
+
+Files NOT changed in this session (code/data left alone):
+  - All four tool HTMLs, common.js, sw.js, manifest.json, all JSON
+    data files, all logo files. This was a docs-only pass.
+
+Backlog flagged but deferred (Rob to prioritize):
+  - Goals-tool back-link wording ("← Tools" → "← Main") for
+    consistency with the other three tools.
+  - Goals-tool photo-credit pill — decide whether the credit
+    convention applies to the mobile-first layout, or document the
+    exception explicitly.
+  - target="_blank" on Card → Goals links breaks PWA standalone mode
+    on iOS; either drop or feature-detect.
+  - BroadcastChannel('ww-soccer-sync') in common.js for cross-tab
+    live updates.
+  - Conflict-aware saveJson — surface a "the file was changed
+    elsewhere; reload?" toast on 409, instead of silent failure or
+    silent overwrite.
+  - "Last synced" timestamp on the GH config panel pill (the code
+    already maintains GH_SYNC_TIMES_KEY; just needs UI wiring).
+  - Roster.html line-ending normalization (still mixed CRLF+LF, 121
+    bare LFs alongside ~1700 CRLFs per the 2026-05-02 entry); commit
+    a whitespace-only normalization so future diffs stay clean.
+  - Top-of-file build-date comment on each HTML (Session 10 backlog
+    item, still open).
+  - True 192/512 maskable PNG icons for the manifest (existing TODO).
+
+Process note: this is the second time documentation has lagged code
+in this project — the first was 2026-04-26 when the README was
+written in the same final session that shipped the architecture
+migration; the second was the Goals-tool release in early May 2026.
+Pattern worth flagging: any session that ships a new top-level page
+or changes a JSON schema should treat the README + journal entry as
+deliverables, not as a follow-up. Future-session checklist proposal:
+before declaring a release "shipped," re-grep the README for the old
+file count / schema field / shortcut list and update in place.]
