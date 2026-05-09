@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Build: 2026-05-08 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1941,6 +1942,16 @@ function init() {
      isn't configured (no PAT) or the request fails, WWCommon falls back
      to localStorage and this is a no-op. */
   refreshRosterFromGitHub();
+
+  /* Cross-tab live updates: react when another tab saves roster.json.
+     Roster owns this file outright and reads no other shared file, so
+     this is the only filename worth subscribing to. Saves originating
+     in this tab are filtered out by common.js. */
+  if (window.WWCommon && typeof WWCommon.onFileSaved === 'function') {
+    WWCommon.onFileSaved(function(filename) {
+      if (filename === 'roster.json') refreshRosterFromGitHub();
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);

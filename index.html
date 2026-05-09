@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Build: 2026-05-08 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -313,6 +314,68 @@ body::before {
 
 .about p:last-child { margin-bottom: 0; }
 
+/* ─── Backup / restore strip ─────────────────────────────────────
+   Uses the same card-shape as .about; gets a deep-navy primary
+   button for export and a ghost button for import. The hidden file
+   input is triggered programmatically from the import button so we
+   keep the visible UI clean. */
+.backup {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 2px rgba(13, 31, 66, 0.04);
+}
+.backup h2 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.backup p {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.55;
+}
+.backup-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.backup-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--line-2);
+  background: #fff;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  min-height: 38px;
+}
+.backup-btn:hover { background: #f5f7fa; }
+.backup-btn.primary {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+.backup-btn.primary:hover { background: var(--ink-2); }
+.backup-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.backup-status {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 10px;
+  min-height: 16px;
+  font-style: italic;
+}
+
 .foot {
   text-align: center;
   font-family: 'Oswald', sans-serif;
@@ -517,6 +580,36 @@ body::before {
     </p>
   </section>
 
+  <!-- ─── Backup / restore strip ──────────────────────────────────
+       Bundles all four JSONs (teams, goals, schedule, roster) into a
+       single download for end-of-season archiving and disaster
+       recovery. Restore re-loads from a backup file with explicit
+       per-file confirmation so a user can recover one without
+       overwriting the others. Both operations go through the
+       running tools' save path (via WWCommon.saveJson) so the SHA
+       cache, sync-time bookkeeping, and conflict detection all do
+       the right thing. -->
+  <section class="backup" aria-label="Season backup">
+    <h2>Backup</h2>
+    <p>
+      Download a single file containing every tool's data, or
+      restore from a previous backup. Use this at the end of the
+      season for archiving, before any large changes, or to seed
+      a new device.
+    </p>
+    <div class="backup-actions">
+      <button type="button" class="backup-btn primary" id="export-btn">
+        ⬇ Export season backup
+      </button>
+      <button type="button" class="backup-btn" id="import-btn">
+        ⬆ Restore from backup&hellip;
+      </button>
+      <input type="file" id="import-file"
+             accept=".json,application/json" hidden>
+    </div>
+    <div class="backup-status" id="backup-status"></div>
+  </section>
+
   <!-- ─── About strip ─────────────────────────────────────────── -->
   <section class="about">
     <h2>How this works</h2>
@@ -558,6 +651,216 @@ document.addEventListener('DOMContentLoaded', function() {
     if (mount) WWCommon.renderGitHubConfigPanel(mount);
   }
 });
+</script>
+
+<!-- ─── Backup / restore wiring ─────────────────────────────── -->
+<!-- Export bundles teams.json + goals.json + schedule.json +
+     roster.json into one file the user can download. Restore reads
+     such a file back, confirms per-file before overwriting, and
+     pushes through WWCommon.saveJson so the SHA cache, sync-time
+     bookkeeping, and conflict detection all stay coherent.
+
+     The four LS_*_KEY values mirror what each tool uses internally
+     (kept inline here rather than imported because each tool's HTML
+     keeps them as locals — duplicating four short strings is cheaper
+     than refactoring the API surface). -->
+<script>
+(function() {
+  'use strict';
+
+  var FILES = [
+    { filename: 'teams.json',    lsKey: 'ww-soccer-opponents-v1', label: 'Teams + conferences' },
+    { filename: 'goals.json',    lsKey: 'ww-soccer-goals-v1',     label: 'Goals tracked' },
+    { filename: 'schedule.json', lsKey: 'ww-soccer-schedule-v1',  label: 'Schedule' },
+    { filename: 'roster.json',   lsKey: 'ww-soccer-roster-v1',    label: 'Roster + coaches' }
+  ];
+  var BACKUP_VERSION = 1;
+
+  function setStatus(msg, kind) {
+    var el = document.getElementById('backup-status');
+    if (!el) return;
+    el.textContent = msg || '';
+    el.style.color = (kind === 'error') ? '#a33' :
+                     (kind === 'ok')    ? '#2a7a3a' :
+                                          '';
+  }
+
+  function disableActions(disabled) {
+    var ex = document.getElementById('export-btn');
+    var im = document.getElementById('import-btn');
+    if (ex) ex.disabled = disabled;
+    if (im) im.disabled = disabled;
+  }
+
+  /* ─── Export ──────────────────────────────────────────────────
+     Pulls each file via WWCommon.loadJson — same code path the
+     tools use, so the user always gets the freshest data the
+     browser knows about (GitHub if reachable, localStorage
+     fallback otherwise). Bundles into a single envelope JSON,
+     triggers a download. */
+  function exportBackup() {
+    if (!window.WWCommon) {
+      setStatus('common.js not loaded — backup unavailable', 'error');
+      return;
+    }
+    disableActions(true);
+    setStatus('Gathering files…');
+    var envelope = {
+      backupVersion: BACKUP_VERSION,
+      exportedAt:    new Date().toISOString(),
+      source:        'WW-Girls-JV-Soccer landing page',
+      files:         {}
+    };
+    var loads = FILES.map(function(spec) {
+      return WWCommon.loadJson(spec.filename, spec.lsKey)
+        .then(function(result) {
+          envelope.files[spec.filename] = (result && result.data) ? result.data : null;
+        })
+        .catch(function() {
+          envelope.files[spec.filename] = null;
+        });
+    });
+    Promise.all(loads).then(function() {
+      var present = Object.keys(envelope.files).filter(function(k) {
+        return envelope.files[k] != null;
+      });
+      if (present.length === 0) {
+        setStatus('Nothing to export — no data found in any file', 'error');
+        disableActions(false);
+        return;
+      }
+      var blob = new Blob([JSON.stringify(envelope, null, 2)], { type: 'application/json' });
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement('a');
+      var date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = 'ww-soccer-backup-' + date + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+      setStatus('Exported ' + present.length + ' file' +
+                (present.length === 1 ? '' : 's') +
+                ' (' + present.join(', ') + ')', 'ok');
+      disableActions(false);
+    });
+  }
+
+  /* ─── Import ──────────────────────────────────────────────────
+     Reads the user-selected file, validates the envelope, then
+     prompts per non-empty file before overwriting. Each accepted
+     file is pushed through WWCommon.saveJson so the GitHub commit,
+     SHA cache update, sync-time, and broadcast all happen exactly
+     as if the owning tool had saved it.
+
+     Conflict handling: saveJson surfaces the standard conflict
+     dialog if the remote moved ahead — the user picks Keep mine
+     (force-write the backup), Load theirs (skip this file), or
+     Cancel. */
+  function importBackup() {
+    var input = document.getElementById('import-file');
+    if (input) input.click();
+  }
+
+  function onImportFileChosen(file) {
+    if (!file) return;
+    if (!window.WWCommon) {
+      setStatus('common.js not loaded — restore unavailable', 'error');
+      return;
+    }
+    var reader = new FileReader();
+    reader.onerror = function() { setStatus('Could not read file', 'error'); };
+    reader.onload = function() {
+      var envelope;
+      try { envelope = JSON.parse(reader.result); }
+      catch (e) { setStatus('Not a valid backup file (JSON parse failed)', 'error'); return; }
+      if (!envelope || typeof envelope !== 'object' || !envelope.files) {
+        setStatus('Not a valid backup file (missing files block)', 'error');
+        return;
+      }
+      var available = FILES.filter(function(spec) {
+        return envelope.files[spec.filename] != null;
+      });
+      if (!available.length) {
+        setStatus('Backup contained no recognized files', 'error');
+        return;
+      }
+      var summary = available.map(function(s) { return '• ' + s.label; }).join('\n');
+      var when = envelope.exportedAt ? ('\n\nBackup exported: ' + envelope.exportedAt) : '';
+      var go = confirm(
+        'Restore from backup?\n\n' +
+        'You\'ll be asked separately for each file before it overwrites.\n\n' +
+        'Files in this backup:\n' + summary + when
+      );
+      if (!go) { setStatus('Restore cancelled', ''); return; }
+      runImport(available, envelope);
+    };
+    reader.readAsText(file);
+  }
+
+  function runImport(available, envelope) {
+    disableActions(true);
+    setStatus('Restoring…');
+    /* Sequential save to avoid hammering GitHub with four concurrent
+       PUTs (which can self-induce 409s). */
+    var idx = 0;
+    var restored = [], skipped = [], failed = [];
+    function next() {
+      if (idx >= available.length) {
+        var msg = 'Restored ' + restored.length + '/' + available.length + ' file' +
+                  (available.length === 1 ? '' : 's') + '.';
+        if (skipped.length) msg += ' Skipped: ' + skipped.join(', ') + '.';
+        if (failed.length)  msg += ' Failed: '  + failed.join(', ')  + '.';
+        setStatus(msg, failed.length ? 'error' : 'ok');
+        disableActions(false);
+        return;
+      }
+      var spec = available[idx++];
+      var data = envelope.files[spec.filename];
+      var ok = confirm(
+        'Restore ' + spec.label + ' (' + spec.filename + ')?\n\n' +
+        'This will overwrite your current ' + spec.filename + ' both ' +
+        'locally and on GitHub.'
+      );
+      if (!ok) { skipped.push(spec.filename); next(); return; }
+      WWCommon.saveJson(spec.filename, spec.lsKey, data, 'Backup restore')
+        .then(function(result) {
+          var ok = result && (result.action === 'saved' ||
+                              result.action === 'saved-local-only' ||
+                              result.action === 'conflict-forced');
+          if (ok) restored.push(spec.filename);
+          else if (result && result.action === 'cancelled') skipped.push(spec.filename);
+          else if (result && result.action === 'conflict-reloaded') skipped.push(spec.filename);
+          else failed.push(spec.filename);
+          next();
+        })
+        .catch(function() {
+          failed.push(spec.filename);
+          next();
+        });
+    }
+    next();
+  }
+
+  /* Wire buttons + file input on DOM ready. */
+  function init() {
+    var ex = document.getElementById('export-btn');
+    var im = document.getElementById('import-btn');
+    var fi = document.getElementById('import-file');
+    if (ex) ex.addEventListener('click', exportBackup);
+    if (im) im.addEventListener('click', importBackup);
+    if (fi) fi.addEventListener('change', function() {
+      var f = fi.files && fi.files[0];
+      onImportFileChosen(f);
+      fi.value = ''; /* allow re-selecting the same file */
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 </script>
 
 <!-- ─── Service worker registration ──────────────────────────── -->

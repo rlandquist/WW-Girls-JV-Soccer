@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Build: 2026-05-08 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1276,6 +1277,21 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(refreshRosterFromGitHub)
     .then(refreshGoalsFromGitHub)
     .then(maybeMigrateFromTeams);
+
+  /* 6. Cross-tab live updates: react when Card/Schedule/Roster save
+        in another tab. The Goals tool reads roster (player picker) +
+        schedule (game dropdown) + teams (only via the migration check)
+        and owns goals.json itself. Saves originating in this tab are
+        filtered out by common.js, so this never double-fetches our
+        own commits. */
+  if (window.WWCommon && typeof WWCommon.onFileSaved === 'function') {
+    WWCommon.onFileSaved(function(filename) {
+      if (filename === 'roster.json')        refreshRosterFromGitHub();
+      else if (filename === 'schedule.json') refreshScheduleFromGitHub();
+      else if (filename === 'goals.json')    refreshGoalsFromGitHub();
+      /* teams.json: only relevant for one-shot migration; no live action */
+    });
+  }
 });
 
 /* ─── Prefs (last half, view mode) ─────────────────────────── */
@@ -1302,8 +1318,15 @@ function newGoalId() {
   return 'go_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
-/* ─── Build / parse game key ───────────────────────────────── */
+/* ─── Build / parse game key ─────────────────────────────────
+   Delegated to WWCommon.buildGameKey so the Card and Goals tools
+   stay byte-identical without either tool having to know about
+   the other's normalization rules. Falls back to inline logic if
+   common.js failed to load. */
 function buildKey(date, opp) {
+  if (window.WWCommon && typeof WWCommon.buildGameKey === 'function') {
+    return WWCommon.buildGameKey(date, opp);
+  }
   if (!date || !opp) return null;
   var d = String(date).trim();
   var o = String(opp).trim().toLowerCase();

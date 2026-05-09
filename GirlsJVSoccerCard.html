@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Build: 2026-05-08 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -675,6 +676,11 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
         <div style="font-size:12px;color:#555;padding-top:7px;">Opponent Score</div>
         <input type="number" id="opp-score" value="0" min="0" oninput="update()">
       </div>
+      <!-- Drift hint: shows when the WW score doesn't match the goal count
+           tracked in the Goals tool for this game. Lets the coach catch a
+           mismatch before the post-game card ships. Empty (and hidden) when
+           values agree, or when no game key / no goals tracked yet. -->
+      <div id="ww-score-drift-hint" style="display:none;font-size:11px;font-style:italic;color:#b35a00;margin-top:5px;line-height:1.3;"></div>
     </div>
 
     <hr class="divider">
@@ -717,7 +723,7 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
             Scorers are managed in the <strong>Goals tool</strong>. Set the
             same date and opponent there to enter goals for this game.
           </p>
-          <a href="./GirlsJVSoccerGoals.html" class="goals-link-btn" target="_blank" rel="noopener">Open Goals tool ↗</a>
+          <a href="./GirlsJVSoccerGoals.html" class="goals-link-btn">Open Goals tool ↗</a>
           <div class="goals-link-status" id="goals-link-status-final">Loading…</div>
         </div>
         <div class="section-label" style="margin-top:8px">Display on card</div>
@@ -816,7 +822,7 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
             Scorers are managed in the <strong>Goals tool</strong>. The
             same scorers shown on the Final card render here too.
           </p>
-          <a href="./GirlsJVSoccerGoals.html" class="goals-link-btn" target="_blank" rel="noopener">Open Goals tool ↗</a>
+          <a href="./GirlsJVSoccerGoals.html" class="goals-link-btn">Open Goals tool ↗</a>
           <div class="goals-link-status" id="goals-link-status-halftime">Loading…</div>
         </div>
         <div class="hint" style="margin-top:5px;">Display style is set in the Final card&rsquo;s Goal Scorers tab and applies here too.</div>
@@ -2545,11 +2551,18 @@ var currentGameKey = null;
 var persistTimer = null;
 
 /* Build a key from current date + opp inputs. Returns null if either is
-   missing or empty — that's the signal to skip persistence entirely. */
+   missing or empty — that's the signal to skip persistence entirely.
+   The actual normalization (trim + lowercase opp) lives in
+   WWCommon.buildGameKey so Card and Goals stay byte-identical without
+   either tool having to know about the other. */
 function buildScorerKey() {
   var dateEl = document.getElementById('game-date');
   var oppEl  = document.getElementById('opp-name');
   if (!dateEl || !oppEl) return null;
+  if (window.WWCommon && typeof WWCommon.buildGameKey === 'function') {
+    return WWCommon.buildGameKey(dateEl.value, oppEl.value);
+  }
+  /* Fallback if common.js failed to load — same logic, inlined. */
   var date = (dateEl.value || '').trim();
   var opp  = (oppEl.value  || '').trim().toLowerCase();
   if (!date || !opp) return null;
@@ -3314,6 +3327,31 @@ function update() {
   updateScore();
   updateHalftime();
   updatePreview();
+  updateDriftHint();
+}
+
+/* Drift hint: surface a mismatch between the WW score input on the card
+   and the number of goals tracked in the Goals tool for the same game.
+   Hidden when no game key (date or opp empty), no goals tracked, or
+   values agree. Shown in italic warning-amber when they diverge — the
+   coach can either fix the score or open Goals to add/remove an entry.
+   Cheap to recompute on every keystroke (small dictionary lookup +
+   array length); no DOM thrash when state hasn't changed because we
+   set textContent + display unconditionally. */
+function updateDriftHint() {
+  var hint = document.getElementById('ww-score-drift-hint');
+  if (!hint) return;
+  var key = currentGameKey;
+  var wwInput = document.getElementById('ww-score');
+  if (!key || !wwInput) { hint.style.display = 'none'; return; }
+  var goals = (GOALS_BY_GAME && GOALS_BY_GAME[key]) || [];
+  if (!goals.length) { hint.style.display = 'none'; return; }
+  var scored = parseInt(wwInput.value, 10);
+  if (isNaN(scored)) scored = 0;
+  if (scored === goals.length) { hint.style.display = 'none'; return; }
+  hint.textContent = 'Goals tool has ' + goals.length + ', WW score is ' +
+                     scored + ' — check.';
+  hint.style.display = '';
 }
 
 function updateScore() {
@@ -3607,6 +3645,25 @@ refreshTeamsFromGitHub();
 refreshRosterFromGitHub();
 refreshGoalsFromGitHub();
 refreshScheduleFromGitHub();
+
+/* ══════════════════════════════════════════════════════════════
+   CROSS-TAB SYNC — react to saves from other tabs/devices
+   ══════════════════════════════════════════════════════════════
+   When the Goals tool, Schedule tool, or Roster tool saves in
+   another tab on the same browser, common.js's BroadcastChannel
+   forwards a {type:'file-saved', filename} message. We re-fetch
+   the affected file so the card re-renders with the latest data
+   without the user having to reload. Saves originating in THIS
+   tab are filtered out by common.js (TAB_ID match), so this
+   doesn't double-fetch our own work. */
+if (window.WWCommon && typeof WWCommon.onFileSaved === 'function') {
+  WWCommon.onFileSaved(function (filename) {
+    if (filename === 'goals.json')        refreshGoalsFromGitHub();
+    else if (filename === 'teams.json')   refreshTeamsFromGitHub();
+    else if (filename === 'roster.json')  refreshRosterFromGitHub();
+    else if (filename === 'schedule.json') refreshScheduleFromGitHub();
+  });
+}
 
 
 /* ══════════════════════════════════════════════════════════════

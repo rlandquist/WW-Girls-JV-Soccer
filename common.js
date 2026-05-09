@@ -21,6 +21,10 @@
   var GH_CONFIG_KEY     = 'gh-config-v1';        // { owner, repo, branch, pat }
   var GH_SHA_CACHE_KEY  = 'gh-sha-cache-v1';     // { "teams.json": "sha", ... }
   var GH_SYNC_TIMES_KEY = 'gh-sync-times-v1';    // { "teams.json": 1234567890, ... }
+  var GH_TOKEN_AGE_KEY  = 'gh-token-saved-at-v1';// timestamp ms when current token was saved
+  var TOKEN_WARN_DAYS   = 340;                   // warn when token is this old (default PAT expiry is 365d)
+  var TOKEN_WARN_SESSION_KEY = 'gh-token-warn-shown-v1'; // sessionStorage flag — warn once per tab
+  var BROADCAST_CHANNEL_NAME = 'ww-soccer-sync'; // cross-tab notifications
   var DEFAULT_OWNER  = 'rlandquist';
   var DEFAULT_REPO   = 'WW-Girls-JV-Soccer';
   var DEFAULT_BRANCH = 'main';
@@ -30,6 +34,52 @@
      for the same file serialize. Prevents self-induced SHA conflicts
      when a tool calls saveJson() twice in rapid succession. */
   var saveQueues = {};
+
+  /* Per-page-load tab id — used so a tab doesn't react to its own broadcast
+     pings. Random + millis means even the same browser running multiple
+     instances of the same tool stays disambiguated. */
+  var TAB_ID = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+  /* Cross-tab notification channel. Some old Safaris don't ship
+     BroadcastChannel — degrade silently in that case (no cross-tab live
+     update, but everything else still works). */
+  var bc = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel(BROADCAST_CHANNEL_NAME) : null;
+  var fileSavedListeners = [];
+  if (bc) {
+    bc.onmessage = function (event) {
+      var data = event && event.data;
+      if (!data || data.type !== 'file-saved') return;
+      if (data.source === TAB_ID) return; // don't react to our own ping
+      fileSavedListeners.forEach(function (cb) {
+        try { cb(data.filename, data); } catch (e) { /* swallow */ }
+      });
+    };
+  }
+
+  function broadcastFileSaved(filename) {
+    if (!bc) return;
+    try {
+      bc.postMessage({
+        type: 'file-saved',
+        filename: filename,
+        source: TAB_ID,
+        at: Date.now()
+      });
+    } catch (e) { /* swallow */ }
+  }
+
+  /* Public registration helper — tools call WWCommon.onFileSaved(cb) to be
+     notified when ANY other tab saves a file. The callback receives
+     (filename, payload). Tools typically dispatch on filename to call the
+     right refreshXxxFromGitHub() function. Returns an unsubscribe fn. */
+  function onFileSaved(cb) {
+    if (typeof cb !== 'function') return function () {};
+    fileSavedListeners.push(cb);
+    return function () {
+      var i = fileSavedListeners.indexOf(cb);
+      if (i >= 0) fileSavedListeners.splice(i, 1);
+    };
+  }
 
   /* ═══════════════════════════════════════════════════════════════════════
      CONFIG
@@ -51,12 +101,32 @@
 
   function saveGitHubConfig(config) {
     try {
+      var prev = null;
+      try { prev = JSON.parse(localStorage.getItem(GH_CONFIG_KEY) || 'null'); } catch (e) {}
+      var newPat = (config && config.pat) || '';
       localStorage.setItem(GH_CONFIG_KEY, JSON.stringify({
         owner:  (config && config.owner)  || DEFAULT_OWNER,
         repo:   (config && config.repo)   || DEFAULT_REPO,
         branch: (config && config.branch) || DEFAULT_BRANCH,
-        pat:    (config && config.pat)    || ''
+        pat:    newPat
       }));
+      /* Track when the current token was first saved on this device, so
+         we can warn the user as it approaches its likely expiration. We
+         only refresh the timestamp when the token VALUE changes — saving
+         the same token (e.g. updating owner/repo) preserves the original
+         age. Clearing the token clears the timestamp.
+         GitHub's fine-grained PAT API doesn't return an expiration date,
+         so age is the cleanest signal we have. Default expiry is 365
+         days; we warn at 340. */
+      if (!newPat) {
+        localStorage.removeItem(GH_TOKEN_AGE_KEY);
+      } else if (!prev || prev.pat !== newPat) {
+        localStorage.setItem(GH_TOKEN_AGE_KEY, String(Date.now()));
+        /* Reset the once-per-session warning flag so a freshly-pasted
+           token doesn't immediately re-show a stale-warning toast from
+           a previous token. */
+        try { sessionStorage.removeItem(TOKEN_WARN_SESSION_KEY); } catch (e) {}
+      }
     } catch (e) { /* quota / private mode — silent */ }
   }
 
@@ -65,7 +135,39 @@
       localStorage.removeItem(GH_CONFIG_KEY);
       localStorage.removeItem(GH_SHA_CACHE_KEY);
       localStorage.removeItem(GH_SYNC_TIMES_KEY);
+      localStorage.removeItem(GH_TOKEN_AGE_KEY);
     } catch (e) {}
+  }
+
+  /* Token age in days, or null if no token saved or no timestamp on
+     record (e.g. token was set before the age-tracking shipped). */
+  function getTokenAgeDays() {
+    try {
+      var raw = localStorage.getItem(GH_TOKEN_AGE_KEY);
+      if (!raw) return null;
+      var ts = parseInt(raw, 10);
+      if (isNaN(ts) || ts <= 0) return null;
+      var ms = Date.now() - ts;
+      return Math.floor(ms / 86400000);
+    } catch (e) { return null; }
+  }
+
+  /* Show a one-per-session toast if the saved token is approaching
+     its likely expiration. Called once on init. Silent if no token,
+     no timestamp, or already-shown this session. Idempotent. */
+  function maybeShowTokenAgeWarning() {
+    if (!isGitHubConfigured()) return;
+    var days = getTokenAgeDays();
+    if (days == null || days < TOKEN_WARN_DAYS) return;
+    try {
+      if (sessionStorage.getItem(TOKEN_WARN_SESSION_KEY)) return;
+      sessionStorage.setItem(TOKEN_WARN_SESSION_KEY, '1');
+    } catch (e) { /* private mode — proceed without dedup */ }
+    /* Defer the toast a beat so it doesn't race the page's own startup
+       toasts (e.g. roster-loaded confirmations). */
+    setTimeout(function () {
+      toast('GitHub token is ' + days + ' days old — consider renewing soon. PATs expire silently.', 'warn');
+    }, 1500);
   }
 
   function isGitHubConfigured() {
@@ -353,6 +455,7 @@
         setCachedSha(filename, result.sha);
         setSyncTime(filename);
         notifyConfigPanelChanged();
+        broadcastFileSaved(filename);
         return { action: 'saved' };
       })
       .catch(function (e) {
@@ -408,6 +511,7 @@
                   setCachedSha(filename, result.sha);
                   setSyncTime(filename);
                   notifyConfigPanelChanged();
+                  broadcastFileSaved(filename);
                   return { action: 'conflict-forced' };
                 })
                 .catch(function (e) {
@@ -478,7 +582,7 @@
       '<details class="gh-config-panel">' +
         '<summary class="gh-config-summary">' +
           '<span class="gh-pill" data-pill>Loading…</span>' +
-          '<span class="gh-config-summary-text">GitHub Sync</span>' +
+          '<span class="gh-config-summary-text" data-summary-text>GitHub Sync</span>' +
           '<span class="gh-config-summary-chevron">▾</span>' +
         '</summary>' +
         '<div class="gh-config-body">' +
@@ -537,6 +641,11 @@
 
     mountedPanels.push(details);
     refreshPanel(details);
+    /* First-mount-on-page hooks: start the relative-time tick, and
+       check whether the saved token is approaching its likely
+       expiration. Both are idempotent / once-per-session-guarded. */
+    startPanelTick();
+    maybeShowTokenAgeWarning();
   }
 
   function readPanelInputs(details) {
@@ -599,27 +708,112 @@
   }
 
   function refreshPanel(details) {
-    var pill = details.querySelector('[data-pill]');
-    if (!pill) return;
-    var cfg = loadGitHubConfig();
-    if (cfg && cfg.pat) {
-      pill.className = 'gh-pill gh-pill-ok';
-      pill.textContent = '● ' + cfg.owner + '/' + cfg.repo;
-    } else {
-      pill.className = 'gh-pill gh-pill-off';
-      pill.textContent = '● Not connected';
+    var pill    = details.querySelector('[data-pill]');
+    var summary = details.querySelector('[data-summary-text]');
+    var cfg     = loadGitHubConfig();
+    if (pill) {
+      if (cfg && cfg.pat) {
+        pill.className = 'gh-pill gh-pill-ok';
+        pill.textContent = '● ' + cfg.owner + '/' + cfg.repo;
+      } else {
+        pill.className = 'gh-pill gh-pill-off';
+        pill.textContent = '● Not connected';
+      }
+    }
+    /* Secondary line: "GitHub Sync · synced 2m ago" / "· not yet synced".
+       Falls back to plain "GitHub Sync" if the panel doesn't expose a
+       data-summary-text element (older mount markup). */
+    if (summary) {
+      var label = 'GitHub Sync';
+      if (cfg && cfg.pat) {
+        var ts = getMostRecentSyncTime();
+        label += ' · ' + (ts ? 'synced ' + formatRelativeTime(ts) : 'not yet synced');
+      }
+      summary.textContent = label;
     }
   }
 
   /* External code can call this after a sync event so all mounted panels
-     refresh their pills (e.g. for "last synced" timestamp displays later). */
+     refresh their pills + relative-time displays. Also wired to a slow
+     interval below so the "Nm ago" text stays roughly current without
+     burning cycles. */
   function notifyConfigPanelChanged() {
     mountedPanels.forEach(function (p) { try { refreshPanel(p); } catch (e) {} });
+  }
+
+  /* Tick every 60s to roll the "Nm ago" forward without requiring a
+     save event. Cheap — no network, just a localStorage read + DOM
+     textContent assignment per mounted panel. Started lazily on first
+     mount so pages without the panel pay nothing. */
+  var panelTickStarted = false;
+  function startPanelTick() {
+    if (panelTickStarted) return;
+    panelTickStarted = true;
+    setInterval(function () {
+      if (mountedPanels.length === 0) return;
+      try { notifyConfigPanelChanged(); } catch (e) {}
+    }, 60000);
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
      SHARED UTILITIES
      ═══════════════════════════════════════════════════════════════════════ */
+
+  /* Canonical game-key shape used by Card and Goals to address
+     per-game data without coordinating directly. Both tools normalize
+     date + opponent identically — trim whitespace, lowercase the
+     opponent — so "Arrowhead" typed in one tool and "arrowhead "
+     typed in another resolve to the same key. Returns null when
+     either field is empty after trimming.
+       buildGameKey('2026-08-22', 'Arrowhead')   -> '2026-08-22|arrowhead'
+       buildGameKey('2026-08-22', '  ')          -> null
+       buildGameKey('', 'Arrowhead')             -> null */
+  function buildGameKey(date, opp) {
+    var d = (date == null) ? '' : String(date).trim();
+    var o = (opp  == null) ? '' : String(opp).trim().toLowerCase();
+    if (!d || !o) return null;
+    return d + '|' + o;
+  }
+
+  /* Short human-readable relative time. Intentionally low-resolution —
+     "just now" / "Nm ago" / "Nh ago" / "Nd ago". Anything older than
+     30 days falls back to a calendar date. */
+  function formatRelativeTime(ms) {
+    if (!ms || typeof ms !== 'number') return '';
+    var diff = Date.now() - ms;
+    if (diff < 0) diff = 0;
+    var s = Math.floor(diff / 1000);
+    if (s < 30) return 'just now';
+    if (s < 90) return '1m ago';
+    var m = Math.floor(s / 60);
+    if (m < 60) return m + 'm ago';
+    var h = Math.floor(m / 60);
+    if (h < 24) return h + 'h ago';
+    var d = Math.floor(h / 24);
+    if (d < 30) return d + 'd ago';
+    var dt = new Date(ms);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[dt.getMonth()] + ' ' + dt.getDate();
+  }
+
+  /* Find the most-recent sync timestamp across all tracked files —
+     surfaces "the freshest thing we've talked to GitHub about" rather
+     than guessing which file the current tool cares about. */
+  function getMostRecentSyncTime() {
+    try {
+      var raw = localStorage.getItem(GH_SYNC_TIMES_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      var max = 0;
+      Object.keys(parsed).forEach(function (k) {
+        var v = parsed[k];
+        if (typeof v === 'number' && v > max) max = v;
+      });
+      return max || null;
+    } catch (e) { return null; }
+  }
+
   function escapeHtml(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -756,16 +950,23 @@
     clearGitHubConfig:       clearGitHubConfig,
     isGitHubConfigured:      isGitHubConfigured,
     testGitHubConnection:    testGitHubConnection,
+    getTokenAgeDays:         getTokenAgeDays,
     // Low-level GH client
     ghGetJson:               ghGetJson,
     ghPutJson:               ghPutJson,
     // High-level load / save
     loadJson:                loadJson,
     saveJson:                saveJson,
-    // SHA cache
+    // SHA cache + sync times
     getCachedSha:            getCachedSha,
     setCachedSha:            setCachedSha,
     getSyncTime:             getSyncTime,
+    getMostRecentSyncTime:   getMostRecentSyncTime,
+    formatRelativeTime:      formatRelativeTime,
+    // Cross-tab sync
+    onFileSaved:             onFileSaved,
+    // Game key (shared with Card / Goals)
+    buildGameKey:            buildGameKey,
     // UI
     renderGitHubConfigPanel: renderGitHubConfigPanel,
     showConflictDialog:      showConflictDialog,

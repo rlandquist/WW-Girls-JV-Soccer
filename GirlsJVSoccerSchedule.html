@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Build: 2026-05-08 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1791,6 +1792,17 @@ function init() {
      to localStorage and these become no-ops. */
   refreshTeamsFromGitHub();
   refreshScheduleFromGitHub();
+
+  /* Cross-tab live updates: react when Card or Goals saves in another
+     tab. Schedule reads teams.json (opponent picker) and owns
+     schedule.json itself. Saves originating in this tab are filtered
+     out by common.js, so this never double-fetches our own commits. */
+  if (window.WWCommon && typeof WWCommon.onFileSaved === 'function') {
+    WWCommon.onFileSaved(function(filename) {
+      if (filename === 'teams.json')         refreshTeamsFromGitHub();
+      else if (filename === 'schedule.json') refreshScheduleFromGitHub();
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
