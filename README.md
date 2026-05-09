@@ -69,7 +69,7 @@ Go to **https://github.com/settings/tokens?type=beta** and:
 
 1. Click **Generate new token** (top right).
 2. **Token name**: `WW-Girls-JV-Soccer card tools` (or anything you'll recognize later).
-3. **Expiration**: pick something. **1 year** is reasonable — set a calendar reminder for renewal.
+3. **Expiration**: pick something. **1 year** is reasonable — set a calendar reminder for renewal. The tools will also warn you in-app once a saved token is over 340 days old (a yellow toast that appears once per session).
 4. **Repository access**: select **Only select repositories**, then choose `rlandquist/WW-Girls-JV-Soccer`.
 5. **Repository permissions**: scroll down to **Contents** and set it to **Read and write**. Leave everything else at "No access".
 6. Hit **Generate token** at the bottom.
@@ -86,6 +86,8 @@ This token is *fine-grained*: it can only touch this one repo, and only modify f
 5. Tap **Save**.
 
 The token lives in your browser's `localStorage` for this site only. It's not sent anywhere except to GitHub when the tools commit changes. It does **not** sync between devices — you'll repeat this step on each phone, tablet, or laptop you want to use the tools from.
+
+Once configured, the panel summary line shows `GitHub Sync · synced 2m ago` (relative time) so you can see at a glance when the most recent successful sync happened.
 
 You only need to do this on **one** of the five pages. The landing page is easiest, but any of them works. All five share localStorage on the same origin.
 
@@ -141,6 +143,12 @@ The Card and Goals tools are designed to work as a pair on game day:
 
 The game key shape is `YYYY-MM-DD|opponent-lowercased`, shared between Card and Goals so the tools stay aligned without ever needing to talk to each other directly.
 
+If the WW score on the Card doesn't match the number of goals tracked in Goals (e.g. you typed `2` but Goals has 3 entries), the Card shows a small italic warning under the score field — `Goals tool has 3, WW score is 2 — check.` Either fix the score or open Goals to add/remove an entry.
+
+### Cross-tab live updates
+
+When you save in one tool, any other tab on the same browser viewing a different tool refreshes automatically. So if you're on a tablet with the Card tool open in one tab and you save a goal from the Goals tool in another tab, the Card refreshes its scorer list without you having to reload it. Cross-device sync still goes through GitHub on the next page load — there's no live network connection between devices.
+
 ### Conflict handling
 
 If two people edit the same file at once and the second person's save would overwrite the first, the tool detects the conflict and asks what to do:
@@ -156,6 +164,28 @@ Each tool only writes its own JSON file, so most concurrent edits don't actually
 GitHub Pages takes 1–2 minutes to rebuild after each push to `main`. Saves take effect instantly in your tool — you see updated data the moment you save. But if someone loads the *public* page (`https://rlandquist.github.io/...`) within those 1–2 minutes, they may see slightly stale data.
 
 This only affects a fresh page load. If a tool is already open on another device and you save from your device, the other device won't see your change until it's reloaded — but at that point it'll see the latest data via the API regardless of Pages rebuild status.
+
+---
+
+## Backup and restore
+
+The landing page (`index.html`) has a **Backup** section with two buttons: **Export season backup** and **Restore from backup**.
+
+### Export
+
+**Export season backup** downloads a single JSON file containing every tool's data — `teams.json`, `goals.json`, `schedule.json`, `roster.json` — bundled into one envelope with the current date in the filename (e.g. `ww-soccer-backup-2026-08-15.json`). Use it for:
+
+- End-of-season archiving — save the file somewhere outside this repo so you have a record of the season's data even if the repo is ever deleted or corrupted.
+- Before any large change — quick safety net before clearing the schedule, mass-renaming opponents, or restoring an old backup.
+- Seeding a new device — though normally syncing the GH token is enough; backup/restore is for the cases where you don't want to reach for the GitHub API.
+
+The export pulls fresh data from GitHub if the device is online, falling back to localStorage if not. So a backup taken offline still captures whatever the tool last saw.
+
+### Restore
+
+**Restore from backup** prompts for a backup JSON file, summarizes what's inside, then asks separately before overwriting each file. So you can restore *just* the roster (without touching schedule or goals), or skip a file mid-restore if you change your mind. Each accepted file goes through the normal save path — meaning if the remote has been modified since the backup was made, you'll get the standard conflict dialog (Keep mine / Load theirs / Cancel) per file.
+
+Restoring **does** overwrite the GitHub repo, not just localStorage. The backup envelope is the source of truth once you confirm.
 
 ---
 
@@ -246,6 +276,43 @@ const CACHE_VERSION = 'v2';   // bump to 'v3', 'v4', etc.
 ```
 
 Current version: `v2` (May 2026 — added Goals tool to the shell).
+
+### Telling deployed builds apart
+
+Each HTML carries a build-date comment immediately after the `<!DOCTYPE html>` line:
+
+```html
+<!DOCTYPE html>
+<!-- Build: 2026-05-08 -->
+```
+
+View source on the deployed site (or "show source" in the browser dev tools) to see which build is active. Bump the date when shipping changes — it's the cheapest way to confirm a deploy actually landed and the service worker isn't serving an old cached shell.
+
+### `common.js` — public helpers
+
+Tools import functionality from `window.WWCommon`. The most-used surface:
+
+| Helper | What it does |
+|---|---|
+| `loadJson(filename, lsKey)` | GET a JSON file from GitHub; falls back to localStorage |
+| `saveJson(filename, lsKey, content, toolName)` | PUT to GitHub; handles SHA conflicts via dialog |
+| `buildGameKey(date, opp)` | Canonical `'YYYY-MM-DD\|opp-lowercased'` keys (Card + Goals) |
+| `onFileSaved(callback)` | Subscribe to cross-tab broadcasts when ANY tab saves |
+| `formatRelativeTime(ms)` | "2m ago" / "3h ago" / "5d ago" formatting |
+| `getMostRecentSyncTime()` | Most recent successful sync across all files (ms epoch) |
+| `getTokenAgeDays()` | Days since current token was saved (for renewal warnings) |
+| `toast(msg, kind)` | `'info'` (default) / `'ok'` / `'warn'` / `'error'` |
+
+When adding a new tool, register an `onFileSaved` listener at the end of init so other tabs' saves trigger a refresh:
+
+```js
+WWCommon.onFileSaved(function(filename) {
+  if (filename === 'teams.json') refreshTeamsFromGitHub();
+  // ... other files this tool reads
+});
+```
+
+The `BroadcastChannel` ping uses a per-tab UUID so a tab never reacts to its own saves.
 
 ### JSON schema notes
 
@@ -338,6 +405,32 @@ Current version: `v2` (May 2026 — added Goals tool to the shell).
 Legacy player records with a single `"name": "Jane Smith"` field still load — `normalizePlayer()` splits "Last, First" on the comma if present, otherwise treats the whole thing as `lastName`. Saves always write the new `firstName` / `lastName` shape.
 
 Each tool's `applyXxxData()` helper is the source of truth for parsing — see `common.js`'s `loadJson()` and the tool-specific `applyTeamsPayload()` / `applyGoalsData()` / `applyScheduleData()` / `applyRosterData()` for full details.
+
+### localStorage keys
+
+All tools share the same origin (`rlandquist.github.io`), so localStorage is shared across them. Keys in use:
+
+| Key | Owner | What it stores |
+|---|---|---|
+| `gh-config-v1` | common.js | `{owner, repo, branch, pat}` — GitHub credentials |
+| `gh-sha-cache-v1` | common.js | `{filename: sha}` — for conflict detection |
+| `gh-sync-times-v1` | common.js | `{filename: ms-epoch}` — for "synced Nm ago" pill |
+| `gh-token-saved-at-v1` | common.js | ms-epoch when current token was saved (for renewal warning) |
+| `ww-soccer-opponents-v1` | Card tool | local cache of `teams.json` |
+| `ww-soccer-goals-v1` | Goals tool | local cache of `goals.json` |
+| `ww-soccer-schedule-v1` | Schedule tool | local cache of `schedule.json` |
+| `ww-soccer-roster-v1` | Roster tool | local cache of `roster.json` |
+| `ww-card-scorer-display-v1` | Card tool | per-browser preference: 'totals' vs 'times' |
+| `ww-soccer-goals-prefs-v1` | Goals tool | per-browser prefs (last half, view mode) |
+
+Clearing browser storage for the site clears everything except the data on GitHub itself — re-authenticate with the token to pull it all back.
+
+### Line endings
+
+All files use LF line endings (Unix-style), enforced project-wide as of May 2026. Card / Schedule / Roster were originally CRLF and got normalized in a dedicated whitespace-only commit so future diffs stay clean. If you're editing on Windows, configure your editor or git to use LF on save:
+
+- **VS Code**: bottom-right status bar → click `CRLF` → pick `LF`. To make it default: Settings → search "eol" → set `files.eol` to `\n`.
+- **Git**: add a `.gitattributes` file at repo root with `* text=auto eol=lf` so Git enforces LF on commit regardless of your editor.
 
 ### Optional polish
 
