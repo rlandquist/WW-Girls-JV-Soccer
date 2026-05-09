@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>WW Girls JV Soccer Roster</title>
 <link rel="icon" type="image/png" href="./Logos/WaukeshaWest.png">
 <link rel="manifest" href="./manifest.json">
@@ -19,9 +20,8 @@ body {
   background: #e6e9ef;
   font-family: Arial, sans-serif;
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
-  gap: 24px;
-  padding: 24px;
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
@@ -728,16 +728,224 @@ input[type="number"] { padding-right: 4px; }
 .toast.warn { background: rgba(180,80,30,0.95); }
 .toast.error { background: rgba(160,40,40,0.95); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* APP HEADER + MOBILE RESPONSIVENESS                               */
+/* Added 2026-05-08. Mirrors the Goals-tool pattern so all four     */
+/* PWAs share the same app-shell when installed to a home screen.   */
+/* ═══════════════════════════════════════════════════════════════ */
+:root { --app-header-h: 52px; }
+
+/* Sticky navy app-header (desktop + mobile). */
+.app-header {
+  background: #0d1f42;
+  color: #fff;
+  padding: 10px 14px;
+  /* Top safe-area inset so an iOS notch / status bar doesn't overlap
+     when installed as a PWA. */
+  padding-top: max(10px, env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  min-height: var(--app-header-h);
+}
+.app-header .back-link {
+  /* Override the in-page .back-link styles when inside the header. */
+  color: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.08);
+  border: none;
+  padding: 7px 11px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  min-height: 32px;
+}
+.app-header .back-link:hover  { background: rgba(255,255,255,0.16); border: none; }
+.app-header .back-link:active { background: rgba(255,255,255,0.22); }
+.app-header .paw {
+  width: 28px;
+  height: 36px;
+  flex-shrink: 0;
+  display: block;
+}
+.app-header h1 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+/* App body holds the existing .editor + .card-container row layout —
+   wrapping them lets <body> itself stack header-then-content. */
+.app-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 24px;
+  flex: 1;
+  width: 100%;
+}
+
+/* Editor toggle button — hidden on desktop, only renders on phones. */
+.editor-toggle { display: none; }
+
+/* ─── MOBILE (≤900 px) ─────────────────────────────────────────
+   Below 900 px the desktop layout is broken anyway (editor 340 +
+   card 440 + gap 24 + padding 48 = 852 minimum, and double-column
+   needs ~1200). Stack everything vertically. */
+@media (max-width: 900px) {
+  .app-body {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    /* iOS PWA bottom safe-area for the home indicator. */
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  /* Editor: full-width, part of normal page scroll (not its own
+     scroll container). */
+  .editor {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    flex-shrink: 1;
+  }
+  /* Collapsed: hidden entirely; the toggle button stays visible. */
+  .editor.collapsed { display: none; }
+
+  /* The toggle that hides/shows the editor on phones. */
+  .editor-toggle {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 16px;
+    background: #fff;
+    color: #0d1f42;
+    border: 1px solid #d0dcec;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .editor-toggle:active { background: #f0f4fa; }
+  .editor-toggle .chev {
+    font-size: 11px;
+    line-height: 1;
+    transform: translateY(1px);
+  }
+
+  /* Card preview: scroll horizontally on its own when 440 / 800 px
+     overflows the viewport. The card's real width is preserved so
+     html2canvas exports at full resolution. */
+  .card-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Re-anchor inside the column flow — original justify-content was
+       designed for the card to sit centered in remaining horizontal
+       space inside a row layout. In column layout it's redundant; we
+       want the card flush-left so horizontal scrolling feels right. */
+    justify-content: flex-start;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+  .card-container > * { flex-shrink: 0; }
+
+  /* Force single-column mode on phones — 800 px double layout is
+     unusable on a 375 px screen, even with horizontal scroll. The
+     user's saved preference is preserved; it just renders single
+     here and reverts to double when they're back on desktop. */
+  #card-inner.double-layout { width: 440px !important; }
+  .rows-block.double {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+    padding: 0 14px !important;
+  }
+  .rows-block.double .rows-col:first-child { padding-right: 0 !important; }
+  .rows-block.double .rows-col + .rows-col { padding-left: 0 !important; border-left: none !important; }
+
+  /* Bigger touch targets for the editor's form controls. 16 px font
+     prevents iOS auto-zoom-on-focus. */
+  .editor input[type="text"],
+  .editor input[type="number"],
+  .editor input[type="date"],
+  .editor input[type="time"],
+  .editor select,
+  .editor textarea {
+    font-size: 16px;
+    padding: 10px 11px;
+    min-height: 44px;
+  }
+  .editor button {
+    min-height: 40px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Header tightens slightly on small phones. */
+  .app-header { padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
+  .app-header .paw { width: 24px; height: 30px; }
+  .app-header h1 { font-size: 15px; }
+  .app-header .back-link { padding: 6px 10px; font-size: 12px; }
+
+  /* Photo credit shrinks on phones so it doesn't dominate the screen. */
+  .photo-credit {
+    bottom: max(10px, env(safe-area-inset-bottom));
+    padding: 6px 12px 6px 6px;
+  }
+  .photo-credit .rlp-logo { height: 36px; }
+  .photo-credit .rlp-text { font-size: 10px; }
+}
 </style>
 </head>
 <body>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- APP HEADER — sticky navy bar, mirrors the Goals tool             -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<header class="app-header">
+  <a href="./" class="back-link" title="Back to tools"><span aria-hidden="true">←</span> Tools</a>
+  <img src="./Logos/WaukeshaWest.png" alt="WW" class="paw">
+  <h1>Team Roster</h1>
+</header>
+
+<div class="app-body">
+
+<!-- Editor toggle (mobile only) — collapses the editor so the card
+     gets the full screen. Default = open. -->
+<button class="editor-toggle" type="button" onclick="toggleEditor(this)" aria-controls="editor-panel" aria-expanded="true">
+  <span class="chev">▾</span> <span class="editor-toggle-text">Hide editor</span>
+</button>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- EDITOR                                                           -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
-<div class="editor">
-
-  <a class="back-link" href="./" title="Back to tools"><span class="arrow">←</span> Tools</a>
+<div class="editor" id="editor-panel">
 
   <div id="gh-config-mount"></div>
 
@@ -865,6 +1073,8 @@ input[type="number"] { padding-right: 4px; }
     <div id="card-frame"></div>
   </div>
 </div>
+
+</div><!-- /.app-body -->
 
 <!-- ── PHOTO CREDIT (fixed bottom-center of viewport) ── -->
 <div class="photo-credit">
@@ -1963,6 +2173,21 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('./sw.js').catch(function() { /* PWA features just don't activate */ });
   });
+}
+</script>
+
+<!-- Mobile: editor collapse toggle. Defined globally so the inline
+     onclick on .editor-toggle has access. Only visible at ≤900 px. -->
+<script>
+function toggleEditor(btn) {
+  var p = document.getElementById('editor-panel');
+  if (!p) return;
+  var collapsed = p.classList.toggle('collapsed');
+  btn.setAttribute('aria-expanded', String(!collapsed));
+  var t = btn.querySelector('.editor-toggle-text');
+  if (t) t.textContent = collapsed ? 'Show editor' : 'Hide editor';
+  var c = btn.querySelector('.chev');
+  if (c) c.textContent = collapsed ? '▸' : '▾';
 }
 </script>
 
