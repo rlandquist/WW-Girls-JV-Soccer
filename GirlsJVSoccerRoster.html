@@ -653,6 +653,21 @@ input[type="number"] { padding-right: 4px; }
   border-left: 1px solid rgba(255,255,255,0.18);
 }
 
+/* ─── Position column hidden ────────────────────────────────────
+   When SHOW_POSITIONS is false, drop the Position column from both
+   header and rows. Grid template loses the 56px Position track so the
+   remaining columns realign. Applied as a class on .rows-block so it
+   works for both single- and double-column list layouts — descendant
+   selectors reach into .rows-col children in double mode. */
+.rows-block.no-pos .prow,
+.rows-block.no-pos .phead {
+  grid-template-columns: 40px 18px 1fr 40px;
+}
+.rows-block.no-pos .ppos-card,
+.rows-block.no-pos .phead-pos {
+  display: none;
+}
+
 /* Footer — sits inside card-main at the bottom of the card */
 .card-foot {
   background-color: #c7d2fe;
@@ -764,6 +779,18 @@ input[type="number"] { padding-right: 4px; }
       <button class="toggle-btn" data-layout="double" onclick="setLayout('double')">Double column</button>
     </div>
     <div class="hint">Double puts the first half of the roster on the left and the rest on the right.</div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Position column — show or hide on the card -->
+  <div class="field-group">
+    <div class="section-label">Position column</div>
+    <div class="toggle-row" id="positions-toggle">
+      <button class="toggle-btn" data-show-positions="show" onclick="setShowPositions(true)">Show</button>
+      <button class="toggle-btn" data-show-positions="hide" onclick="setShowPositions(false)">Hide</button>
+    </div>
+    <div class="hint">Hide if you'd rather not display positions on the printed roster.</div>
   </div>
 
   <hr class="divider">
@@ -956,6 +983,7 @@ function canonicalizePositions(positions) {
 var ROSTER = loadRoster();
 var COACHES = loadCoaches();       // [{label, name}, {label, name}, {label, name}]
 var LAYOUT = loadLayout();         // 'single' | 'double' — list column arrangement
+var SHOW_POSITIONS = loadShowPositions();  // boolean — show Position column on card
 var editingId = null;
 var downloadInProgress = false;
 
@@ -1018,6 +1046,18 @@ function loadLayout() {
   } catch(e) { return 'single'; }
 }
 
+/* Whether the Position column is shown on the card. Defaults to true
+   so existing rosters keep their previous behaviour. Persisted in the
+   same payload as layout/coaches so the choice follows the data. */
+function loadShowPositions() {
+  try {
+    var raw = localStorage.getItem(LS_ROSTER_KEY);
+    if (!raw) return true;
+    var parsed = JSON.parse(raw);
+    return (parsed && parsed.showPositions === false) ? false : true;
+  } catch(e) { return true; }
+}
+
 function loadCoaches() {
   try {
     var raw = localStorage.getItem(LS_ROSTER_KEY);
@@ -1042,6 +1082,7 @@ function saveRoster() {
     localStorage.setItem(LS_ROSTER_KEY, JSON.stringify({
       version: 1,
       layout:  LAYOUT,      // 'single' | 'double'
+      showPositions: SHOW_POSITIONS,  // boolean — show Position column on card
       coaches: COACHES,     // [{label, name}, {label, name}, {label, name}]
       players: ROSTER
     }));
@@ -1214,6 +1255,14 @@ function renderCardContent() {
   // on the right — each side has its own compact header + row grid).
   var sorted = sortByNumber(visible);
 
+  // Compose the rows-block class once: 'double' picks up the two-column
+  // grid layout; 'no-pos' drops the Position track so both header and
+  // rows realign to 4 columns and the .ppos-card / .phead-pos cells
+  // are hidden via CSS — no per-cell rendering changes needed.
+  var rowsClass = 'rows-block';
+  if (LAYOUT === 'double') rowsClass += ' double';
+  if (!SHOW_POSITIONS) rowsClass += ' no-pos';
+
   if (LAYOUT === 'double') {
     // Split roster in half; ceil on the left so the left column holds
     // the extra player when total is odd.
@@ -1233,7 +1282,7 @@ function renderCardContent() {
              '</div>';
     }
 
-    html += '<div class="rows-block double">';
+    html += '<div class="' + rowsClass + '">';
     html += '<div class="rows-col">';
     html += headerHTML();
     leftPlayers.forEach(function(pl) { html += renderPlayerRow(pl); });
@@ -1244,7 +1293,7 @@ function renderCardContent() {
     html += '</div>';
     html += '</div>';
   } else {
-    html += '<div class="rows-block">';
+    html += '<div class="' + rowsClass + '">';
     // Jersey # header spans the first two grid columns (# + captain
     // badge slot) so the full label fits. Row cells below still
     // occupy those columns independently so captains render in col 2.
@@ -1283,8 +1332,22 @@ function updateLayoutToggle() {
   }
 }
 
+/* Reflect the current SHOW_POSITIONS in the editor's toggle buttons. */
+function updatePositionsToggle() {
+  var row = document.getElementById('positions-toggle');
+  if (!row) return;
+  var current = SHOW_POSITIONS ? 'show' : 'hide';
+  var btns = row.querySelectorAll('.toggle-btn');
+  for (var i = 0; i < btns.length; i++) {
+    var b = btns[i];
+    if (b.getAttribute('data-show-positions') === current) b.classList.add('active');
+    else b.classList.remove('active');
+  }
+}
+
 function update() {
   updateLayoutToggle();
+  updatePositionsToggle();
   renderCardContent();
   applyPattern();
   renderPlayersList();
@@ -1455,6 +1518,16 @@ function setLayout(l) {
   update();
 }
 
+/* Show or hide the Position column on the card. Persists with the
+   roster so the choice sticks across reloads and file syncs. */
+function setShowPositions(show) {
+  show = !!show;
+  if (SHOW_POSITIONS === show) return;
+  SHOW_POSITIONS = show;
+  saveRoster();
+  update();
+}
+
 function commitDraft() {
   if (!editingId) return;
   var p = ROSTER.find(function(x) { return x.id === editingId; });
@@ -1595,6 +1668,7 @@ function exportRoster() {
     version: 1,
     exported: new Date().toISOString(),
     layout:  LAYOUT,
+    showPositions: SHOW_POSITIONS,
     coaches: COACHES,
     players: ROSTER
   };
@@ -1637,6 +1711,7 @@ function importRoster(input) {
       }
       if (parsed && parsed.layout === 'double') LAYOUT = 'double';
       else if (parsed && parsed.layout === 'single') LAYOUT = 'single';
+      if (parsed && typeof parsed.showPositions === 'boolean') SHOW_POSITIONS = parsed.showPositions;
       hydrateCoachInputs();
       saveRoster();
       update();
@@ -1769,6 +1844,9 @@ function applyRosterData(payload) {
   if (payload.layout === 'single' || payload.layout === 'double') {
     LAYOUT = payload.layout;
   }
+  if (typeof payload.showPositions === 'boolean') {
+    SHOW_POSITIONS = payload.showPositions;
+  }
   if (Array.isArray(payload.coaches) && payload.coaches.length === 3) {
     COACHES = payload.coaches.map(function(c, i) {
       var defaults = defaultCoaches();
@@ -1784,6 +1862,7 @@ function applyRosterData(payload) {
     localStorage.setItem(LS_ROSTER_KEY, JSON.stringify({
       version: 1,
       layout:  LAYOUT,
+      showPositions: SHOW_POSITIONS,
       coaches: COACHES,
       players: ROSTER
     }));
@@ -1801,6 +1880,7 @@ function saveRosterToGitHub() {
   var payload = {
     version: 1,
     layout:  LAYOUT,
+    showPositions: SHOW_POSITIONS,
     coaches: COACHES,
     players: ROSTER
   };
