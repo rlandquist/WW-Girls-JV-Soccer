@@ -424,3 +424,225 @@ evict their v1 cache and pick up the new Goals.html. First device to
 open the Goals tool after deploy runs the migration once (expands
 legacy scorersByGame → goal rows + cleans teams.json) and toasts the
 result.]
+
+
+
+=== Journal Entry 2026-05-08T23:55:00.000000+00:00 ===
+2026-05-08-23-55-00-ww-soccer-schedule-venue-and-card-populate.txt
+[Long follow-up session on the deployed WW Girls JV Soccer tools.
+Eight requested fixes shipped across all five HTML files plus a
+follow-up bug fix (dropdown vs/at) and a placement pivot on the
+Goals tool's photo credit pill. Net result: schedule entries now
+carry venue + address; selecting a game in the Card tool's
+dropdown auto-populates Home/Away across all three card modes
+(Final, Halftime, Preview) plus kickoff time + venue + address;
+Goals + index gained the photo credit pill that Card/Schedule/
+Roster already had; back-link wording is consistent across all
+four tools.
+
+Process note up front: this is the first session that worked
+from a `git clone` of the live repo rather than user-uploaded
+files. Rob's "I just linked the github repo" preamble was the
+cue — checked /mnt/user-data/uploads (empty), then ran
+`git clone --depth 1 https://github.com/rlandquist/WW-Girls-JV-Soccer.git`
+from the container; github.com is in the network allowlist and
+the public repo cloned without auth. Worked from the cloned tree
+throughout, edited in place with str_replace, validated with
+HTMLParser + node --check, copied results to /mnt/user-data/outputs/
+at the end of each round. This is faster and more reliable than
+the upload-per-file pattern prior sessions used; the file-retrieval-
+via-create-file gotcha flagged in the May 2 journal entry doesn't
+apply when the source of truth is a real git checkout. Worth using
+as the default approach going forward whenever the repo is public.
+
+Schema decision flagged early: schedule.json's existing `location`
+field stores 'home'/'away'. Rob's request 7 was "add fields for
+the location and address" — same word, conflicting concept. Three
+options surfaced: (a) add `venue` + `address` keeping existing
+`location` as-is; (b) rename existing `location` -> `homeAway`
+then use `location` + `address` for the new fields (matches the
+user's mental model but requires a small migration); (c) other.
+Rob picked (a) in one word ("go with the venue and address option").
+All work below assumes that schema — existing `location` field
+unchanged and treated as 'home'/'away', new optional `venue`
+(place name) and `address` (street) fields added.
+
+Round 1 — surgical, low-risk:
+
+Photo credit pill on Goals + index. The May 2 journal claimed the
+credit landed on all four pages, but the live repo showed
+otherwise — Goals had no pill, and index still had the original
+single-line `<p class="foot">Waukesha West Wolverines</p>`. Either
+reverted at some point or never committed. Re-added: Goals got the
+same fixed-bottom-center markup Card/Schedule/Roster use, with
+full CSS. Index got the document-flow variant per the prior
+journal's design intent — structured `<footer class="site-footer">`
+with the tagline above the pill, both centered. The journal's
+reasoning that "index has no editor/card horizontal split, so a
+fixed-position pill would feel out of place" still holds.
+
+Back-link wording: Card / Schedule / Roster's `<- Main` (with
+title="Back to main page") changed to `<- Tools` (title="Back to
+tools") to match what the Goals tool already had. One-line edit
+per file. Roster's mixed CRLF+LF endings were preserved per the
+existing pattern.
+
+Round 2 — schedule schema + tool:
+
+schedule.json schema additively gains optional `venue` and
+`address` per game. No version bump (purely additive, missing
+fields default to ''). The existing 14 games keep working;
+fields populate as Rob fills them in via the Schedule tool. The
+on-disk schedule.json itself isn't shipped — it'll get the new
+fields on its first save through the updated tool.
+
+Schedule tool got two new full-width inputs in the edit form
+(`f-venue` + `f-address`), placed below the score/time row.
+saveEdit() reads them via getElementById and assigns to g.venue
+/ g.address; addGame() defaults both to ''. The existing
+"Location" toggle (the home/away picker) was left untouched —
+renaming the section label to "Home / Away" would help the
+semantic conflict but risks confusing the user mid-season; can
+land in a later cleanup pass.
+
+Round 3 — Card tool integration (the big one):
+
+`onCardScheduleSelect` extended substantially. Previously it
+read date+opp from the dropdown option's dataset and wrote them
+into the manual #game-date / #opp-name inputs, then fired
+opponent-logo matching + onGameContextChanged + update. Now it
+also looks up the FULL schedule entry from in-memory
+SCHEDULE_GAMES (matching by date + opp lowercase, the same key
+the dropdown options use) and populates from that record:
+
+  - Home/Away across all three card modes via the existing
+    setters (which update both state and toggle-button active
+    classes): setWW for the Final card's wwIsHome,
+    setHalftimeSide for the Halftime card's wwIsLeft (home ->
+    right slot, away -> left slot), setPreviewPrefix for the
+    Preview card's VS./AT divider. Default is home when
+    `location` is missing or anything other than 'away'.
+  - Preview kickoff time. Parses "4:30 PM" -> hhmm + AM/PM via
+    a small regex (^(\d{1,2}(?::\d{2})?)\s*(AM|PM|am|pm)?\s*$),
+    falls through to setGameAmPm + syncGameTime. Non-numeric
+    strings ("TBD") drop into hhmm whole and pass through the
+    existing _composedTime helper. Empty just clears.
+  - Preview's existing #game-location input gets the venue
+    string. New #game-address input added below it (modeled
+    after the existing Location field-group with matching
+    section-label + hint), gets the address.
+
+All populated values remain editable; the user can override any
+field after picking a game. Three calls to update() fire as a
+side effect of the setters — wasteful in theory but each one
+only re-renders the active card mode, so the cost is negligible.
+
+Preview's VS/AT button labels renamed to "Home (vs)" and "Away
+(at)" per request 5. setPreviewPrefix still takes 'VS.'/'AT' as
+values, the on-card #vs-text element still renders 'VS.' or 'AT',
+and the previewPrefix global still tracks those — only the button
+face strings changed. This makes the toggle's semantic meaning
+(this is a Home/Away selector that controls the visual prefix)
+match its label.
+
+New on-card address line: a `gametime-address` div added below
+the existing `gametime-location` line in the preview card markup.
+CSS modeled after gametime-location but smaller and subtler
+(11px vs 15px, lighter color, normal letter-spacing instead of
+the tracked-out caps treatment for location). Hide-when-blank
+like location and notes. updatePreview() reads #game-address.value
+and toggles display the same way location does.
+
+Bug fix surfaced after Round 3 deployed: the dropdown labels in
+both Card and Goals tools hardcoded ' vs ' as the date-opponent
+separator regardless of `location`. Result: every option in the
+dropdown read "Apr 28 vs Arrowhead" even for away games. Fixed
+in three places using the same convention `(g.location === 'away')
+? ' at ' : ' vs '`:
+  - Card tool's populateCardScheduleDropdown
+  - Goals tool's populateScheduleDropdown
+  - Goals tool's currently-selected game pill — looks up via
+    findScheduleEntry(currentScheduleEntryId) since the pill
+    needs the full game record (currentGameDate / currentGameOpp
+    don't carry location). Manual-mode games (no schedule entry)
+    keep ' vs ' since there's no location info to draw from.
+
+Goals credit pill placement pivot: Rob noted the fixed-bottom-
+center pill was too prominent on the Goals tool's compact mobile-
+first layout, asked for it at the bottom of the page like on the
+index. Switched the .photo-credit rule to document-flow (removed
+position:fixed/bottom/left/transform/z-index, added
+margin:24px auto 8px, width:max-content, max-width:calc(100%-16px)
+so it doesn't stretch full-width). Moved the markup inside
+.container so it's the last child after the foot link. Reduced
+.container's padding-bottom from 96px to 16px (the 96px was
+clearance for a floating pill that's no longer floating); kept
+env(safe-area-inset-bottom) handling for iOS PWA home indicator.
+Card / Schedule / Roster still use fixed-bottom-center — left
+unchanged at Rob's implicit go-ahead (he asked specifically about
+Goals); easy to flip those later for consistency if wanted.
+
+Final deliverables (sizes after all rounds + the follow-ups, all
+in /mnt/user-data/outputs/):
+  GirlsJVSoccerCard.html      ~177KB  (+5.5KB; biggest changes —
+                                       onCardScheduleSelect
+                                       extension, Address input,
+                                       gametime-address line,
+                                       VS/AT label rename, dropdown
+                                       at/vs fix)
+  GirlsJVSoccerSchedule.html   ~67KB  (+0.8KB; venue + address
+                                       inputs in edit form,
+                                       saveEdit + addGame wiring)
+  GirlsJVSoccerRoster.html     ~70KB  (~same; back-link rename
+                                       only)
+  GirlsJVSoccerGoals.html     ~108KB  (+1.7KB; credit pill add,
+                                       dropdown at/vs fix, pill
+                                       pill -> document-flow pivot)
+  index.html                   ~18KB  (+1.5KB; site-footer with
+                                       credit pill in document
+                                       flow)
+
+Validation: HTMLParser passed all five files end-of-each-round.
+Inline JS extracted and node --check'd on Card / Schedule / Goals
+each round. Line endings preserved per file (Card / Schedule:
+CRLF, Roster: mixed CRLF+LF, Goals / index: LF). git diff --stat
+on the cloned repo confirmed only the expected files were touched
+(5 files, ~210 insertions, ~11 deletions before the follow-ups).
+
+Remaining tasks for Rob:
+  - Drop the five files into the repo, commit, push.
+  - Open the Schedule tool, edit each upcoming game (Catholic
+    Memorial 5/11, Muskego 5/12, Elkhorn 5/14, etc.) and fill
+    in venue + address. Past games can be left blank — those
+    fields don't render where they aren't set.
+  - Optionally bump CACHE_VERSION in sw.js from current value
+    to the next number if force-refresh on already-installed
+    PWA devices is wanted. Without a bump, the changes pick up
+    via stale-while-revalidate on next reload — fine for non-
+    urgent rollouts.
+  - If the same document-flow treatment is wanted on Card /
+    Schedule / Roster credit pills (for consistency with Goals
+    + index), follow-up session can flip the three .photo-credit
+    rules + move the markup into the editor sidebar's flex column.
+
+Conversation-flow notes worth recording for next session:
+  - The eight-item batch was efficient. Rob laid them out
+    upfront, I planned three rounds + flagged the schema
+    question, he confirmed the schema choice in one word,
+    I executed all eight and shipped. Less back-and-forth
+    than May 2's several-iterations-on-the-photo-credit
+    pattern. When the user provides a numbered list, treat it
+    as a contract and execute against it; surface only the
+    decisions that genuinely block progress.
+  - The dropdown vs/at bug was caught by Rob testing the
+    deployed version — I'd shipped the broader populate work
+    without realizing the dropdown LABELS still read 'vs'
+    everywhere. Lesson: when adding home/away awareness to a
+    tool, audit ALL strings rendered to the user that imply
+    home/away, not just the inputs/state I was actively
+    touching. A simple `grep "' vs '\|' at '"` across the
+    affected files would have caught it pre-ship.
+  - Repo clone was a first for this project; cleaner than
+    file-by-file uploads. Default to it next time, and only
+    fall back to asking for uploads if the clone fails or
+    the repo is private.]
