@@ -920,6 +920,22 @@ input[type="number"] { padding-right: 4px; }
   }
   .photo-credit .rlp-logo { height: 36px; }
   .photo-credit .rlp-text { font-size: 10px; }
+
+  /* During PNG export, lift the overflow clip on .card-container so
+     html2canvas captures the card at its full natural width. The
+     body.exporting class is added by downloadCard() / copyToClipboard()
+     immediately before the html2canvas call and removed when it
+     resolves. Brief layout flicker during the capture is acceptable
+     since the user has just tapped Download. */
+  body.exporting .card-container {
+    overflow: visible !important;
+    width: auto !important;
+    max-width: none !important;
+    align-self: flex-start !important;
+    flex-shrink: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 }
 </style>
 </head>
@@ -1945,7 +1961,9 @@ function downloadCard() {
   btn.textContent = 'Rendering...';
 
   var node = document.getElementById('card-inner').parentNode;
+  document.body.classList.add('exporting');
   html2canvas(node, { scale:3, backgroundColor:null, useCORS:true, logging:false }).then(function(canvas) {
+    document.body.classList.remove('exporting');
     var year = (document.getElementById('hdr-year').value || 'season').replace(/[^a-z0-9]/gi, '_').toLowerCase();
     var fname = 'ww_roster_' + year + '_' + Date.now() + '.png';
     canvas.toBlob(function(blob) {
@@ -1961,6 +1979,7 @@ function downloadCard() {
       toast('Saved ' + fname);
     });
   }).catch(function(err) {
+    document.body.classList.remove('exporting');
     btn.disabled = false;
     btn.textContent = '⬇ Download PNG';
     downloadInProgress = false;
@@ -1973,7 +1992,9 @@ function copyToClipboard() {
   btn.disabled = true;
   btn.textContent = 'Rendering...';
   var node = document.getElementById('card-inner').parentNode;
+  document.body.classList.add('exporting');
   html2canvas(node, { scale:3, backgroundColor:null, useCORS:true, logging:false }).then(function(canvas) {
+    document.body.classList.remove('exporting');
     canvas.toBlob(function(blob) {
       if (!navigator.clipboard || !window.ClipboardItem) {
         btn.disabled = false;
@@ -1997,6 +2018,7 @@ function copyToClipboard() {
       });
     });
   }).catch(function(err) {
+    document.body.classList.remove('exporting');
     btn.disabled = false;
     btn.textContent = '⎘ Copy to clipboard';
     toast('Render failed: ' + err.message, 'error');

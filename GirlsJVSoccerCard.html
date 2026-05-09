@@ -725,6 +725,22 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
   .app-header .paw { width: 24px; height: 30px; }
   .app-header h1 { font-size: 15px; }
   .app-header .back-link { padding: 6px 10px; font-size: 12px; }
+
+  /* During PNG export, lift the overflow clip on .card-container so
+     html2canvas captures the card at its full natural width. The
+     body.exporting class is added by download() / copyToClipboard()
+     immediately before the html2canvas call and removed when it
+     resolves. Brief layout flicker during the capture is acceptable
+     since the user has just tapped Download. */
+  body.exporting .card-container {
+    overflow: visible !important;
+    width: auto !important;
+    max-width: none !important;
+    align-self: flex-start !important;
+    flex-shrink: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 }
 </style>
 </head>
@@ -3929,9 +3945,14 @@ function download() {
 
   setTimeout(function() {
     /* html2canvas captures the currently visible card; use the wrapper
-       (parent of the -inner element) so the decorative frame is included. */
+       (parent of the -inner element) so the decorative frame is included.
+       Mobile-only: toggle body.exporting so the .card-container overflow
+       clip doesn't truncate the captured PNG. No-op on desktop where the
+       clip isn't applied in the first place. */
     var captureEl = activeCardEl().parentNode;
+    document.body.classList.add('exporting');
     html2canvas(captureEl, {scale:3, useCORS:true, backgroundColor:null}).then(function(canvas) {
+      document.body.classList.remove('exporting');
       var a = document.createElement('a');
       a.download = downloadFilename();
       a.href = canvas.toDataURL('image/png');
@@ -3939,6 +3960,7 @@ function download() {
       restorePatternCanvas(patCanvas, origW, origH);
       restoreBtn();
     }).catch(function(err) {
+      document.body.classList.remove('exporting');
       restorePatternCanvas(patCanvas, origW, origH);
       restoreBtn();
       toast('Could not generate image: ' + (err && err.message ? err.message : err), 'error');
@@ -3978,7 +4000,9 @@ function copyToClipboard() {
 
   setTimeout(function() {
     var captureEl = activeCardEl().parentNode;
+    document.body.classList.add('exporting');
     html2canvas(captureEl, {scale:3, useCORS:true, backgroundColor:null}).then(function(canvas) {
+      document.body.classList.remove('exporting');
       restorePatternCanvas(patCanvas, origW, origH);
       canvas.toBlob(function(blob) {
         var item = new ClipboardItem({'image/png': blob});
@@ -3992,6 +4016,7 @@ function copyToClipboard() {
         });
       }, 'image/png');
     }).catch(function(err) {
+      document.body.classList.remove('exporting');
       restorePatternCanvas(patCanvas, origW, origH);
       restoreBtn();
       toast('Could not capture card: ' + (err && err.message ? err.message : err), 'error');
