@@ -726,6 +726,21 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
   .app-header h1 { font-size: 15px; }
   .app-header .back-link { padding: 6px 10px; font-size: 12px; }
 
+  /* Photo credit drops out of fixed positioning on phones so it sits
+     below the card preview rather than overlaying its bottom edge.
+     Also shrinks to take less screen space, and respects the iOS
+     PWA home-indicator safe area via margin-bottom. */
+  .photo-credit {
+    position: static;
+    transform: none;
+    align-self: center;
+    margin-top: 4px;
+    margin-bottom: max(8px, env(safe-area-inset-bottom));
+    padding: 6px 12px 6px 6px;
+  }
+  .photo-credit .rlp-logo { height: 36px; }
+  .photo-credit .rlp-text { font-size: 10px; }
+
   /* During PNG export, lift the overflow clip on .card-container so
      html2canvas captures the card at its full natural width. The
      body.exporting class is added by download() / copyToClipboard()
