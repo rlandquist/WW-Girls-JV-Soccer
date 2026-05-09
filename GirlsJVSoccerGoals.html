@@ -84,14 +84,14 @@ html, body {
 .app-header .back-link {
   color: rgba(255,255,255,0.85);
   text-decoration: none;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  padding: 6px 10px;
+  padding: 9px 14px;
   border-radius: 6px;
   background: rgba(255,255,255,0.08);
   flex-shrink: 0;
   /* iOS tap target */
-  min-height: 32px;
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
 }
@@ -241,11 +241,16 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
 }
 
 .gp-empty-msg {
-  color: var(--text-3);
-  font-size: 13px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
   text-align: center;
-  padding: 6px 0 2px;
-  font-style: italic;
+  padding: 10px 12px 2px;
+  letter-spacing: 0.02em;
+}
+.gp-empty-msg::before {
+  content: '\2191 \00a0';   /* up-arrow + non-breaking space */
+  font-weight: 700;
 }
 
 .hint {
@@ -994,6 +999,16 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
+
+/* Mobile: shrink the credit pill so the text doesn't wrap on narrow
+   phones. Matches the Card/Schedule/Roster mobile sizing. */
+@media (max-width: 900px) {
+  .photo-credit {
+    padding: 6px 12px 6px 6px;
+  }
+  .photo-credit .rlp-logo { height: 36px; }
+  .photo-credit .rlp-text { font-size: 10px; }
+}
 </style>
 </head>
 <body>
@@ -1272,6 +1287,10 @@ document.addEventListener('DOMContentLoaded', function() {
   refreshRosterBadge();
   applyViewMode();
   applyHalfButtons();
+  /* No game is auto-selected on boot, so the entry / summary / final-
+     result sections start disabled. setCurrentGame() will lift the
+     dim once a game is picked or entered manually. */
+  setSectionsDisabled(true);
 
   /* 5. Background refresh from GitHub. Each pull adopts data into memory
         and re-renders if needed. Migration runs after the goals refresh
@@ -1783,8 +1802,16 @@ function clearCurrentGame() {
 }
 
 function setSectionsDisabled(disabled) {
-  document.getElementById('detail-section').classList.toggle('disabled-section', disabled);
-  document.getElementById('summary-section').classList.toggle('disabled-section', disabled);
+  /* Dim every section that requires a game context: the view toggle,
+     detail entry, summary list, and final-result form. The picker
+     itself stays live so the user can pick/enter a game. Null-safe
+     so this can be called before the DOM is fully parsed. */
+  ['detail-section', 'summary-section', 'final-result'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.toggle('disabled-section', disabled);
+  });
+  var vt = document.querySelector('.view-toggle');
+  if (vt) vt.classList.toggle('disabled-section', disabled);
 }
 
 /* ─── Date helpers ─────────────────────────────────────────── */

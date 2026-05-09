@@ -461,6 +461,16 @@ body::before {
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
+
+/* Mobile: shrink the credit pill so the text doesn't wrap on narrow
+   phones. Matches the Card/Schedule/Roster mobile sizing. */
+@media (max-width: 900px) {
+  .site-footer .photo-credit {
+    padding: 6px 12px 6px 6px;
+  }
+  .site-footer .photo-credit .rlp-logo { height: 36px; }
+  .site-footer .photo-credit .rlp-text { font-size: 10px; }
+}
 </style>
 </head>
 <body>

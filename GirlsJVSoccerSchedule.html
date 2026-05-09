@@ -754,8 +754,8 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
   color: rgba(255,255,255,0.85);
   background: rgba(255,255,255,0.08);
   border: none;
-  padding: 7px 11px;
-  font-size: 13px;
+  padding: 9px 14px;
+  font-size: 14px;
   font-weight: 600;
   border-radius: 6px;
   text-decoration: none;
@@ -764,10 +764,21 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
   gap: 4px;
   flex-shrink: 0;
   letter-spacing: 0.04em;
-  min-height: 32px;
+  min-height: 40px;
 }
 .app-header .back-link:hover  { background: rgba(255,255,255,0.16); border: none; }
 .app-header .back-link:active { background: rgba(255,255,255,0.22); }
+
+/* Tool color marker bar under the header — parallels the colored tile
+   strip on the index page (Schedule's tile uses --good green). */
+.app-header::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  bottom: -3px;
+  height: 3px;
+  background: #2a7a3a;
+}
 .app-header .paw {
   width: 28px;
   height: 36px;
@@ -873,19 +884,6 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
   }
   .card-container > * { flex-shrink: 0; }
 
-  /* Force single-column mode on phones — 800 px double layout is
-     unusable on a 375 px screen, even with horizontal scroll. The
-     user's saved preference is preserved; it just renders single
-     here and reverts to double when they're back on desktop. */
-  #card-inner.double-layout { width: 440px !important; }
-  .rows-block.double {
-    display: block !important;
-    grid-template-columns: 1fr !important;
-    padding: 0 14px !important;
-  }
-  .rows-block.double .rows-col:first-child { padding-right: 0 !important; }
-  .rows-block.double .rows-col + .rows-col { padding-left: 0 !important; border-left: none !important; }
-
   /* Bigger touch targets for the editor's form controls. 16 px font
      prevents iOS auto-zoom-on-focus. */
   .editor input[type="text"],
@@ -907,7 +905,8 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
   .app-header { padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
   .app-header .paw { width: 24px; height: 30px; }
   .app-header h1 { font-size: 15px; }
-  .app-header .back-link { padding: 6px 10px; font-size: 12px; }
+  /* Back-link stays at desktop size on mobile — it's the primary nav
+     control and shouldn't shrink to a hard-to-tap pill. */
 
   /* Photo credit drops out of fixed positioning on phones so it sits
      below the card preview rather than overlaying its bottom edge.
