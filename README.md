@@ -374,7 +374,7 @@ The `BroadcastChannel` ping uses a per-tab UUID so a tab never reacts to its own
       "id": "g1abc",
       "date": "2026-08-22",
       "opponent": "Arrowhead",
-      "location": "H",         // 'H' | 'A' | 'N'
+      "location": "home",      // 'home' | 'away'
       "status": "scheduled",   // 'scheduled' | 'final' | 'cancelled'
       "scoreUs": null,
       "scoreThem": null,
@@ -391,6 +391,7 @@ The `BroadcastChannel` ping uses a per-tab UUID so a tab never reacts to its own
 {
   "version": 1,
   "layout": "double",          // 'single' | 'double'
+  "showPositions": true,       // boolean — show/hide the Position column on the card
   "coaches": [
     { "label": "Head Coach",        "name": "Zach Bargas" },
     { "label": "Asst. Coach",       "name": "" },
@@ -399,16 +400,18 @@ The `BroadcastChannel` ping uses a per-tab UUID so a tab never reacts to its own
   "players": [
     {
       "id": "p1abc",
-      "number": 7,
+      "number": "7",                                 // stored as string
       "firstName": "Jane",
       "lastName": "Smith",
-      "positions": ["MF", "F"],
+      "positions": ["midfielder", "forward"],        // 'goalkeeper' | 'defender' | 'midfielder' | 'forward'
       "captain": false,
-      "year": "10"
+      "year": "freshman"                             // 'freshman' | 'sophomore' | 'junior' | 'senior'
     }
   ]
 }
 ```
+
+The three `coaches[].label` values above are the defaults — they're plain strings and the user can rename them in the editor (the live `roster.json` may show e.g. `"JV Coach"` instead).
 
 Legacy player records with a single `"name": "Jane Smith"` field still load — `normalizePlayer()` splits "Last, First" on the comma if present, otherwise treats the whole thing as `lastName`. Saves always write the new `firstName` / `lastName` shape.
 

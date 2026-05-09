@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#8a2a2a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Goals">
+<meta name="apple-mobile-web-app-title" content="Soccer Goal Tracker">
 <link rel="apple-touch-icon" href="./Logos/WaukeshaWest.png">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -1000,7 +1000,7 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
 <!-- HEADER                                                       -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <header class="app-header">
-  <a href="./index.html" class="back-link">← Tools</a>
+  <a href="./" class="back-link" title="Back to tools"><span aria-hidden="true">←</span> Tools</a>
   <img src="./Logos/WaukeshaWest.png" alt="WW" class="paw">
   <h1>Goal Tracker</h1>
 </header>
@@ -2656,7 +2656,7 @@ function renderFinalResultSection() {
       '<div class="fr-header">Final Result</div>' +
       '<div class="fr-message">' +
         'This game isn&rsquo;t in the season schedule. Add it via the ' +
-        '<a href="./GirlsJVSoccerSchedule.html" target="_blank" rel="noopener">Schedule tool</a> ' +
+        '<a href="./GirlsJVSoccerSchedule.html">Schedule tool</a> ' +
         'to mark it final and record the result.' +
       '</div>';
     return;
@@ -2673,7 +2673,7 @@ function renderFinalResultSection() {
       '<div class="fr-header">Final Result</div>' +
       '<div class="fr-message">' +
         'This game is no longer in the schedule. Add it back via the ' +
-        '<a href="./GirlsJVSoccerSchedule.html" target="_blank" rel="noopener">Schedule tool</a> ' +
+        '<a href="./GirlsJVSoccerSchedule.html">Schedule tool</a> ' +
         'to record the result.' +
       '</div>';
     return;
@@ -2691,7 +2691,7 @@ function renderFinalResultSection() {
       '<div class="fr-header">Final Result <span class="fr-status-pill">Cancelled</span></div>' +
       '<div class="fr-message">' +
         'This game is marked cancelled in the schedule. Un-cancel it via the ' +
-        '<a href="./GirlsJVSoccerSchedule.html" target="_blank" rel="noopener">Schedule tool</a> ' +
+        '<a href="./GirlsJVSoccerSchedule.html">Schedule tool</a> ' +
         'first if you need to record a result.' +
       '</div>';
     return;
