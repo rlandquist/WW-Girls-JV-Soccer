@@ -1,7 +1,7 @@
 {
   "version": 1,
   "layout": "double",
-  "showPositions": false,
+  "showPositions": true,
   "coaches": [
     {
       "label": "JV Coach",
