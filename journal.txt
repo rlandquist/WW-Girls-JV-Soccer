@@ -2225,3 +2225,257 @@ Conversation-flow notes for next time:
   polish. Worth saying so explicitly when the user asks "if needed" —
   gives them confidence the doc isn't drifting silently.]
 
+
+=== Journal Entry 2026-05-09T23:30:00.000000+00:00 ===
+2026-05-09-23-30-00-cross-file-consistency-and-journal-reconstruction.txt
+[Cross-file consistency cleanup pass, sw.js v4 with two shell additions,
+new .gitattributes for line-ending discipline, meta description on
+index, and a journal reconstruction that backfilled the missing
+pre-history from Session_Notes.html. Single working session via
+Filesystem MCP against the local clone at C:\GitHub\WW-Girls-JV-Soccer —
+every edit applied surgically with filesystem:edit_file or
+filesystem:write_file. No node --check today since changes were small
+enough to verify by diff inspection alone. Two files removed by Rob via
+git rm; eight files modified or created.
+
+REVIEW UPFRONT: Started with a full audit of the 5 HTMLs, README,
+journal, manifest, and sw.js. Findings categorized into 6 buckets —
+cross-HTML inconsistencies, README schema drift, stale files, SW shell
+candidates, journal-flagged backlog, and enhancements. Rob picked items
+in order; each batch executed against the running list.
+
+CROSS-FILE CONSISTENCY PASS:
+
+Goals back-link aligned with the other three tools — href="./" (was
+href="./index.html"), title="Back to tools", aria-hidden span around the
+arrow. The functional behavior was identical (./ resolves to index on
+Pages) but visually-identical markup makes future cross-file edits
+cleaner.
+
+Removed target="_blank" rel="noopener" from three Goals→Schedule links
+inside renderFinalResultSection. These were the "configure your schedule
+first" hints that ship users to the Schedule tool when no game is
+picked. Inside an installed iOS PWA, target="_blank" punts to mobile
+Safari, breaking the standalone-app feel — same root cause as the
+Card→Goals link fix from the 2026-05-08 architecture session.
+
+Added viewport-fit=cover to index.html's viewport meta tag. The other
+four tool HTMLs already had it (added by the 2026-05-08 mobile
+responsive pass); index was the lone holdout. Without it,
+env(safe-area-inset-bottom) doesn't activate, and the photo-credit pill
+at the page bottom fails to clear the iPhone home indicator on installed
+PWAs.
+
+Apple home-screen titles unified to "Soccer X" pattern: Card="Soccer
+Card" (already there), Goals="Soccer Goal Tracker", Schedule="Soccer
+Schedule", Roster="Soccer Team Roster". Manifest shortcuts left as-is —
+they target the same URLs but use the full descriptive labels (Card
+Builder, Goal Tracker, Season Schedule, Team Roster), and the system
+shortcut UI has more horizontal room than the home-screen icon label.
+
+Title tags use em-dash + role consistently across all 5: index already
+had its form, Card and Goals had em-dash variants, Schedule and Roster
+were updated to "WW Girls JV Soccer — Team Schedule" / "— Team Roster".
+
+Font-weight loading fix. Three tool HTMLs (Card / Schedule / Roster) had
+.app-header h1 set to font-weight:600 in CSS but loaded only a subset of
+Oswald weights — Card loaded wght@700 only; Schedule and Roster loaded
+wght@400;500;700. Result: the H1 was faux-bolded by the browser to
+approximate 600 since the requested weight wasn't actually in the font
+payload. Aligned all four tool URLs to wght@400;500;600;700 (matching
+index and Goals which already had it). Card got a build-date bump as a
+side effect of the URL edit.
+
+SW-registration .catch() comment standardized to Goals' multi-line
+phrasing across all five files. Three tools (Card / Schedule / Roster)
+had a single-line "/* PWA features just don't activate */" form; index
+had multi-line with the original "PWA features..." text; Goals had the
+cleaner "Offline support just doesn't activate; the page still works."
+in multi-line. Switched the other four to match Goals — same wording,
+same indentation, same line count.
+
+mount → ghMount variable naming unified. The local variable that holds
+document.getElementById('gh-config-mount') was named "mount" in Goals +
+index but "ghMount" in Card / Schedule / Roster. Picked ghMount (3-file
+majority) and renamed the other two. Two-line edit each. Cosmetic but
+eliminates a recurring "wait, what is this called in this file?"
+friction.
+
+README SCHEMA CORRECTIONS:
+
+schedule.json's location field was documented as "H" | "A" | "N" — but
+the code only ever checks for 'away' (string-comparison branches in Card
+and Schedule), with 'home' being the default for any other value. Fixed
+the schema doc to "home" | "away".
+
+roster.json schema had several drifts from current code: showPositions
+boolean field was missing from the schema; player number was typed as a
+number when it's actually a string (so leading zeros / non-numeric
+jerseys can be expressed); positions were typed as keys 'F' | 'M' | 'D'
+| 'GK' instead of full words 'forward' | 'midfielder' | 'defender' |
+'goalkeeper'; year was typed as a number 1–4 when it's actually a
+grade-word 'freshman' | 'sophomore' | 'junior' | 'senior'. All four
+corrected to match what the roster tool actually reads/writes.
+
+Also added a clarifying line that coaches[].label values are
+user-editable defaults — the roster tool ships with sensible defaults
+("Head Coach", "Assistant Coach") but they can be overwritten in the
+editor; the schema doc previously read like the labels were enums.
+
+BUILD-DATE DISCIPLINE: Established a simple rule for future sessions —
+any HTML file edited in a session gets its <!-- Build: YYYY-MM-DD -->
+comment bumped to that day's date in the same edit batch. Files
+untouched in the session keep their existing date. View-source on the
+deployed page still serves as the cheapest way to confirm a deploy
+actually landed (vs SW serving an old shell), but the rule keeps the
+dates honest. All five HTMLs landed at 2026-05-09 by end of session.
+
+sw.js v3 → v4: Two pre-cache additions. ./Logos/Classic8.png (conference
+badge, used on Card and Schedule whenever a Classic 8 opponent renders)
+and ./Logos/RobertLandquistPhotography.png (photo credit pill, used on
+every page). Both were already cached on demand via the /Logos/
+cache-first matcher, but cache-on-demand only catches files after the
+user visits a page that renders them — pre-caching guarantees offline
+availability from install. APP_SHELL_URLS added the two entries;
+CACHE_VERSION bumped v3 → v4 so existing PWA installs evict their v3
+shell on next visit and pre-cache the new logos. v4 changelog block
+added inline above v3, explaining the rationale.
+
+NEW FILES:
+
+.gitattributes at repo root with `* text=auto eol=lf`. The 2026-05-08
+architecture session normalized all HTML + JS to LF, but without this
+attributes file Windows editors (or git's autocrlf default on a fresh
+clone) can quietly flip files back to CRLF and produce noisy "every line
+changed" diffs. Three-line file with a comment explaining the rule.
+Sticks for every future commit regardless of OS.
+
+index.html got <meta name="description" content="Social media graphics,
+schedule, roster, and goal tracking for Waukesha West Girls JV Soccer.">
+immediately after the <title>. Improves link-share previews on platforms
+that fall back to the description meta when no Open Graph tags are
+present (Slack, Discord, iMessage). 95-character description, well under
+Google's snippet length. Tool pages didn't get descriptions — they're
+internal navigation targets, not direct share endpoints.
+
+REMOVED FILES (via git rm):
+
+favicon.ico — 224 KB orphan with zero source-code references. Audit grep
+found only one mention, in Session_Notes.html, describing a different
+(PNG-based) favicon implementation. The currently-deployed favicon
+convention is <link rel="icon" type="image/png"
+href="./Logos/WaukeshaWest.png"> on every HTML page, so the .ico file
+was never actually being served.
+
+Session_Notes.html — superseded by the journal reconstruction below. The
+content was the canonical record of sessions 1–11 (April 20–26 build
+period) but had no other purpose; once those sessions landed in
+journal.txt as reconstructed entries, the .html file became dead weight.
+Kept as a working artifact in earlier conversations because the journal
+didn't yet contain its content.
+
+JOURNAL STANDARDIZATION + RECONSTRUCTION:
+
+The journal had two unrelated problems. Problem 1: pre-history gap — the
+first entry was 2026-04-26T19:18 (the GitHub-API retrofit), but the
+foundational tool builds (sessions 1–11, April 20–26) happened earlier
+and were documented in Session_Notes.html instead of the journal.
+Problem 2: line-length drift — 8 of the 19 existing entries were
+unwrapped single-line blobs (longest single line: 2,694 chars), 11 were
+wrapped at varying widths between 65–79 cols. Solved both in one pass.
+
+Wrap target: 72 columns, using Python's textwrap with paragraph and
+list-marker preservation. After standardization, max line is 73 chars
+(only 2 lines exceed 72, none exceed 76 by character count — byte counts
+can hit 78 due to multi-byte UTF-8 like × → ✓ ⚙ … 📂 ↺, but those count
+as one cell wide on display).
+
+Reconstruction approach: 10 entries added at the top of the journal in
+chronological pre-history order, each prefaced with "RECONSTRUCTED ENTRY
+— written 2026-05-09 to fill the journal's pre-history" so future
+readers know they're condensed summaries from Session_Notes.html, not
+original session logs. Synthetic timestamps assigned for ordering —
+sessions 1, 2, 3/4/5, 7/8/9, 10/11 spread across April 20–26 with
+sub-day timestamps that put the final two (sessions 10 and 11) before
+the 19:18 retrofit entry. Session 7's preamble notes the missing Session
+6 explicitly (the Session_Notes header was bumped from "Updated Session
+6" to "Updated Session 11" without ever publishing a separate session
+6).
+
+Verification before writing: word counts of all 19 existing entries are
+byte-identical between original and standardized — pure rewrap, zero
+content drift on the existing journal. The 10 reconstructed entries add
+~5,677 words of pre-history covering: foundational scorecard + preview
+card builds, html2canvas pseudo-element traps, the unified Card.html
+with FSA file sync, halftime card mode + team labels, Final card footer
++ goal scorers feature, photo handling + opponent-logo size balance,
+schedule double-column layout, cross-file consistency cleanup (the first
+one), and goal-scorers backlog cleanup + halftime parity.
+
+Total entries after this session: 30 (10 reconstructed pre-history + 19
+existing chronological + this entry).
+
+DELIVERY:
+
+Filesystem MCP only sees C:\GitHub on the user's Windows machine, and
+the standardized journal lived in
+/home/claude/work/journal.standardized.txt in the container. No bridge
+between the two — bash can't write to C:\, and filesystem MCP can't read
+/home/claude. Solved by copying the file to
+/mnt/user-data/outputs/journal.txt and using present_files to give Rob a
+download link. He saved it over the existing journal.txt and committed.
+
+Final commit shipped eight files in one push: 5 HTMLs (back-link,
+viewport, titles, font weights, SW catch comment, mount→ghMount, build
+dates), README.md (schema fixes), sw.js (v4 + 2 shell adds),
+.gitattributes (new), journal.txt (standardized + reconstructed), plus
+the two deletions (favicon.ico, Session_Notes.html). Suggested commit
+message used a subject line + bulleted body via two -m flags so GitHub
+renders the body cleanly on the commit page.
+
+PROCESS NOTES:
+
+Filesystem MCP was the right tool for this session. Every edit was a
+small, well-anchored str_replace on a known file — exactly its sweet
+spot. No need to clone-and-re-upload like prior sessions; surgical edits
+land directly against the user's working copy with diffs returned for
+review. Worth defaulting to MCP-on-clone whenever the changes are small;
+reach for git clone + uploads only when the edits are substantial enough
+that running validation (HTMLParser, node --check) inside the container
+is the cleaner workflow.
+
+The "MCP can't bridge to /home/claude" friction came up exactly once —
+for delivering the standardized journal — and present_files via
+/mnt/user-data/outputs/ was a clean enough workaround. Worth
+remembering: when a deliverable is a single file under ~150 KB and the
+recipient is on Windows, the present_files download path is more
+reliable than reproducing the content through a tool parameter.
+
+Build-date rule worked smoothly in practice. Files edited got bumped;
+files untouched kept their dates. All five HTMLs landed at 2026-05-09 by
+the end of the session. The same-day no-second-bump rule kept diffs
+clean when Goals and index picked up the mount→ghMount edit after their
+initial bump from earlier-in-day work.
+
+REMAINING BACKLOG:
+
+- True 192/512 maskable PNG icons for the manifest (deferred this
+  session per Rob's call). Asset-generation work, not code; tools like
+  maskable.app preview the result. Worth doing whenever Android
+  home-screen polish matters.
+- Item 14 from 2026-05-08 (Card's Total goals / Goals & times toggle
+  visual cleanup) — orphaned-looking next to the "Open Goals tool ↗"
+  button since scorer entry moved out of Card. Still held.
+- Item 15 from 2026-05-08 (multi-conference UI) — the schema is already
+  general (CONFERENCES map keyed by id), but Card's manage-teams modal
+  has a hardcoded single C8 checkbox column. Whenever a second
+  conference gets added, the modal needs a dropdown or multiple checkbox
+  columns. No urgency.
+- Full Open Graph tags on index — the meta description landed this
+  session, but og:title / og:description / og:image would give richer
+  share previews on Facebook, Twitter/X, LinkedIn. Not requested;
+  flagging for completeness.
+- shareTarget API on the manifest — would let the Card tool's PNG
+  download be shared directly to social media instead of
+  download-then-upload. Mentioned in 2026-05-08 backlog. Not urgent.]
+
