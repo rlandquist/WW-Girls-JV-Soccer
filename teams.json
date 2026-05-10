@@ -81,18 +81,14 @@
   ],
   "footerModeByGame": {
     "2026-05-02|st augustine prep": "scorers",
-    "2026-05-05|opponent": "scorers",
     "2026-05-07|badger": "scorers",
-    "2026-05-07|opponent": "scorers",
     "2026-05-11|catholic memorial": "scorers",
     "2026-05-01|kimberly": "next",
     "2026-05-05|kettle moraine": "scorers"
   },
   "halftimeModeByGame": {
     "2026-05-02|st augustine prep": "msg",
-    "2026-05-05|opponent": "msg",
     "2026-05-07|badger": "msg",
-    "2026-05-07|opponent": "msg",
     "2026-05-11|catholic memorial": "msg",
     "2026-05-01|kimberly": "msg",
     "2026-05-05|kettle moraine": "msg"
