@@ -1,0 +1,4 @@
+# Enforce LF line endings for all text files in this repo, regardless
+# of the OS or editor used to commit. Without this, Windows editors
+# can flip files to CRLF and produce noisy "every line changed" diffs.
+* text=auto eol=lf

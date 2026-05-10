@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Build: 2026-05-08 -->
+<!-- Build: 2026-05-09 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1242,8 +1242,8 @@ var frSaving = false;
 document.addEventListener('DOMContentLoaded', function() {
   /* 1. Mount the GitHub config panel (same component the other tools use). */
   if (window.WWCommon && typeof WWCommon.renderGitHubConfigPanel === 'function') {
-    var mount = document.getElementById('gh-config-mount');
-    if (mount) WWCommon.renderGitHubConfigPanel(mount);
+    var ghMount = document.getElementById('gh-config-mount');
+    if (ghMount) WWCommon.renderGitHubConfigPanel(ghMount);
   }
 
   /* 2. Load editor prefs (last half, view mode). */

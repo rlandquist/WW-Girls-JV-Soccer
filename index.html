@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<!-- Build: 2026-05-08 -->
+<!-- Build: 2026-05-09 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>WW Girls JV Soccer Tools</title>
+<meta name="description" content="Social media graphics, schedule, roster, and goal tracking for Waukesha West Girls JV Soccer.">
 <link rel="icon" type="image/png" href="./Logos/WaukeshaWest.png">
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#0d1f42">
@@ -656,8 +657,8 @@ body::before {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   if (window.WWCommon && typeof WWCommon.renderGitHubConfigPanel === 'function') {
-    var mount = document.getElementById('gh-config-mount');
-    if (mount) WWCommon.renderGitHubConfigPanel(mount);
+    var ghMount = document.getElementById('gh-config-mount');
+    if (ghMount) WWCommon.renderGitHubConfigPanel(ghMount);
   }
 });
 </script>
@@ -880,7 +881,7 @@ document.addEventListener('DOMContentLoaded', function() {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('./sw.js').catch(function() {
-      /* PWA features just don't activate; the page still works. */
+      /* Offline support just doesn't activate; the page still works. */
     });
   });
 }

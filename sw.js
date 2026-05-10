@@ -22,6 +22,15 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
+ * v4 (May 2026): Added Classic8.png (conference badge) and
+ * RobertLandquistPhotography.png (photo credit) to the pre-cached
+ * shell. Both were already cached on demand via the /Logos/ path
+ * matcher, but cache-on-demand only catches them after the user
+ * visits a page that renders them. Pre-caching guarantees offline
+ * availability from install — important because the photo credit
+ * appears on every page and the Classic 8 badge appears on Card
+ * and Schedule whenever a Classic 8 opponent is rendered.
+ *
  * v3 (May 2026): Mobile + UX polish pass — photo-credit pill un-fixes
  * on phones and shrinks on index/Goals; Schedule and Roster allow
  * double-column layout on mobile (with horizontal scroll); Goals
@@ -40,7 +49,7 @@
  * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v3';
+const CACHE_VERSION    = 'v4';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 
@@ -58,7 +67,9 @@ const APP_SHELL_URLS = [
   './GirlsJVSoccerGoals.html',
   './common.js',
   './manifest.json',
-  './Logos/WaukeshaWest.png'
+  './Logos/WaukeshaWest.png',
+  './Logos/Classic8.png',
+  './Logos/RobertLandquistPhotography.png'
 ];
 
 /* ─── Install: pre-cache the app shell ─────────────────────────── */
