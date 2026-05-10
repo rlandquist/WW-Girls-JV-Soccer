@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    common.js — Shared GitHub sync layer + utilities for the WW Soccer tools
    ───────────────────────────────────────────────────────────────────────────
-   Loaded by: GirlsJVSoccerCard.html, GirlsJVSoccerSchedule.html,
-              GirlsJVSoccerRoster.html
+   Loaded by: index.html, GirlsJVSoccerCard.html, GirlsJVSoccerGoals.html,
+              GirlsJVSoccerSchedule.html, GirlsJVSoccerRoster.html
 
    Provides:
      • GitHub config + Personal Access Token storage (one config, all tools)

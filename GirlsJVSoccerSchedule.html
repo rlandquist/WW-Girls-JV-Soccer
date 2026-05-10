@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Build: 2026-05-09 -->
+<!-- Build: 2026-05-10 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1770,7 +1770,9 @@ function importSchedule(input) {
           status: g.status === 'final' ? 'final' : 'scheduled',
           scoreUs: g.scoreUs != null ? g.scoreUs : null,
           scoreThem: g.scoreThem != null ? g.scoreThem : null,
-          time: g.time || ''
+          time: g.time || '',
+          venue: typeof g.venue === 'string' ? g.venue : '',
+          address: typeof g.address === 'string' ? g.address : ''
         };
       });
       if (!normalized.length) { toast('No valid games found in file', 'warn'); return; }
@@ -1922,7 +1924,9 @@ function applyScheduleData(payload) {
         status:     (g.status === 'final' || g.status === 'cancelled') ? g.status : 'scheduled',
         scoreUs:    typeof g.scoreUs   === 'number' ? g.scoreUs   : null,
         scoreThem:  typeof g.scoreThem === 'number' ? g.scoreThem : null,
-        time:       g.time || ''
+        time:       g.time || '',
+        venue:      typeof g.venue   === 'string' ? g.venue   : '',
+        address:    typeof g.address === 'string' ? g.address : ''
       };
     });
   }

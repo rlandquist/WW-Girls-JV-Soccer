@@ -37,7 +37,7 @@ When you open a tool on a different device, it reads the JSON files via the GitH
 ├── goals.json                   ← owned by Goals tool (read-write)
 ├── schedule.json                ← owned by Schedule tool
 ├── roster.json                  ← owned by Roster tool
-└── Logos/
+├── Logos/
 │   ├── WaukeshaWest.png         ← school paw mark (do not rename)
 │   ├── Classic8.png             ← Classic 8 conference badge
 │   ├── RobertLandquistPhotography.png ← photo credit mark
@@ -462,6 +462,7 @@ All files use LF line endings (Unix-style), enforced project-wide as of May 2026
 | `common.js` | Shared GitHub-sync library used by all five pages |
 | `manifest.json` | PWA manifest — makes the site installable |
 | `sw.js` | Service worker — caches app shell + opponent logos for offline |
+| `.gitattributes` | Enforces LF line endings on commit so cross-OS edits don't churn diffs |
 | `teams.json` | Opponent list + conferences + card-specific state |
 | `goals.json` | Per-game goal entries (player, minute, half) |
 | `schedule.json` | Season schedule |
