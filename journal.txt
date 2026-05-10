@@ -2857,3 +2857,190 @@ PROCESS NOTES:
   when shell content actually shifts, otherwise leave CACHE_VERSION
   alone and don't make every device churn its cache.]
 
+
+=== Journal Entry 2026-05-10T17:00:00.000000+00:00 ===
+2026-05-10-17-00-00-code-review-three-commit-batches.txt
+[Code review + audit pass on the deployed app — 13 items inventoried,
+three commit batches landed, two items dropped, one closed implicitly,
+and a discovery that batch 3's work was already on disk from a prior
+session. Worked via Filesystem MCP against the local clone at
+C:\GitHub\WW-Girls-JV-Soccer. Context budget got tight near the end (a
+Card.html dump routed through /mnt/user-data/tool_results consumed a
+large chunk) and the audit conversation ended before the journal entry
+itself could be written — this entry is written in a fresh conversation
+the same afternoon, working from past-chat search to reconstruct what
+shipped.
+
+REVIEW STRUCTURE: The 13 items grouped roughly into three themes — data
+cleanup (stale game keys, typos), code hygiene (dead CSS, comments,
+header drift), and shipping verification (Schedule cancelled-game UI,
+build-date currency, toast-container docs). Rob asked for batch commits
+rather than one all-encompassing commit, which kept each diff focused
+and made the batch-3 discovery cleanly identifiable as its own moment
+in git history.
+
+BATCH 1 — Schedule venue/address round-trip + doc cleanup (items 1, 2,
+5, 6, 7):
+
+- GirlsJVSoccerSchedule.html: applyScheduleData() and importSchedule()
+  weren't preserving the venue and address fields added by the
+  2026-05-08 venue+address session. Both functions destructured the
+  incoming game objects to a known field set and dropped everything
+  else. Latent bug: once a coach entered venue+address via the editor,
+  saved locally, then either re-imported the file or had another
+  device fetch via the GitHub path, the fields silently disappeared.
+  Fixed by adding venue and address to the preserved-field list in
+  both functions. Build date bumped to 2026-05-10 as a side effect.
+- schedule.json: typo fix — "Statdium" → "Stadium" on the Catholic
+  Memorial 5/11 entry.
+- README.md: ASCII repo tree had └── on Logos, but Logos isn't the
+  last directory anymore (icons follows alphabetically since the
+  2026-05-09 maskable-icons session) — flipped to ├──. Also added a
+  .gitattributes row to the file-inventory table for the file that
+  landed in the 2026-05-09 consistency session.
+- common.js: header comment listed only Card/Schedule/Roster as
+  loaders. Updated to all five pages (added index.html and
+  Goals.html). Documentation drift left over from before index and
+  Goals adopted common.js.
+
+Commit message: "Fix Schedule venue/address round-trip + doc/cleanup
+pass".
+
+BATCH 2 — Stale |opponent goal keys + Card build-date bump (items 3, 4,
+plus item 8 closed implicitly):
+
+- goals.json: two cleanup operations. Re-keyed the
+  2026-05-05|opponent block to 2026-05-05|kettle moraine — these
+  were real Kettle Moraine goals that got entered before the
+  opponent name was filled in on the Schedule tool's edit form, so
+  the gameKey at entry time was the placeholder "opponent"
+  lowercase. The second cleanup deleted the 2026-05-07|opponent
+  block entirely; it was a duplicate of the 2026-05-07|badger block
+  (same two players, same goals, just entered twice — once with the
+  placeholder name and once after the name was set).
+- teams.json: footerModeByGame and halftimeModeByGame each had two
+  dangling |opponent keys for those same dates. Removed all four;
+  the matching |kettle moraine and |badger keys already existed
+  with correct mode values, so no other migration needed.
+- v5: empty zero-byte file at repo root from a 2026-05-09 shell
+  redirection typo. Suggested `git rm v5` in the commit commands;
+  see the cruft note below for the actual outcome.
+- GirlsJVSoccerCard.html: build-date comment bumped 2026-05-09 →
+  2026-05-10 to match the day of edit. Closed item 8 (build-date
+  currency) implicitly — Card had been the lone holdout still at
+  2026-05-09 after the other four HTMLs got same-day bumps in the
+  2026-05-10T01:30 per-card scorer-display session.
+
+Commit message: "Clean up stale |opponent goal keys + Card build-date
+bump".
+
+BATCH 3 — Schedule cancelled UI + toast docs + back-link CSS cleanup
+(items 9, 10, 11) — ALREADY ON DISK:
+
+This batch is the interesting one. Going in, the transcript summary I
+was working from said item 9 (Schedule's three-state status toggle
+adding 'cancelled' alongside 'scheduled' and 'final') was "in dry-run,
+not applied" from an earlier session — meaning the edits had been
+previewed but never written. Same provisional state for items 10 (the
+toast-container explanatory comments) and 11 (the dead .back-link CSS
+rules in Card and Schedule).
+
+The actual bytes on disk told a different story. Schedule.html already
+has the .res.cxl and .gpill.cxl styles, splitGames includes
+cancelled-status games in the Results bucket, renderGameRow +
+renderGameSummary have the cancelled branch with the gray-italic CXL
+pill, renderGameForm has all three status buttons + the
+isCancelled/isScheduled locals + the "Cancelled — no result recorded"
+hint, and importSchedule accepts 'cancelled' as a valid status value.
+Card/Schedule/Roster all have the explanatory comment above their <div
+id="toast-container"> noting it's the degraded-mode target for the
+local-fallback toast() helper (used only when common.js fails to load;
+the typical case leaves the div unused). Card and Schedule both have
+the dead .back-link / .back-link:hover / .back-link .arrow rules
+already cleaned out; Roster never had them in the first place.
+
+Some prior session — not the one whose transcript summary I was
+working from — landed all three items between the dry-run and now.
+Best guess is the 2026-05-08 mobile-responsive pass or one of the
+2026-05-09 cross-file consistency entries; both touched the same
+regions and either could have folded the work in without it showing
+up in this audit's transcript summary as applied.
+
+Net result for batch 3: working tree was clean, but Rob committed under
+the descriptive message "Schedule cancelled-status UI + toast docs +
+back-link CSS cleanup" with `git add -A` to record in git history that
+items 9-11 were verified in place. Treating this as a documentation
+commit rather than a code commit; if `git add -A` found nothing
+untracked or modified, the commit may have been empty (or near-empty
+if a stray newline or similar slipped in). Either way the intent shows
+up in the log.
+
+ITEMS DROPPED:
+
+- Item 12 (Hartford 0-0): result confirmed as legitimate tie, not data
+  error. Dropped.
+- Item 13 (Waupun 5/2 goals follow-up): dropped per Rob's call.
+
+REMAINING BACKLOG (unchanged from 2026-05-10T02:30):
+
+Web Share API — navigator.share({files: [...]}) integration in the
+Card tool. Rob flagged as very low priority, "may not use."
+
+CRUFT IN WORKING TREE (not part of any commit, flagged for follow-up):
+
+Three zero-byte stray files sitting at repo root that aren't tracked
+features and aren't in any committed state:
+
+- v5 (from 2026-05-09 21:13) — was supposed to be deleted via `git rm
+  v5` in batch 2, but is still present in the working tree. Either
+  the rm line didn't get run or it failed silently.
+- Stadium) (2026-05-10 10:59) — looks like a paren got eaten by the
+  shell during a commit-message attempt, redirecting empty output
+  into a file literally named "Stadium)".
+- 2026-05-10 (2026-05-10 11:02) — same morning, similar pattern;
+  another shell-redirection typo producing an empty file with the
+  date as its name.
+
+All three should be deleted from the working tree — `del v5 "Stadium)"
+2026-05-10` from the repo root will clear them. None are in any
+commit, so no git history needs scrubbing; they just need to be
+removed before they get accidentally staged in a future `git add -A`.
+
+PROCESS NOTES:
+
+- Numbered-list audits move fast when the list is precooked. Rob
+  inventoried the 13 items upfront, the audit batched them by commit
+  affinity, Rob committed in groups. Less back-and-forth than
+  free-form review sessions; mirrors the 2026-05-08 13-item delivery
+  pattern and the 2026-05-08T03:00 architecture-improvements
+  session's 16-item flow. Pattern worth defaulting to whenever the
+  scope can be enumerated upfront.
+
+- "Already on disk" discoveries are easy to misframe. The transcript
+  summary said items 9-11 were dry-run-not-applied; byte inspection
+  said otherwise. Whenever a transcript summary describes edits as
+  provisional, verify against the actual file before treating the
+  work as remaining. Cheap check, prevents re-doing-work-already-
+  done.
+
+- Context budget burned faster than expected late in the audit. A
+  Card.html dump (~180 KB) got routed through /mnt/user-data/
+  tool_results because it was too big for the direct response — that
+  single result ate a large chunk of the available context, the
+  filesystem MCP started timing out (likely related), and the
+  journal entry got pushed to a follow-up conversation. Lesson for
+  next time: when inspecting a >100 KB file, use view_range against
+  the specific regions under audit rather than reading the whole
+  thing. Anchored reads would have kept the context lean enough to
+  finish the journal in the same session.
+
+- Filesystem MCP with dryRun-then-apply remains the right default
+  for surgical edits on this project. Zero broken anchors across the
+  five edits this session that touched feature code; the diff output
+  IS the review surface and obviates a separate preview pass.
+
+- Commit message style locked in: subject line + bulleted body via
+  two -m flags. Same pattern as the 2026-05-09T23:30 consistency
+  session. GitHub renders the body cleanly on the commit page, and
+  the subject line stays grep-friendly in `git log --oneline`.]
+
