@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Build: 2026-05-09 -->
+<!-- Build: 2026-05-10 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -41,24 +41,6 @@ body {
   max-height: calc(100vh - 48px);
   flex-shrink: 0;
 }
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #1e40af;
-  background: #f0f4fa;
-  border: 1px solid #d0dcec;
-  border-radius: 5px;
-  padding: 5px 10px;
-  text-decoration: none;
-  letter-spacing: 0.04em;
-  align-self: flex-start;
-  white-space: nowrap;
-}
-.back-link:hover { background: #e0e9f7; border-color: #a0b8d4; }
-.back-link .arrow { font-size: 13px; line-height: 1; }
 .section-label {
   font-size: 10px;
   font-weight: 700;
@@ -1104,6 +1086,10 @@ input[type="number"] { padding-right: 4px; }
   <span class="rlp-text"><span class="rlp-copy">&copy;</span> <span class="rlp-name">Robert Landquist Photography</span></span>
 </div>
 
+<!-- Toast container — degraded-mode target for the local-fallback toast()
+     above when common.js fails to load. WWCommon.toast() builds its own
+     gh-toast-container element on first use; this div is unused when
+     common.js loads normally (the typical case). -->
 <div id="toast-container"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>

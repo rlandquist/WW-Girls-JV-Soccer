@@ -19,9 +19,6 @@ body{font-family:Arial,sans-serif;background:#e6e9ef;display:flex;flex-direction
 
 /* ── EDITOR ── */
 .editor{width:340px;display:flex;flex-direction:column;gap:11px;background:#fff;padding:16px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.12);flex-shrink:0;}
-.back-link{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#0d1f42;background:#f0f4fa;border:1px solid #d0dcec;border-radius:5px;padding:5px 10px;text-decoration:none;letter-spacing:.04em;align-self:flex-start;white-space:nowrap;}
-.back-link:hover{background:#e0e9f7;border-color:#a0b8d4;}
-.back-link .arrow{font-size:13px;line-height:1;}
 #score-fields,#halftime-fields,#preview-fields{display:flex;flex-direction:column;gap:11px;}
 .section-label{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
 .field-group{display:flex;flex-direction:column;gap:5px;}
@@ -4131,6 +4128,10 @@ function copyToClipboard() {
   <span class="rlp-text"><span class="rlp-copy">&copy;</span> <span class="rlp-name">Robert Landquist Photography</span></span>
 </div>
 
+<!-- Toast container — degraded-mode target for the local-fallback toast()
+     above when common.js fails to load. WWCommon.toast() builds its own
+     gh-toast-container element on first use; this div is unused when
+     common.js loads normally (the typical case). -->
 <div id="toast-container"></div>
 
 <!-- ─── Service worker registration ──────────────────────────── -->

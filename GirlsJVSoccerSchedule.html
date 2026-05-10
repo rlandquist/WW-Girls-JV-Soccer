@@ -41,24 +41,6 @@ body {
   max-height: calc(100vh - 48px);
   flex-shrink: 0;
 }
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #0d1f42;
-  background: #f0f4fa;
-  border: 1px solid #d0dcec;
-  border-radius: 5px;
-  padding: 5px 10px;
-  text-decoration: none;
-  letter-spacing: 0.04em;
-  align-self: flex-start;
-  white-space: nowrap;
-}
-.back-link:hover { background: #e0e9f7; border-color: #a0b8d4; }
-.back-link .arrow { font-size: 13px; line-height: 1; }
 .section-label {
   font-size: 10px;
   font-weight: 700;
@@ -179,6 +161,7 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
 .game-summary .res.W { background: #d6efd9; color: #1a5a28; }
 .game-summary .res.L { background: #efd6d6; color: #5a1a1a; }
 .game-summary .res.T { background: #e0e0e0; color: #444; }
+.game-summary .res.cxl { background: #e0e0e0; color: #444; font-style: italic; }
 .game-summary .res.sched { background: #d6e0ef; color: #1a3a6b; }
 .game-summary .del {
   background: none;
@@ -606,6 +589,7 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
 .gpill.W { background: #2a7a3a; color: #fff; }
 .gpill.L { background: #9a3333; color: #fff; }
 .gpill.T { background: #6b6b6b; color: #fff; }
+.gpill.cxl { background: #6b6b6b; color: #fff; font-style: italic; }
 .gscore { color: #fff; min-width: 30px; text-align: right; }
 .grow .gtime, .next-row .gtime {
   font-family: 'Arial Black', Arial, sans-serif;
@@ -1060,6 +1044,10 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
   <span class="rlp-text"><span class="rlp-copy">&copy;</span> <span class="rlp-name">Robert Landquist Photography</span></span>
 </div>
 
+<!-- Toast container — degraded-mode target for the local-fallback toast()
+     above when common.js fails to load. WWCommon.toast() builds its own
+     gh-toast-container element on first use; this div is unused when
+     common.js loads normally (the typical case). -->
 <div id="toast-container"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1213,8 +1201,13 @@ function computeRecord(games) {
 
 function splitGames(games) {
   var sorted = sortGamesByDate(games);
-  var results = sorted.filter(function(g) { return g.status === 'final'; });
-  var scheduled = sorted.filter(function(g) { return g.status !== 'final'; });
+  /* Cancelled games join the results bucket so they show chronologically
+     alongside completed games (with a CXL pill instead of W/L/T). They
+     never enter the scheduled bucket because they're not happening, so
+     a cancelled game can never become Next Up. computeRecord still filters
+     on status === 'final' so cancelled games don't affect the W-L-T tally. */
+  var results = sorted.filter(function(g) { return g.status === 'final' || g.status === 'cancelled'; });
+  var scheduled = sorted.filter(function(g) { return g.status !== 'final' && g.status !== 'cancelled'; });
   var nextUp = scheduled.length > 0 ? scheduled[0] : null;
   var upcoming = scheduled.length > 1 ? scheduled.slice(1) : [];
   return { results:results, nextUp:nextUp, upcoming:upcoming };
@@ -1326,6 +1319,8 @@ function renderGameRow(g, isNext) {
     var scoreStr = (!isNaN(us) && !isNaN(them)) ? (us + '-' + them) : '';
     resultHtml = '<div class="gres"><span class="gpill ' + pill + '">' + pill + '</span>' +
                  '<span class="gscore">' + scoreStr + '</span></div>';
+  } else if (g.status === 'cancelled') {
+    resultHtml = '<div class="gres"><span class="gpill cxl">CXL</span></div>';
   } else {
     var time = g.time || 'TBD';
     resultHtml = '<div class="gtime">' + escapeHtml(time) + '</div>';
@@ -1519,6 +1514,8 @@ function renderGameSummary(g) {
     } else {
       resHtml = '<span class="res T">—</span>';
     }
+  } else if (g.status === 'cancelled') {
+    resHtml = '<span class="res cxl">CXL</span>';
   } else {
     resHtml = '<span class="res sched">' + escapeHtml(g.time || 'TBD') + '</span>';
   }
@@ -1537,6 +1534,8 @@ function renderGameSummary(g) {
 function renderGameForm(g) {
   var isHome = g.location !== 'away';
   var isFinal = g.status === 'final';
+  var isCancelled = g.status === 'cancelled';
+  var isScheduled = !isFinal && !isCancelled;
   // Build datalist of known teams; user can also type a custom name.
   var oppOptions = '';
   OPPONENTS.forEach(function(t) {
@@ -1553,6 +1552,15 @@ function renderGameForm(g) {
           '<span class="vs">-</span>' +
           '<input type="number" min="0" id="f-them" value="' + (g.scoreThem != null ? g.scoreThem : '') + '" placeholder="OPP" onchange="saveEdit()">' +
         '</div>' +
+      '</div>';
+  } else if (isCancelled) {
+    /* No score or time inputs in cancelled mode — just an inline notice.
+       Existing g.time / g.scoreUs / g.scoreThem stay in the data but
+       aren't rendered. Switching back to Scheduled or Final exposes
+       them again. */
+    scoreOrTime =
+      '<div class="full">' +
+        '<div class="hint" style="padding:6px 0;color:#9a3333;font-style:italic;">Cancelled — no result recorded.</div>' +
       '</div>';
   } else {
     scoreOrTime =
@@ -1590,8 +1598,9 @@ function renderGameForm(g) {
         '<div>' +
           '<label>Status</label>' +
           '<div class="toggle-row">' +
-            '<button class="toggle-btn' + (!isFinal ? ' active' : '') + '" onclick="setField(\'' + g.id + '\',\'status\',\'scheduled\')">Scheduled</button>' +
+            '<button class="toggle-btn' + (isScheduled ? ' active' : '') + '" onclick="setField(\'' + g.id + '\',\'status\',\'scheduled\')">Scheduled</button>' +
             '<button class="toggle-btn' + (isFinal ? ' active' : '') + '" onclick="setField(\'' + g.id + '\',\'status\',\'final\')">Final</button>' +
+            '<button class="toggle-btn' + (isCancelled ? ' active' : '') + '" onclick="setField(\'' + g.id + '\',\'status\',\'cancelled\')">Cancelled</button>' +
           '</div>' +
         '</div>' +
         scoreOrTime +
@@ -1767,7 +1776,7 @@ function importSchedule(input) {
           date: g.date || '',
           opponent: g.opponent || '',
           location: g.location === 'away' ? 'away' : 'home',
-          status: g.status === 'final' ? 'final' : 'scheduled',
+          status: (g.status === 'final' || g.status === 'cancelled') ? g.status : 'scheduled',
           scoreUs: g.scoreUs != null ? g.scoreUs : null,
           scoreThem: g.scoreThem != null ? g.scoreThem : null,
           time: g.time || '',
