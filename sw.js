@@ -22,6 +22,14 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
+ * v5 (May 2026): Card tool's scorer-display preference (totals vs
+ * times) is now per-card-mode — Final and Halftime carry independent
+ * prefs. New localStorage keys are read on first load with a one-time
+ * migration from the legacy single key. Bumped so v4-cached devices
+ * evict and pick up the restructured Card.html on next visit; without
+ * it, the new toggles wouldn't render and the migration wouldn't run
+ * until stale-while-revalidate caught up on the second reload.
+ *
  * v4 (May 2026): Added Classic8.png (conference badge) and
  * RobertLandquistPhotography.png (photo credit) to the pre-cached
  * shell. Both were already cached on demand via the /Logos/ path
@@ -49,7 +57,7 @@
  * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v4';
+const CACHE_VERSION    = 'v5';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 

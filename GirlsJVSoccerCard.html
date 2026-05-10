@@ -70,6 +70,11 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 .goals-link-status{font-size:10px;color:#888;font-style:italic;}
 .goals-link-status.loaded{color:#2a6a2a;font-style:normal;}
 .goals-link-status.empty{color:#8a5a2a;}
+/* Dim-when-empty for scorer-display toggles. The display toggle is
+   meaningful only when goals exist; with an empty list, picking a
+   format does nothing visible. Dimming visually demotes it so the
+   "Open Goals tool" CTA becomes the primary in-context action. */
+.toggle-row.empty-disabled{opacity:0.5;pointer-events:none;}
 
 /* ── MODE TOGGLE (prominent at top of editor) ── */
 .mode-toggle{display:flex;gap:5px;margin-bottom:2px;}
@@ -943,11 +948,22 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
       </div>
 
       <!-- Goal Scorers (shown when footer mode = 'scorers').
-           Scorer data is owned by the Goals tool (goals.json). This block
-           tells the user where to add/edit scorers and exposes a display
-           toggle that controls how the card renders them: total goals
-           (e.g. "#9 SMITH · 3") or goals + times (e.g. "#9 SMITH 12', 28'"). -->
+           Scorer data is owned by the Goals tool (goals.json); the
+           display toggle is per-card-mode (Final and Halftime carry
+           independent prefs as of 2026-05-09). The toggle leads because
+           it's the only thing the user actually does in this tab; the
+           "Open Goals tool" link block follows as the data-entry handoff. -->
       <div id="footer-scorers-fields" style="display:none;">
+        <div class="section-label">Display on card</div>
+        <div class="toggle-row" id="scorer-display-row-final">
+          <button class="toggle-btn" id="btn-scorer-display-final-totals" onclick="setScorerDisplayFinal('totals')">Total goals</button>
+          <button class="toggle-btn active" id="btn-scorer-display-final-times" onclick="setScorerDisplayFinal('times')">Goals &amp; times</button>
+        </div>
+        <div class="hint" style="margin-top:5px;">Total: <code>#9 SMITH · 3</code> &nbsp;·&nbsp; Times: <code>#9 SMITH 12', 28', 67'</code></div>
+
+        <hr class="divider">
+
+        <div class="section-label">Scorer entry</div>
         <div class="goals-link-block">
           <p class="goals-link-text">
             Scorers are managed in the <strong>Goals tool</strong>. Set the
@@ -956,12 +972,6 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
           <a href="./GirlsJVSoccerGoals.html" class="goals-link-btn">Open Goals tool ↗</a>
           <div class="goals-link-status" id="goals-link-status-final">Loading…</div>
         </div>
-        <div class="section-label" style="margin-top:8px">Display on card</div>
-        <div class="toggle-row">
-          <button class="toggle-btn" id="btn-scorer-display-totals" onclick="setScorerDisplay('totals')">Total goals</button>
-          <button class="toggle-btn active" id="btn-scorer-display-times" onclick="setScorerDisplay('times')">Goals &amp; times</button>
-        </div>
-        <div class="hint" style="margin-top:5px;">Total: <code>#9 SMITH · 3</code> &nbsp;·&nbsp; Times: <code>#9 SMITH 12', 28', 67'</code></div>
       </div>
     </div>
 
@@ -1044,18 +1054,30 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
       </div>
 
       <!-- Goal Scorers (shown when halftime bottom mode = 'scorers').
-           Same Goals-tool link as Final card. The display toggle is
-           shared (one preference for both Final + Halftime cards). -->
+           Same Goals-tool link as Final card. As of 2026-05-09 the
+           display toggle is per-card-mode (independent from Final), so
+           the Halftime card can render totals while the Final card
+           renders times (or vice versa). Same structure as the Final
+           tab: toggle leads, link block follows. -->
       <div id="halftime-scorers-fields" style="display:none;">
+        <div class="section-label">Display on card</div>
+        <div class="toggle-row" id="scorer-display-row-halftime">
+          <button class="toggle-btn" id="btn-scorer-display-halftime-totals" onclick="setScorerDisplayHalftime('totals')">Total goals</button>
+          <button class="toggle-btn active" id="btn-scorer-display-halftime-times" onclick="setScorerDisplayHalftime('times')">Goals &amp; times</button>
+        </div>
+        <div class="hint" style="margin-top:5px;">Total: <code>#9 SMITH · 3</code> &nbsp;·&nbsp; Times: <code>#9 SMITH 12', 28', 67'</code></div>
+
+        <hr class="divider">
+
+        <div class="section-label">Scorer entry</div>
         <div class="goals-link-block">
           <p class="goals-link-text">
-            Scorers are managed in the <strong>Goals tool</strong>. The
-            same scorers shown on the Final card render here too.
+            Scorers are managed in the <strong>Goals tool</strong>. Set the
+            same date and opponent there to enter goals for this game.
           </p>
           <a href="./GirlsJVSoccerGoals.html" class="goals-link-btn">Open Goals tool ↗</a>
           <div class="goals-link-status" id="goals-link-status-halftime">Loading…</div>
         </div>
-        <div class="hint" style="margin-top:5px;">Display style is set in the Final card&rsquo;s Goal Scorers tab and applies here too.</div>
       </div>
     </div>
 
@@ -2763,7 +2785,14 @@ var footerMode = 'next';            /* Final card footer: 'next' | 'scorers' */
 var halftimeMode = 'msg';           /* Halftime card bottom: 'msg' | 'scorers' */
 var LS_ROSTER_KEY = 'ww-soccer-roster-v1';
 var LS_GOALS_KEY  = 'ww-soccer-goals-v1';
-var LS_SCORER_DISPLAY_KEY = 'ww-card-scorer-display-v1';
+/* Scorer display preference is per-card-mode as of 2026-05-09. The
+   legacy single key is read once for migration on load (it seeds both
+   new keys with whatever the user had before), then becomes dead data.
+   No cleanup write — leaving it harmless avoids any race with browsers
+   running an older HTML still writing to it. */
+var LS_SCORER_DISPLAY_FINAL_KEY    = 'ww-card-scorer-display-final-v1';
+var LS_SCORER_DISPLAY_HALFTIME_KEY = 'ww-card-scorer-display-halftime-v1';
+var LS_SCORER_DISPLAY_LEGACY_KEY   = 'ww-card-scorer-display-v1';
 
 /* Per-game goals data, loaded from goals.json. Map: gameKey → array of
    goal entries. Read-only from the Card tool's perspective — only the
@@ -2775,7 +2804,8 @@ var GOALS_BY_GAME = {};
    list with minutes by default; switching to 'totals' is a deliberate
    choice for season-summary-style cards. The localStorage value, if
    present, overrides this default. */
-var scorerDisplay = 'times';
+var scorerDisplayFinal    = 'times';
+var scorerDisplayHalftime = 'times';
 
 /* The game key (`date|opp-lowercase`) currently rendering. null when
    either field is empty (in which case the card shows "no scorers"). */
@@ -3126,28 +3156,59 @@ function aggregateGoalsByPlayer(goals, sortMode) {
    DISPLAY MODE TOGGLE (totals vs times)
    ═══════════════════════════════════════════════════════════════ */
 function loadScorerDisplay() {
+  /* Read the new per-card keys, falling back to the legacy single key
+     for one-time migration. After this load, future saves write only
+     the new keys; the legacy key stays untouched in localStorage. */
+  var legacy = null;
+  try { legacy = localStorage.getItem(LS_SCORER_DISPLAY_LEGACY_KEY); } catch(e) {}
   try {
-    var v = localStorage.getItem(LS_SCORER_DISPLAY_KEY);
-    if (v === 'totals' || v === 'times') scorerDisplay = v;
+    var f = localStorage.getItem(LS_SCORER_DISPLAY_FINAL_KEY);
+    if (f === 'totals' || f === 'times') {
+      scorerDisplayFinal = f;
+    } else if (legacy === 'totals' || legacy === 'times') {
+      scorerDisplayFinal = legacy;
+    }
+  } catch(e) {}
+  try {
+    var h = localStorage.getItem(LS_SCORER_DISPLAY_HALFTIME_KEY);
+    if (h === 'totals' || h === 'times') {
+      scorerDisplayHalftime = h;
+    } else if (legacy === 'totals' || legacy === 'times') {
+      scorerDisplayHalftime = legacy;
+    }
   } catch(e) {}
 }
-function saveScorerDisplay() {
-  try { localStorage.setItem(LS_SCORER_DISPLAY_KEY, scorerDisplay); } catch(e) {}
+function saveScorerDisplayFinal() {
+  try { localStorage.setItem(LS_SCORER_DISPLAY_FINAL_KEY, scorerDisplayFinal); } catch(e) {}
 }
-function setScorerDisplay(mode) {
+function saveScorerDisplayHalftime() {
+  try { localStorage.setItem(LS_SCORER_DISPLAY_HALFTIME_KEY, scorerDisplayHalftime); } catch(e) {}
+}
+function setScorerDisplayFinal(mode) {
   if (mode !== 'totals' && mode !== 'times') mode = 'totals';
-  scorerDisplay = mode;
+  scorerDisplayFinal = mode;
   applyScorerDisplayButtons();
-  saveScorerDisplay();
-  /* Re-render so the card reflects the new format immediately. */
+  saveScorerDisplayFinal();
+  /* Re-render only the Final card — Halftime is independent now. */
   renderScorersOnCard();
+}
+function setScorerDisplayHalftime(mode) {
+  if (mode !== 'totals' && mode !== 'times') mode = 'totals';
+  scorerDisplayHalftime = mode;
+  applyScorerDisplayButtons();
+  saveScorerDisplayHalftime();
+  /* Re-render only the Halftime card — Final is independent now. */
   renderScorersOnHalftimeCard();
 }
 function applyScorerDisplayButtons() {
-  var bt = document.getElementById('btn-scorer-display-totals');
-  var bm = document.getElementById('btn-scorer-display-times');
-  if (bt) bt.classList.toggle('active', scorerDisplay === 'totals');
-  if (bm) bm.classList.toggle('active', scorerDisplay === 'times');
+  var bft = document.getElementById('btn-scorer-display-final-totals');
+  var bfm = document.getElementById('btn-scorer-display-final-times');
+  if (bft) bft.classList.toggle('active', scorerDisplayFinal === 'totals');
+  if (bfm) bfm.classList.toggle('active', scorerDisplayFinal === 'times');
+  var bht = document.getElementById('btn-scorer-display-halftime-totals');
+  var bhm = document.getElementById('btn-scorer-display-halftime-times');
+  if (bht) bht.classList.toggle('active', scorerDisplayHalftime === 'totals');
+  if (bhm) bhm.classList.toggle('active', scorerDisplayHalftime === 'times');
 }
 
 /* Hint string under each Goals-tool link button: tells the user how
@@ -3155,22 +3216,33 @@ function applyScorerDisplayButtons() {
    Goals tool only to find it empty. */
 function refreshGoalsLinkStatus() {
   var goals = getCurrentGameGoals();
-  var msg, cls;
+  var msg, cls, isEmpty;
   if (!currentGameKey) {
     msg = 'Set the game date and opponent above first.';
     cls = 'goals-link-status empty';
+    isEmpty = true;
   } else if (goals.length === 0) {
     msg = 'No goals tracked yet for this game.';
     cls = 'goals-link-status empty';
+    isEmpty = true;
   } else {
     msg = goals.length + ' goal' + (goals.length === 1 ? '' : 's') + ' tracked for this game ✓';
     cls = 'goals-link-status loaded';
+    isEmpty = false;
   }
   ['goals-link-status-final', 'goals-link-status-halftime'].forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
     el.className = cls;
     el.textContent = msg;
+  });
+  /* Dim the display toggles when there's nothing meaningful to render —
+     picking a format for an empty list does nothing visible, and dimming
+     promotes the "Open Goals tool" link block to primary action. */
+  ['scorer-display-row-final', 'scorer-display-row-halftime'].forEach(function(id) {
+    var row = document.getElementById(id);
+    if (!row) return;
+    row.classList.toggle('empty-disabled', isEmpty);
   });
 }
 
@@ -3250,13 +3322,13 @@ function escapeAttr(s) {
        of letting the container grow into the surrounding card sections.
    v2: Aggregates goals.json entries by player; respects the totals/
    times display toggle. */
-function renderScorersList(listEl) {
+function renderScorersList(listEl, displayMode) {
   if (!listEl) return;
   /* Reset font-size before measuring so each render starts fresh */
   listEl.style.fontSize = '';
 
   var goals = getCurrentGameGoals();
-  var entries = aggregateGoalsByPlayer(goals, scorerDisplay);
+  var entries = aggregateGoalsByPlayer(goals, displayMode);
 
   /* Two-column grid kicks in at 4+ unique scorers (matches the v1
      threshold; the threshold is on # of rendered rows, not goal count). */
@@ -3272,7 +3344,7 @@ function renderScorersList(listEl) {
     var prefix = e.number ? '#' + escapeHtml(e.number) + ' ' : '';
     var nameEsc = escapeHtml(e.name);
     var detail;
-    if (scorerDisplay === 'times') {
+    if (displayMode === 'times') {
       /* Format minutes: known minutes show as "12'", null minutes as "—".
          Comma-separated. */
       var mins = e.minutes.map(function(m) {
@@ -3292,11 +3364,11 @@ function renderScorersList(listEl) {
 }
 
 function renderScorersOnCard() {
-  renderScorersList(document.getElementById('card-scorers-list'));
+  renderScorersList(document.getElementById('card-scorers-list'), scorerDisplayFinal);
 }
 
 function renderScorersOnHalftimeCard() {
-  renderScorersList(document.getElementById('card-halftime-goals'));
+  renderScorersList(document.getElementById('card-halftime-goals'), scorerDisplayHalftime);
 }
 
 function fitScorersList(el) {

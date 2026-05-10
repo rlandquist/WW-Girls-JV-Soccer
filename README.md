@@ -281,10 +281,10 @@ If your change affects how data is read or written (any `common.js` change, any 
 
 ```js
 // sw.js, near the top
-const CACHE_VERSION = 'v4';   // bump to 'v5', 'v6', etc.
+const CACHE_VERSION = 'v5';   // bump to 'v6', 'v7', etc.
 ```
 
-Current version: `v4` (May 2026 — added Classic 8 + photo-credit logos to the pre-cached shell so they're available offline from install; `v3` was the unified app-shell across Card / Schedule / Roster; `v2` added the Goals tool to the shell). Bumping forces a clean install on first reload; without a bump, returning users still pick up the new shell on their second reload via stale-while-revalidate.
+Current version: `v5` (May 2026 — Card tool's scorer-display preference split per-card-mode, with a one-time legacy-key migration; `v4` added Classic 8 + photo-credit logos to the pre-cached shell; `v3` was the unified app-shell across Card / Schedule / Roster; `v2` added the Goals tool to the shell). Bumping forces a clean install on first reload; without a bump, returning users still pick up the new shell on their second reload via stale-while-revalidate.
 
 ### Telling deployed builds apart
 
@@ -434,7 +434,9 @@ All tools share the same origin (`rlandquist.github.io`), so localStorage is sha
 | `ww-soccer-goals-v1` | Goals tool | local cache of `goals.json` |
 | `ww-soccer-schedule-v1` | Schedule tool | local cache of `schedule.json` |
 | `ww-soccer-roster-v1` | Roster tool | local cache of `roster.json` |
-| `ww-card-scorer-display-v1` | Card tool | per-browser preference: 'totals' vs 'times' |
+| `ww-card-scorer-display-final-v1` | Card tool | per-browser preference for the Final card: 'totals' vs 'times' |
+| `ww-card-scorer-display-halftime-v1` | Card tool | per-browser preference for the Halftime card: 'totals' vs 'times' |
+| `ww-card-scorer-display-v1` | Card tool | legacy single key, migrated on first load — read once to seed the two new keys, then ignored (kept around as harmless dead data) |
 | `ww-soccer-goals-prefs-v1` | Goals tool | per-browser prefs (last half, view mode) |
 
 Clearing browser storage for the site clears everything except the data on GitHub itself — re-authenticate with the token to pull it all back.

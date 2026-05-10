@@ -2602,3 +2602,147 @@ PROCESS NOTES:
   same edit batch. Same applies to any other "current version: X" or
   "build date: X" references that drift over time.]
 
+
+=== Journal Entry 2026-05-10T01:30:00.000000+00:00 ===
+2026-05-10-01-30-00-card-scorer-display-per-card.txt
+[Closed Item 14 from the 2026-05-08 backlog ("Card's Total goals / Goals
+& times toggle visual cleanup"). The orphaned-feeling toggle that
+survived the Goals-tool extraction got restructured plus split into
+per-card prefs in one pass. Single file changed for the feature itself
+(GirlsJVSoccerCard.html), plus sw.js v4 -> v5 + matching README bumps.
+Build date stayed at 2026-05-09 per the same-day no-second-bump rule —
+already today's date on the file from earlier consistency work.
+
+CONVERSATION ARC: Rob asked what the outstanding items were; I read back
+the 2026-05-09T23:55 maskable-icons-session backlog list. He followed up
+specifically on Item 14, asked for a recommendation on how to
+restructure. I surfaced two decisions (one shared pref vs per-card,
+toggle order vs link-block order) plus an optional dim-when-empty
+behavior. Rob picked: (1) per-card prefs, no longer linked, (2) flip the
+order, toggle leads, (3) yes to the dim. Then "go ahead, create the
+journal entry and update readme if needed."
+
+DECISIONS LOCKED IN:
+
+Per-card prefs. Two new localStorage keys
+(ww-card-scorer-display-final-v1 / ww-card-scorer-display-halftime-v1)
+replacing the single ww-card-scorer-display-v1. The Final renderer reads
+the Final pref; Halftime reads its own. Setting one no longer moves the
+other. Migration on first load: the legacy key value, if 'totals' or
+'times', seeds BOTH new keys so existing users don't see a surprise
+revert from whatever they had before. The legacy key is left in place
+(harmless dead data) rather than cleaned up — same approach the project
+took with the lastHalf field in goals prefs back in May 2026. Cleanup
+writes add risk; future sessions touching the same code path could
+remove the key before all browsers have run their migration.
+
+Toggle leads, link block follows. Both Final and Halftime scorers tabs
+now have the same structure: section-label "Display on card" then toggle
+then hint with format examples then divider then section-label "Scorer
+entry" then the goals-link-block. Reasoning: the toggle is the only
+thing the user actually does in this tab (display preference); the link
+block is a "go elsewhere for data entry" pointer. Putting the toggle
+first gives it the primary visual weight it deserves and demotes the
+link block to a clearly-labelled secondary action. Halftime's old hint
+text ("Display style is set in the Final card's Goal Scorers tab and
+applies here too") went away — replaced with the actual toggle.
+
+Dim-when-empty. New CSS rule .toggle-row.empty-disabled { opacity: 0.5;
+pointer-events: none; } added near the existing goals-link-status block.
+refreshGoalsLinkStatus() already knew the empty/loaded state for the
+link-block status text; extended to also flip the class on both toggle
+rows. Three trigger states: no game key set, game key set but
+goals.length === 0, and after the user clears all goals for the active
+game. The renderer re-runs on every meaningful state change so the dim
+updates without needing additional plumbing.
+
+CHANGES TO CARD.HTML (10 surgical edits via filesystem:edit_file, single
+batch with dryRun=true verification before the real run):
+
+CSS: one rule added.
+
+Markup: replaced both #footer-scorers-fields (Final) and
+#halftime-scorers-fields (Halftime) bodies. Same shape both sides; new
+per-card button IDs (btn-scorer-display-final-totals and so on); new
+toggle-row IDs (scorer-display-row-final / -halftime) so
+refreshGoalsLinkStatus has stable hooks for the dim class.
+
+State: split var scorerDisplay -> scorerDisplayFinal +
+scorerDisplayHalftime. Split LS_SCORER_DISPLAY_KEY -> three constants
+(FINAL, HALFTIME, LEGACY) with the legacy one read-only.
+
+Functions: loadScorerDisplay() rewritten to read both new keys with
+legacy fallback per pref. saveScorerDisplay() split into Final and
+Halftime variants. setScorerDisplay(mode) split into
+setScorerDisplayFinal / setScorerDisplayHalftime; each now re-renders
+ONLY its own card (the old version re-rendered both because the pref
+was shared). applyScorerDisplayButtons() expanded to handle four buttons
+across the two tabs.
+
+Renderer: renderScorersList(listEl) -> renderScorersList(listEl,
+displayMode) — now takes the mode as a parameter rather than reading a
+global. The two thin wrappers (renderScorersOnCard,
+renderScorersOnHalftimeCard) pass the right pref each. Inside the
+renderer, the conditional `if (scorerDisplay === 'times')` became `if
+(displayMode === 'times')`.
+
+refreshGoalsLinkStatus(): added isEmpty boolean alongside the existing
+msg/cls computation, then a second .forEach across the two toggle-row
+IDs to flip the empty-disabled class.
+
+VALIDATION: dryRun first to confirm all 10 anchors matched, then real
+run. Post-edit greps confirmed zero stale references (scorerDisplay
+without suffix, LS_SCORER_DISPLAY_KEY, old button IDs, old
+setScorerDisplay calls all gone). HTMLParser passed on the resulting 185
+KB file; all 3 inline script blocks passed node --check. File grew +3.8
+KB net.
+
+OTHER FILES:
+
+sw.js v4 -> v5 with a new changelog block at the top documenting the
+reason. APP_SHELL_URLS unchanged — the file list didn't shift. The bump
+is purely about evicting v4-cached shells so the new Card.html / its new
+toggles / its migration path get picked up on first reload instead of
+waiting on stale-while-revalidate.
+
+README.md: CACHE_VERSION example bumped v4 -> v5 + matching "Current
+version" callout updated with the v5 reason. localStorage-keys table
+gained two new rows for the per-card keys plus a third row documenting
+the legacy key as kept-for-migration. The README-drift discipline rule
+from 2026-05-09T23:55 (any CACHE_VERSION bump must search the README for
+the version string and update in the same edit batch) held up here
+without thinking about it.
+
+REMAINING BACKLOG (all held, none active):
+
+- Multi-conference UI (Item 15 from 2026-05-08) — schema is general but
+  Card's manage-teams modal hardcodes a single C8 checkbox column.
+  Whenever a second conference gets added, the modal needs a dropdown or
+  multiple checkbox columns.
+
+- Full Open Graph tags on index for richer share previews (og:title /
+  og:description / og:image). Meta description shipped earlier this
+  week; the OG triplet would build on it.
+
+- shareTarget API on the manifest for direct social-media sharing from
+  other apps.
+
+PROCESS NOTES:
+
+- Filesystem MCP edit batches with dryRun=true first. 10 edits landed
+  cleanly in one call; the dry-run confirmed every anchor matched before
+  the real write. Worth keeping as the default for multi-edit sessions
+  on this project — the diff output IS the review surface, no need for a
+  separate preview step.
+
+- Show-decisions-before-execute pattern again. Rob picks the numbered
+  options, I execute. The 2026-05-08 architecture session noted the same
+  lesson; reinforced here. Surface the questions that genuinely block
+  progress, not every implementation detail.
+
+- README + sw.js + journal in the same commit as the code change. Every
+  CACHE_VERSION bump now flows through README example + "current
+  version" callout + sw.js changelog block + journal entry as a single
+  coherent unit. Pattern crystallized over the last three sessions;
+  treat it as the default for any version-bump session going forward.]
+
