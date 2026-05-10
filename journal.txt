@@ -2479,3 +2479,126 @@ REMAINING BACKLOG:
   download be shared directly to social media instead of
   download-then-upload. Mentioned in 2026-05-08 backlog. Not urgent.]
 
+
+=== Journal Entry 2026-05-09T23:55:00.000000+00:00 ===
+2026-05-09-23-55-00-maskable-pwa-icons.txt
+[Final backlog item shipped — true 192/512 maskable PWA icons. Brief
+focused task: design discussion + PIL generation in the container +
+manifest update + README cleanup. Total elapsed time was small relative
+to today's earlier consistency pass.
+
+CONVERSATION ARC: Rob asked "let's talk about the remaining task" — I
+laid out the current manifest state (4 icon entries all pointing at
+WaukeshaWest.png — the paw mark, transparent background, near-edge
+content) and explained why that's wrong for both `any` and `maskable`
+purposes. Surfaced 3 design decisions with recommendations: navy #0d1f42
+background (matches manifest theme_color so the install icon visually
+matches the splash screen), paw at 70% of canvas size for a comfortable
+safe-zone margin, single icon serves both `any` and `maskable` purposes.
+Rob said "yes, go with your recommendations and do it" — proceeded to
+execution.
+
+GENERATION: PIL in /home/claude/work. Source paw is 232×300 (taller than
+wide, transparent background). Process: Image.new('RGBA', (size, size),
+(13, 31, 66, 255)) for the navy canvas; resize paw with Image.LANCZOS
+preserving aspect so the longer dimension hits 70% of canvas size; paste
+using paw's own alpha as the mask so transparent paw pixels stay navy.
+Output: 19 KB icon-192.png, 85 KB icon-512.png.
+
+DESIGN MATH: On a 512×512 canvas, scaling longer dim to 70% gives 358
+px; with the source's 232×300 ratio, the paw renders at 277×358 centered
+(offset 117, 77). The 80% maskable safe zone is the inner 410×410
+inscribed circle — paw fits inside with comfortable margin both
+vertically (358 < 410) and horizontally (277 << 410). Conservative; any
+Android launcher mask will display the paw cleanly.
+
+PREVIEW: Side-by-side render showing the icon under three masks (as-is
+for iOS / circle for one common Android mask / squircle for
+Pixel-launcher style, superellipse exponent n=4) saved alongside the
+icon files so Rob could visually confirm before deploying. Bottom heel
+pad of the paw sits right at the inscribed-circle edge but stays inside
+under both circular masks. Pattern from the 2026-05-09 mobile-polish
+session reused: visualizing options at deployed scale catches issues a
+code-only diff can't surface.
+
+MANIFEST UPDATE: Collapsed 4-entry icons array to 2 entries using
+`purpose: "any maskable"` (space-separated multi-purpose value — valid
+per W3C spec). Updated all 4 shortcut icons to point at icon-192.png.
+Old icon entries pointed at ./Logos/WaukeshaWest.png; new ones point at
+./icons/icon-192.png and ./icons/icon-512.png in a new top-level
+`icons/` folder (separated from the runtime `Logos/` folder which holds
+opponent logos and brand marks).
+
+DELIVERY: Filesystem MCP can't write binary, so PNGs traveled via
+/mnt/user-data/outputs + present_files (same workaround as the journal
+earlier today). Rob created the new ./icons/ folder, dropped both PNGs
+in, committed alongside the manifest change.
+
+NOT TOUCHED:
+
+- sw.js CACHE_VERSION — install icons are OS-level (used by the launcher
+  at install time), not part of the runtime app shell. The manifest
+  reference change propagates naturally on the next browser-side
+  manifest fetch.
+- APP_SHELL_URLS — same reason. Install icons aren't runtime resources.
+
+README CLEANUP IN THE SAME COMMIT: Several drift items got fixed
+alongside the icons doc updates. (1) Removed the "Optional polish"
+subsection — its only TODO entry was the maskable-icons task that just
+shipped. (2) CACHE_VERSION example updated v3 → v4 with a description of
+all three version reasons (v2 = Goals tool; v3 = unified app-shell; v4 =
+Classic 8 + photo-credit pre-caching). The earlier sw.js bump in this
+same conversation hadn't propagated to the README — caught here. (3)
+Build-date example updated 2026-05-08 → 2026-05-09 to match the deployed
+builds. (4) .gitattributes wording flipped from "add this file" (a
+recommendation) to "this repo's .gitattributes enforces" (current state)
+since the file was added earlier today. (5) Repo-tree ASCII updated to
+show the new ./icons/ folder alongside ./Logos/. (6) File inventory
+table got two new rows for the icons.
+
+WHAT END USERS SEE: Already-installed PWAs won't visibly change
+immediately — the OS only picks up new manifest icons on fresh install
+or when the browser explicitly reports a manifest update. Fresh installs
+from this point forward will get the navy-on-paw tile that displays
+correctly under any Android launcher mask. iPhone home-screen icons pick
+up the new design on next install too (iOS uses apple-touch-icon
+independently — separate convention not changed here).
+
+REMAINING BACKLOG (all held, none active — the active list is now
+empty):
+
+- Card's Total goals / Goals & times toggle visual cleanup (Item 14 from
+  2026-05-08).
+- Multi-conference UI (Item 15) — modal currently has a hardcoded C8
+  column.
+- Full Open Graph tags on index for richer share previews (og:title /
+  og:description / og:image).
+- shareTarget API on the manifest for direct social-media sharing from
+  other apps.
+
+PROCESS NOTES:
+
+- Show-preview-before-shipping pattern worked well here. For asset work,
+  rendering the deliverable + showing visual context (the icon under
+  each mask shape) catches issues a code-only diff can't surface. Same
+  lesson surfaced in the 2026-05-09 mobile-polish session about
+  visualizing color decisions before applying.
+- PIL was simpler than maskable.app would have been. Brand-consistent
+  maskable icons with a flat background and a centered mark are ~30
+  lines of Python — beats the GUI-tool round trip. Default to PIL
+  whenever the design intent is straightforward; reach for maskable.app
+  only when the design needs interactive iteration.
+- Binary-deliverables-via-outputs pattern stabilized. Used three times
+  in this conversation: standardized journal, two icon PNGs, one icon
+  preview. Worth treating as the canonical approach: text changes go
+  through filesystem:write_file or filesystem:edit_file directly; binary
+  deliverables (or large text deliverables that would chew through
+  tool-call budget) go through /mnt/user-data/outputs + present_files
+  for Windows-side download.
+- README-drift discipline reinforced: bumping CACHE_VERSION in sw.js
+  earlier in the same conversation but not the README example was a
+  small lapse caught here. Future-session rule: any time CACHE_VERSION
+  changes, search the README for the version string and update in the
+  same edit batch. Same applies to any other "current version: X" or
+  "build date: X" references that drift over time.]
+

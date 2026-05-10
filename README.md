@@ -38,10 +38,13 @@ When you open a tool on a different device, it reads the JSON files via the GitH
 ├── schedule.json                ← owned by Schedule tool
 ├── roster.json                  ← owned by Roster tool
 └── Logos/
-    ├── WaukeshaWest.png         ← school paw mark (do not rename)
-    ├── Classic8.png             ← Classic 8 conference badge
-    ├── RobertLandquistPhotography.png ← photo credit mark
-    └── …                        ← opponent logos, CamelCase filenames
+│   ├── WaukeshaWest.png         ← school paw mark (do not rename)
+│   ├── Classic8.png             ← Classic 8 conference badge
+│   ├── RobertLandquistPhotography.png ← photo credit mark
+│   └── …                        ← opponent logos, CamelCase filenames
+└── icons/
+    ├── icon-192.png             ← 192×192 PWA install icon
+    └── icon-512.png             ← 512×512 PWA install icon
 ```
 
 ### Who reads/writes what
@@ -278,10 +281,10 @@ If your change affects how data is read or written (any `common.js` change, any 
 
 ```js
 // sw.js, near the top
-const CACHE_VERSION = 'v3';   // bump to 'v4', 'v5', etc.
+const CACHE_VERSION = 'v4';   // bump to 'v5', 'v6', etc.
 ```
 
-Current version: `v3` (May 2026 — unified app-shell across Card / Schedule / Roster; previous `v2` added Goals tool to the shell). Bumping forces a clean install on first reload; without a bump, returning users still pick up the new shell on their second reload via stale-while-revalidate.
+Current version: `v4` (May 2026 — added Classic 8 + photo-credit logos to the pre-cached shell so they're available offline from install; `v3` was the unified app-shell across Card / Schedule / Roster; `v2` added the Goals tool to the shell). Bumping forces a clean install on first reload; without a bump, returning users still pick up the new shell on their second reload via stale-while-revalidate.
 
 ### Telling deployed builds apart
 
@@ -289,7 +292,7 @@ Each HTML carries a build-date comment immediately after the `<!DOCTYPE html>` l
 
 ```html
 <!DOCTYPE html>
-<!-- Build: 2026-05-08 -->
+<!-- Build: 2026-05-09 -->
 ```
 
 View source on the deployed site (or "show source" in the browser dev tools) to see which build is active. Bump the date when shipping changes — it's the cheapest way to confirm a deploy actually landed and the service worker isn't serving an old cached shell.
@@ -441,11 +444,7 @@ Clearing browser storage for the site clears everything except the data on GitHu
 All files use LF line endings (Unix-style), enforced project-wide as of May 2026. Card / Schedule / Roster were originally CRLF and got normalized in a dedicated whitespace-only commit so future diffs stay clean. If you're editing on Windows, configure your editor or git to use LF on save:
 
 - **VS Code**: bottom-right status bar → click `CRLF` → pick `LF`. To make it default: Settings → search "eol" → set `files.eol` to `\n`.
-- **Git**: add a `.gitattributes` file at repo root with `* text=auto eol=lf` so Git enforces LF on commit regardless of your editor.
-
-### Optional polish
-
-The PWA manifest currently points all icon sizes at the single `WaukeshaWest.png`, and the browser scales it. For sharper home-screen rendering on Android Chrome's install prompt, generate true 192×192 and 512×512 PNGs and update `manifest.json`'s icon entries. Not blocking — installs and offline behavior already work fine.
+- **Git**: this repo's `.gitattributes` enforces `* text=auto eol=lf`, so Git normalizes to LF on commit regardless of your editor.
 
 ---
 
@@ -469,6 +468,8 @@ The PWA manifest currently points all icon sizes at the single `WaukeshaWest.png
 | `Logos/Classic8.png` | Classic 8 conference badge (rendered as overlay on opponent logos) |
 | `Logos/RobertLandquistPhotography.png` | Photo-credit mark, shown in a black pill on each page |
 | `Logos/*.png` | Opponent logos, CamelCase filenames |
+| `icons/icon-192.png` | PWA install icon, 192×192, navy background with centered paw — serves both `any` and `maskable` purposes |
+| `icons/icon-512.png` | PWA install icon, 512×512, same design |
 
 ---
 
