@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Build: 2026-05-10 -->
+<!-- Build: 2026-05-11 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -51,7 +51,7 @@ input[type=file]{font-size:11px;color:#666;}
 .dl-btn:hover{background:#1a3a6b;}
 .copy-btn{width:100%;padding:9px;background:#2a5f2a;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;margin-top:-4px;}
 .copy-btn:hover{background:#3a7f3a;}
-.copy-btn.success{background:#1a7a3a;}
+.copy-btn.done{background:#1a7a3a;}
 .copy-btn:disabled{background:#888;cursor:default;}
 /* .photo-credit chrome lives in shared.css. */
 .hint{font-size:10px;color:#aaa;}
@@ -560,9 +560,11 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 /* Toast styling + #toast-container live in shared.css. */
 
 /* ═══════════════════════════════════════════════════════════════ */
-/* APP HEADER + MOBILE RESPONSIVENESS                               */
-/* Added 2026-05-08. Mirrors the Goals-tool pattern so all four     */
-/* PWAs share the same app-shell when installed to a home screen.   */
+/* MOBILE OVERRIDES (Card-specific, on top of shared.css)         */
+/* App-header chrome, .app-body, .editor-toggle, .photo-credit,    */
+/* and the shared mobile @media block all live in shared.css. The  */
+/* @media block below is Card-only and mostly mirrors shared (kept */
+/* intact during Tier 1 for safety); Tier 3 candidate to collapse. */
 /* ═══════════════════════════════════════════════════════════════ */
 /* .app-header chrome lives in shared.css. The marker stripe under
    the header is set via --tool-marker (#3a6090, lighter navy) in the
@@ -3441,6 +3443,17 @@ if (window.WWCommon && typeof WWCommon.onFileSaved === 'function') {
 
 /* ══════════════════════════════════════════════════════════════
    DOWNLOAD + COPY — uses whichever card is currently active
+   ──────────────────────────────────────────────────────────────
+   Thin wrappers around WWCommon's PNG-export helpers; the helpers
+   handle button state, html2canvas, body.exporting, blob/clipboard
+   plumbing, and toasts. Card supplies:
+     · activeCardEl().parentNode  — the wrapper to capture (Score /
+       Halftime / Preview, whichever is currently visible)
+     · downloadFilename()         — full filename in the form
+       ww_YYYYMMDD_<mode>.png (no auto-timestamp suffix — coaches
+       expect a clean re-export to overwrite the previous one)
+     · hideDragTip()              — before-capture hook so the
+       photo "drag to reposition" tip doesn't appear in the PNG
    ══════════════════════════════════════════════════════════════ */
 function activeCardEl() {
   if (currentMode === 'score')    return document.getElementById('card-score-inner');
@@ -3456,91 +3469,52 @@ function downloadFilename() {
   return 'ww_' + dateSuffix + '_' + modeSuffix + '.png';
 }
 
+/* Hide the photo's "drag to reposition" tip before html2canvas runs
+   so it doesn't end up baked into the exported PNG. The tip is the
+   small floating hint that appears briefly after a photo loads;
+   it auto-hides after 3 s, but the user might fire Download/Copy
+   inside that window, in which case the tip would otherwise be
+   captured. Leaving it hidden after the capture is fine — the auto-
+   hide timer would have hidden it anyway. */
+function hideDragTip() {
+  var t = document.getElementById('drag-tip');
+  if (t) t.style.display = 'none';
+}
+
 var downloadInProgress = false;
 
 function download() {
   if (downloadInProgress) return;
   downloadInProgress = true;
-  var btn = document.getElementById('download-btn');
-  var origText = btn ? btn.textContent : '';
-  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
-  document.getElementById('drag-tip').style.display = 'none';
-  /* Logos live in ./Logos/ (same origin as the page on GitHub Pages), so
-     html2canvas with useCORS:true can fetch them directly — no data-URL
-     upgrade needed like the old File-System-Access path required.
-
-     The pattern is now a CSS background on the card body element —
-     html2canvas captures it natively at scale:3, no pre-render dance
-     needed. (Pre-v7 this function pre-rendered a 3× canvas overlay
-     because the pattern lived in a <canvas> element; the move to CSS
-     backgrounds in v7 removed all that boilerplate.) */
-
-  function restoreBtn() {
+  /* WWCommon handles button state (Generating… → restore), the
+     body.exporting toggle, html2canvas, and the toast on success/
+     failure. Logos live in ./Logos/ (same origin on GitHub Pages),
+     so useCORS:true inside the helper picks them up without a
+     data-URL upgrade. The pattern is a CSS background on the card
+     body element — html2canvas captures it natively at scale:3, no
+     pre-render canvas dance like the v6 path needed. */
+  WWCommon.downloadElementAsPng(activeCardEl().parentNode, {
+    filename:  downloadFilename(),
+    button:    document.getElementById('download-btn'),
+    busyLabel: 'Generating…',
+    before:    hideDragTip
+  }).catch(function(){}).then(function() {
     downloadInProgress = false;
-    if (btn) { btn.disabled = false; btn.textContent = origText; }
-  }
-
-  setTimeout(function() {
-    /* html2canvas captures the currently visible card; use the wrapper
-       (parent of the -inner element) so the decorative frame is included.
-       Mobile-only: toggle body.exporting so the .card-container overflow
-       clip doesn't truncate the captured PNG. No-op on desktop where the
-       clip isn't applied in the first place. */
-    var captureEl = activeCardEl().parentNode;
-    document.body.classList.add('exporting');
-    html2canvas(captureEl, {scale:3, useCORS:true, backgroundColor:null}).then(function(canvas) {
-      document.body.classList.remove('exporting');
-      var a = document.createElement('a');
-      a.download = downloadFilename();
-      a.href = canvas.toDataURL('image/png');
-      a.click();
-      restoreBtn();
-    }).catch(function(err) {
-      document.body.classList.remove('exporting');
-      restoreBtn();
-      toast('Could not generate image: ' + (err && err.message ? err.message : err), 'error');
-    });
-  }, 50);
+  });
 }
 
 function copyToClipboard() {
-  var btn = document.getElementById('copy-btn');
-  document.getElementById('drag-tip').style.display = 'none';
-  if (!navigator.clipboard || !window.ClipboardItem) {
-    toast('Copy to clipboard is not supported in this browser. Please use the Download button instead.', 'warn');
-    return;
-  }
-  btn.disabled = true;
-  btn.textContent = 'Copying…';
-
-  function restoreBtn() {
-    btn.disabled = false;
-    btn.textContent = '\uD83D\uDCCB Copy card to clipboard';
-    btn.classList.remove('success');
-  }
-
-  setTimeout(function() {
-    var captureEl = activeCardEl().parentNode;
-    document.body.classList.add('exporting');
-    html2canvas(captureEl, {scale:3, useCORS:true, backgroundColor:null}).then(function(canvas) {
-      document.body.classList.remove('exporting');
-      canvas.toBlob(function(blob) {
-        var item = new ClipboardItem({'image/png': blob});
-        navigator.clipboard.write([item]).then(function() {
-          btn.textContent = '\u2713 Copied!';
-          btn.classList.add('success');
-          setTimeout(function() { restoreBtn(); }, 2000);
-        }).catch(function(err) {
-          restoreBtn();
-          toast('Copy failed: ' + err.message + ' — try the Download button instead.', 'error');
-        });
-      }, 'image/png');
-    }).catch(function(err) {
-      document.body.classList.remove('exporting');
-      restoreBtn();
-      toast('Could not capture card: ' + (err && err.message ? err.message : err), 'error');
-    });
-  }, 50);
+  /* WWCommon's helper toasts on its own when ClipboardItem is
+     unsupported (Safari < 13.4), so we don't pre-check here. The
+     button is restored to idleLabel automatically; on success it
+     flashes "✓ Copied!" with the .done class (renamed from
+     .success during Tier 2 for symmetry with Schedule / Roster). */
+  WWCommon.copyElementAsPngToClipboard(activeCardEl().parentNode, {
+    button:    document.getElementById('copy-btn'),
+    idleLabel: '\uD83D\uDCCB Copy card to clipboard',
+    busyLabel: 'Copying…',
+    before:    hideDragTip
+  });
 }
 </script>
 <!-- ── PHOTO CREDIT (fixed bottom-center of viewport) ── -->

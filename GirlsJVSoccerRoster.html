@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Build: 2026-05-10 -->
+<!-- Build: 2026-05-11 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -659,9 +659,11 @@ input[type="number"] { padding-right: 4px; }
    difference doesn't show up in practice. */
 
 /* ═══════════════════════════════════════════════════════════════ */
-/* APP HEADER + MOBILE RESPONSIVENESS                               */
-/* Added 2026-05-08. Mirrors the Goals-tool pattern so all four     */
-/* PWAs share the same app-shell when installed to a home screen.   */
+/* MOBILE OVERRIDES (Roster-specific, on top of shared.css)       */
+/* All app-shell chrome (header, .app-body, .editor-toggle,        */
+/* .photo-credit, toast, mobile @media block) lives in shared.css. */
+/* Roster adds no per-tool mobile rules; --tool-marker (gold,      */
+/* via var(--accent)) in :root above is the only customization.    */
 /* ═══════════════════════════════════════════════════════════════ */
 /* .app-header chrome lives in shared.css. The gold marker stripe is
    set via --tool-marker: var(--accent) in the :root above. */

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Build: 2026-05-10 -->
+<!-- Build: 2026-05-11 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -651,9 +651,11 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
 /* Toast styling + #toast-container live in shared.css. */
 
 /* ═══════════════════════════════════════════════════════════════ */
-/* APP HEADER + MOBILE RESPONSIVENESS                               */
-/* Added 2026-05-08. Mirrors the Goals-tool pattern so all four     */
-/* PWAs share the same app-shell when installed to a home screen.   */
+/* MOBILE OVERRIDES (Schedule-specific, on top of shared.css)     */
+/* All app-shell chrome (header, .app-body, .editor-toggle,        */
+/* .photo-credit, toast, mobile @media block) lives in shared.css. */
+/* Schedule adds no per-tool mobile rules; --tool-marker (green)   */
+/* set in :root above is the only Schedule-side customization.     */
 /* ═══════════════════════════════════════════════════════════════ */
 /* .app-header chrome lives in shared.css. */
 

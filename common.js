@@ -968,7 +968,7 @@
   }
 
   /* Apply a pattern to a card element by setting its CSS backgrounds.
-     Used by Schedule and Roster (Card uses canvas drawing instead).
+     Used by all three card tools (Schedule, Roster, and Card).
      baseColor is optional — when set, it's applied as backgroundColor
      so the pattern's translucent overlays read against the right base. */
   function applyPatternToElement(el, patterns, patternId, baseColor) {
@@ -988,13 +988,26 @@
      the tools that need this include the CDN <script>).
 
      node       — the element to capture (typically card-wrapper)
-     opts.filenamePrefix — e.g. 'ww_card', 'ww_schedule', 'ww_roster'
-     opts.slug          — extra slug appended after the prefix (e.g. season year);
-                          gets sanitised to [a-z0-9_] and lowercased.
-     opts.button        — optional button element to disable + relabel during capture
-     opts.busyLabel     — text shown on the button during capture (default 'Rendering...')
-     opts.idleLabel     — text restored on the button after capture (default = its current text)
-     opts.toastFn       — callback for showing toasts (defaults to WWCommon.toast)
+     opts.filename       — full output filename (overrides prefix/slug/timestamp
+                           build below). Use this when the tool wants a stable,
+                           non-timestamped name like 'ww_20260822_scorecard.png'.
+     opts.filenamePrefix — e.g. 'ww_card', 'ww_schedule', 'ww_roster' — only
+                           used when filename isn't set.
+     opts.slug           — extra slug appended after the prefix (e.g. season year);
+                           gets sanitised to [a-z0-9_] and lowercased. Only
+                           used when filename isn't set.
+     opts.button         — optional button element to disable + relabel during capture
+     opts.busyLabel      — text shown on the button during capture (default 'Rendering...')
+     opts.idleLabel      — text restored on the button after capture (default = its current text)
+     opts.before         — optional callback fired synchronously immediately
+                           before html2canvas runs. Use to hide tool-specific
+                           DOM that shouldn't appear in the capture (e.g. a
+                           drag-tip). Computed-style changes made here are
+                           visible to html2canvas without an extra reflow tick.
+     opts.after          — optional callback fired after html2canvas resolves
+                           (success or failure), once body.exporting has been
+                           removed. Use to re-enable / unhide what `before` toggled.
+     opts.toastFn        — callback for showing toasts (defaults to WWCommon.toast)
      Returns a Promise that resolves with the filename or rejects with the error. */
   function downloadElementAsPng(node, opts) {
     opts = opts || {};
@@ -1007,18 +1020,31 @@
     var idleLabel = opts.idleLabel || (btn ? btn.textContent : null);
     var busyLabel = opts.busyLabel || 'Rendering...';
     var toastFn = opts.toastFn || toast;
+    var beforeFn = (typeof opts.before === 'function') ? opts.before : null;
+    var afterFn  = (typeof opts.after  === 'function') ? opts.after  : null;
 
     if (btn) {
       btn.disabled = true;
       btn.textContent = busyLabel;
     }
     document.body.classList.add('exporting');
+    /* Caller's pre-capture hook (e.g. hide a drag-tip). Runs after
+       the button-state change and the exporting class are applied,
+       but before html2canvas reads the DOM. Wrapped so a thrown
+       callback doesn't leave body.exporting stuck on. */
+    if (beforeFn) {
+      try { beforeFn(); } catch (e) { /* swallow — capture continues */ }
+    }
 
     return new Promise(function (resolve, reject) {
       html2canvas(node, { scale: 3, backgroundColor: null, useCORS: true, logging: false })
         .then(function (canvas) {
           document.body.classList.remove('exporting');
-          var fname = prefix + (slug ? '_' + slug : '') + '_' + Date.now() + '.png';
+          if (afterFn) { try { afterFn(); } catch (e) {} }
+          /* If the caller passed a full filename, use it as-is —
+             prefix/slug/timestamp are bypassed. Otherwise build the
+             standard ww-prefixed timestamped name. */
+          var fname = opts.filename || (prefix + (slug ? '_' + slug : '') + '_' + Date.now() + '.png');
           canvas.toBlob(function (blob) {
             var url = URL.createObjectURL(blob);
             var a = document.createElement('a');
@@ -1036,6 +1062,7 @@
         })
         .catch(function (err) {
           document.body.classList.remove('exporting');
+          if (afterFn) { try { afterFn(); } catch (e) {} }
           if (btn && idleLabel != null) {
             btn.disabled = false;
             btn.textContent = idleLabel;
@@ -1048,7 +1075,10 @@
 
   /* Same as downloadElementAsPng but writes the PNG to the system clipboard
      instead of downloading. Falls back to a warn toast if the browser doesn't
-     expose ClipboardItem (Safari < 13.4, older Firefox). Returns a Promise. */
+     expose ClipboardItem (Safari < 13.4, older Firefox). Supports the same
+     before/after hooks as downloadElementAsPng for tool-specific DOM tweaks
+     during capture (e.g. Card hides #drag-tip via the before hook).
+     Returns a Promise. */
   function copyElementAsPngToClipboard(node, opts) {
     opts = opts || {};
     if (typeof html2canvas !== 'function') {
@@ -1059,17 +1089,23 @@
     var busyLabel = opts.busyLabel || 'Rendering...';
     var doneLabel = opts.doneLabel || '✓ Copied!';
     var toastFn = opts.toastFn || toast;
+    var beforeFn = (typeof opts.before === 'function') ? opts.before : null;
+    var afterFn  = (typeof opts.after  === 'function') ? opts.after  : null;
 
     if (btn) {
       btn.disabled = true;
       btn.textContent = busyLabel;
     }
     document.body.classList.add('exporting');
+    if (beforeFn) {
+      try { beforeFn(); } catch (e) { /* swallow — capture continues */ }
+    }
 
     return new Promise(function (resolve, reject) {
       html2canvas(node, { scale: 3, backgroundColor: null, useCORS: true, logging: false })
         .then(function (canvas) {
           document.body.classList.remove('exporting');
+          if (afterFn) { try { afterFn(); } catch (e) {} }
           canvas.toBlob(function (blob) {
             if (!navigator.clipboard || typeof window.ClipboardItem === 'undefined') {
               if (btn && idleLabel != null) {
@@ -1106,6 +1142,7 @@
         })
         .catch(function (err) {
           document.body.classList.remove('exporting');
+          if (afterFn) { try { afterFn(); } catch (e) {} }
           if (btn && idleLabel != null) {
             btn.disabled = false;
             btn.textContent = idleLabel;
@@ -1267,7 +1304,7 @@
     escapeAttr:              escapeAttr,
     encodeBase64Utf8:        encodeBase64Utf8,
     decodeBase64Utf8:        decodeBase64Utf8,
-    // Card-builder helpers (Schedule + Roster patterns; all three for download)
+    // Card-builder helpers (shared by all three card tools)
     makeSoccerPatterns:          makeSoccerPatterns,
     buildPatternPicker:          buildPatternPicker,
     applyPatternToElement:       applyPatternToElement,

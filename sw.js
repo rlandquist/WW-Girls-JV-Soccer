@@ -22,6 +22,22 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
+ * v8 (May 2026): Tier 2 cleanup pass. Card tool's download() and
+ * copyToClipboard() now delegate to WWCommon.downloadElementAsPng
+ * and copyElementAsPngToClipboard — the html2canvas + blob plumbing
+ * is unified across all three card tools. The shared helpers gained
+ * three new opts (filename, before, after) so each tool can supply
+ * its own filename and pre-export hooks (Card uses `before` to hide
+ * the drag-tip overlay). The .copy-btn.success class on Card was
+ * renamed to .done for symmetry with Schedule and Roster (matches
+ * the class WWCommon adds during the 'Copied!' flash). Orphan
+ * decorated comments left over from the Tier 1 shared.css extraction
+ * were also swept across Card/Schedule/Roster/Goals so the section
+ * labels accurately describe what each block is, instead of
+ * advertising header chrome that no longer lives there. Bumped so
+ * v7-cached devices evict and pick up the trimmed Card.html and the
+ * extended common.js on next visit.
+ *
  * v7 (May 2026): Card tool's pattern rendering moved from canvas
  * drawing to CSS-background overlays via WWCommon.applyPatternToElement,
  * matching how Schedule and Roster already render their patterns. The
@@ -84,7 +100,7 @@
  * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v7';
+const CACHE_VERSION    = 'v8';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 
