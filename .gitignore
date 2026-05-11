@@ -1,0 +1,16 @@
+# ─── Cowork / Claude Code local metadata ─────────────────────────
+# Precautionary entries in case Cowork (or the underlying Claude
+# Code agent) writes per-machine metadata into the repo folder
+# during a session. As of 2026-05-11 the public Cowork docs say
+# project metadata is stored separately from the context folder,
+# but Claude Code conventionally drops .claude/ and CLAUDE.md
+# into project roots, so ignoring those keeps the tree clean if
+# Cowork ever follows the same pattern.
+#
+# CLAUDE.md itself is intentionally NOT ignored — if a session
+# ever produces a useful project-guidance file there, we want the
+# option to commit it. CLAUDE.local.md is the standard convention
+# for user-specific overrides that should stay untracked.
+.claude/
+.cowork/
+CLAUDE.local.md
