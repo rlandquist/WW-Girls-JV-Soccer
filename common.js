@@ -861,54 +861,71 @@
   /* ═══════════════════════════════════════════════════════════════════════
      CARD-BUILDER HELPERS
      ─────────────────────────────────────────────────────────────────────────
-     Shared by the Schedule and Roster tools (CSS-background pattern rendering)
-     and partially by Card (download / copy helpers; Card has its own pattern
-     picker because it has three card modes each with its own PATTERNS array
-     and canvas-based rendering, which doesn't fit this CSS-background shape).
+     Shared by the Schedule, Roster, and Card tools — all three now render
+     pattern overlays as CSS backgrounds on the card element via
+     applyPatternToElement(). Card's three card modes (Score / Halftime /
+     Preview) call makeSoccerPatterns() with different opts to pick the
+     right accent colour family per card-body background.
      ═══════════════════════════════════════════════════════════════════════ */
 
-  /* Build the 9-pattern array used by Schedule and Roster. The 'streaks'
-     and 'pulse' patterns are tinted with the tool's own colour family;
-     everything else uses neutral white-on-dark overlays that look correct
-     on any dark base. Returns a fresh array so callers can mutate without
-     affecting other tools.
+  /* Build the 9-pattern array used by Schedule, Roster, and Card. The
+     'streaks' and 'pulse' patterns are tinted with the tool's own colour
+     family via stripeRgb / pulseRgb; the other 6 neutral patterns
+     (carbon, grid, halftone, slash, diamonds, noise) use the accent
+     colour at varying opacities. Returns a fresh array so callers can
+     mutate without affecting other tools.
 
-     stripeRgb / pulseRgb are comma-separated rgb strings (no rgba(), no
+     All RGB args are comma-separated rgb strings (no rgba(), no
      parentheses) — they're interpolated into rgba(...) gradient stops at
-     a few different opacities. Defaults match Schedule (navy card body).
+     pattern-specific opacities. Defaults match Schedule / Roster / Card-
+     Score / Card-Halftime: navy tints with white neutrals on a dark base.
 
-       makeSoccerPatterns()                                  -> navy tint
-       makeSoccerPatterns({stripeRgb:'100,140,240', pulseRgb:'120,160,255'})
-                                                              -> royal-blue tint
+     opts.light=true scales the 6 neutral-pattern opacities by 3× so they
+     stay readable on a light base (used by Card's Preview mode, which
+     also passes accentRgb:'42,90,200' so the neutrals flip from white to
+     navy). The coloured streaks/pulse opacities are NOT touched by the
+     boost — they read fine on either base at the same alpha.
+
+       makeSoccerPatterns()                                              -> navy tints + white neutrals (dark bg)
+       makeSoccerPatterns({stripeRgb:'100,140,240', pulseRgb:'120,160,255'}) -> royal-blue tints + white neutrals (dark bg)
+       makeSoccerPatterns({accentRgb:'42,90,200', light:true})            -> navy tints + boosted-navy neutrals (light bg)
   */
   function makeSoccerPatterns(opts) {
     opts = opts || {};
     var stripe = opts.stripeRgb || '42,90,200';
     var pulse  = opts.pulseRgb  || '50,100,210';
+    var accent = opts.accentRgb || '255,255,255';
+    var boost  = opts.light ? 3.0 : 1.0;
+    /* Format an opacity-boosted rgba() for the 6 neutral patterns.
+       Clamps at 1.0 so a high starting alpha + light:true can't overflow. */
+    function n(a) {
+      var v = Math.min(1, a * boost);
+      return 'rgba(' + accent + ',' + (Math.round(v * 10000) / 10000) + ')';
+    }
     return [
       { id: 'streaks', label: 'Streaks',
         bg: 'linear-gradient(145deg,transparent 44%,rgba(' + stripe + ',0.28) 44%,rgba(' + stripe + ',0.28) 53%,transparent 53%),linear-gradient(145deg,transparent 58%,rgba(' + stripe + ',0.16) 58%,rgba(' + stripe + ',0.16) 64%,transparent 64%)',
         bgSize: 'auto' },
       { id: 'carbon', label: 'Carbon',
-        bg: 'repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(255,255,255,0.06) 5px,rgba(255,255,255,0.06) 6px),repeating-linear-gradient(-45deg,transparent,transparent 5px,rgba(255,255,255,0.06) 5px,rgba(255,255,255,0.06) 6px)',
+        bg: 'repeating-linear-gradient(45deg,transparent,transparent 5px,' + n(0.06) + ' 5px,' + n(0.06) + ' 6px),repeating-linear-gradient(-45deg,transparent,transparent 5px,' + n(0.06) + ' 5px,' + n(0.06) + ' 6px)',
         bgSize: 'auto' },
       { id: 'grid', label: 'Grid',
-        bg: 'repeating-linear-gradient(0deg,transparent,transparent 24px,rgba(255,255,255,0.09) 24px,rgba(255,255,255,0.09) 25px),repeating-linear-gradient(90deg,transparent,transparent 24px,rgba(255,255,255,0.09) 24px,rgba(255,255,255,0.09) 25px)',
+        bg: 'repeating-linear-gradient(0deg,transparent,transparent 24px,' + n(0.09) + ' 24px,' + n(0.09) + ' 25px),repeating-linear-gradient(90deg,transparent,transparent 24px,' + n(0.09) + ' 24px,' + n(0.09) + ' 25px)',
         bgSize: 'auto' },
       { id: 'halftone', label: 'Halftone',
-        bg: 'radial-gradient(circle,rgba(255,255,255,0.18) 1.5px,transparent 1.5px)',
+        bg: 'radial-gradient(circle,' + n(0.18) + ' 1.5px,transparent 1.5px)',
         bgSize: '11px 11px' },
       { id: 'pulse', label: 'Pulse',
         bg: 'repeating-radial-gradient(ellipse at 110% 110%,transparent,transparent 14px,rgba(' + pulse + ',0.24) 14px,rgba(' + pulse + ',0.24) 16px)',
         bgSize: 'auto' },
       { id: 'slash', label: 'Slash',
-        bg: 'repeating-linear-gradient(-60deg,transparent,transparent 10px,rgba(255,255,255,0.07) 10px,rgba(255,255,255,0.07) 12px)',
+        bg: 'repeating-linear-gradient(-60deg,transparent,transparent 10px,' + n(0.07) + ' 10px,' + n(0.07) + ' 12px)',
         bgSize: 'auto' },
       { id: 'diamonds', label: 'Diamonds',
-        bg: 'repeating-linear-gradient(45deg,rgba(255,255,255,0.05) 0,rgba(255,255,255,0.05) 1px,transparent 0,transparent 50%),repeating-linear-gradient(135deg,rgba(255,255,255,0.05) 0,rgba(255,255,255,0.05) 1px,transparent 0,transparent 50%)',
+        bg: 'repeating-linear-gradient(45deg,' + n(0.05) + ' 0,' + n(0.05) + ' 1px,transparent 0,transparent 50%),repeating-linear-gradient(135deg,' + n(0.05) + ' 0,' + n(0.05) + ' 1px,transparent 0,transparent 50%)',
         bgSize: '16px 16px' },
       { id: 'noise', label: 'Scatter',
-        bg: 'radial-gradient(circle,rgba(255,255,255,0.12) 1px,transparent 1px),radial-gradient(circle,rgba(255,255,255,0.07) 1px,transparent 1px)',
+        bg: 'radial-gradient(circle,' + n(0.12) + ' 1px,transparent 1px),radial-gradient(circle,' + n(0.07) + ' 1px,transparent 1px)',
         bgSize: '18px 18px, 9px 9px' },
       { id: 'clean', label: 'Clean', bg: 'none', bgSize: 'auto' }
     ];

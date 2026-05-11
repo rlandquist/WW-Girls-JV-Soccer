@@ -170,14 +170,8 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
   flex:1;position:relative;overflow:hidden;
   background:#0d1f42;display:flex;flex-direction:column;padding:12px 12px 8px 12px;
 }
-#pat-canvas-score{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;}
-#pat-dots-score{
-  position:absolute;top:0;right:0;width:80px;height:80px;pointer-events:none;z-index:0;
-  background-image:radial-gradient(circle,rgba(100,160,255,0.5) 1.5px,transparent 1.5px);
-  background-size:8px 8px;
-  mask-image:radial-gradient(ellipse 100% 100% at 100% 0%,black 20%,transparent 75%);
-  -webkit-mask-image:radial-gradient(ellipse 100% 100% at 100% 0%,black 20%,transparent 75%);
-}
+/* Pattern overlay (background-image + background-size) is applied to
+   #card-top at runtime via WWCommon.applyPatternToElement. */
 #card-score-inner .card-headline{
   color:#fff;font-weight:700;line-height:.88;text-transform:uppercase;
   font-family:"Oswald",sans-serif;letter-spacing:0px;z-index:2;position:relative;
@@ -282,7 +276,8 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
   flex-shrink:0;position:relative;background:#cddaeb;
   box-shadow:0 6px 28px rgba(0,0,0,.35);
 }
-#pat-canvas-preview{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+/* Pattern overlay applied to #card-preview-inner at runtime via
+   WWCommon.applyPatternToElement. */
 #card-preview-inner .card-stripe{position:absolute;pointer-events:none;z-index:1;}
 #card-preview-inner .card-stripe-1{right:-15px;top:-30px;width:60px;height:500px;background:rgba(42,90,200,0.28);transform:rotate(-18deg);}
 #card-preview-inner .card-stripe-2{right:28px;top:-30px;width:30px;height:500px;background:rgba(42,90,200,0.16);transform:rotate(-18deg);}
@@ -383,7 +378,8 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
   flex-shrink:0;position:relative;background:#1e3a6b;
   box-shadow:0 6px 28px rgba(0,0,0,.35);
 }
-#pat-canvas-halftime{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+/* Pattern overlay applied to #card-halftime-inner at runtime via
+   WWCommon.applyPatternToElement. */
 #card-halftime-inner .card-stripe{position:absolute;pointer-events:none;z-index:1;}
 #card-halftime-inner .card-stripe-1{right:-15px;top:-30px;width:60px;height:500px;background:rgba(120,170,240,0.22);transform:rotate(-18deg);}
 #card-halftime-inner .card-stripe-2{right:28px;top:-30px;width:30px;height:500px;background:rgba(120,170,240,0.12);transform:rotate(-18deg);}
@@ -1122,8 +1118,6 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
         </div>
         <div class="card-right">
           <div class="card-top" id="card-top">
-            <canvas id="pat-canvas-score"></canvas>
-            <div id="pat-dots-score"></div>
             <div class="card-headline" id="card-headline-score" style="font-size:38px">FULL<br>TIME</div>
             <div class="hl-rule"></div>
             <div class="card-gamedate" id="card-gamedate-score"></div>
@@ -1170,7 +1164,6 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
   <!-- ── PREVIEW CARD ── -->
   <div class="card-wrapper" id="card-preview">
     <div id="card-preview-inner">
-      <canvas id="pat-canvas-preview"></canvas>
       <div class="card-stripe card-stripe-1"></div>
       <div class="card-stripe card-stripe-2"></div>
 
@@ -1215,7 +1208,6 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
   <!-- ── HALFTIME CARD ── -->
   <div class="card-wrapper" id="card-halftime" hidden>
     <div id="card-halftime-inner">
-      <canvas id="pat-canvas-halftime"></canvas>
       <div class="card-stripe card-stripe-1"></div>
       <div class="card-stripe card-stripe-2"></div>
 
@@ -1481,490 +1473,49 @@ var OPPONENTS = loadOpponentsFromStorage();
 /* ══════════════════════════════════════════════════════════════
    PATTERN DEFINITIONS (mode-specific colors for mini-preview)
    ══════════════════════════════════════════════════════════════ */
-var PATTERNS_SCORE = [
-  { id:'streaks', label:'Streaks',
-    bg:'linear-gradient(145deg,transparent 44%,rgba(42,90,200,0.28) 44%,rgba(42,90,200,0.28) 53%,transparent 53%),linear-gradient(145deg,transparent 58%,rgba(42,90,200,0.16) 58%,rgba(42,90,200,0.16) 64%,transparent 64%)',
-    bgSize:'auto', dots:true },
-  { id:'carbon', label:'Carbon',
-    bg:'repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(255,255,255,0.06) 5px,rgba(255,255,255,0.06) 6px),repeating-linear-gradient(-45deg,transparent,transparent 5px,rgba(255,255,255,0.06) 5px,rgba(255,255,255,0.06) 6px)',
-    bgSize:'auto', dots:false },
-  { id:'grid', label:'Grid',
-    bg:'repeating-linear-gradient(0deg,transparent,transparent 24px,rgba(255,255,255,0.09) 24px,rgba(255,255,255,0.09) 25px),repeating-linear-gradient(90deg,transparent,transparent 24px,rgba(255,255,255,0.09) 24px,rgba(255,255,255,0.09) 25px)',
-    bgSize:'auto', dots:false },
-  { id:'halftone', label:'Halftone',
-    bg:'radial-gradient(circle,rgba(255,255,255,0.18) 1.5px,transparent 1.5px)',
-    bgSize:'11px 11px', dots:false },
-  { id:'pulse', label:'Pulse',
-    bg:'repeating-radial-gradient(ellipse at 110% 110%,transparent,transparent 14px,rgba(50,100,210,0.24) 14px,rgba(50,100,210,0.24) 16px)',
-    bgSize:'auto', dots:false },
-  { id:'slash', label:'Slash',
-    bg:'repeating-linear-gradient(-60deg,transparent,transparent 10px,rgba(255,255,255,0.07) 10px,rgba(255,255,255,0.07) 12px)',
-    bgSize:'auto', dots:true },
-  { id:'diamonds', label:'Diamonds',
-    bg:'repeating-linear-gradient(45deg,rgba(255,255,255,0.05) 0,rgba(255,255,255,0.05) 1px,transparent 0,transparent 50%),repeating-linear-gradient(135deg,rgba(255,255,255,0.05) 0,rgba(255,255,255,0.05) 1px,transparent 0,transparent 50%)',
-    bgSize:'16px 16px', dots:false },
-  { id:'noise', label:'Scatter',
-    bg:'radial-gradient(circle,rgba(255,255,255,0.12) 1px,transparent 1px),radial-gradient(circle,rgba(255,255,255,0.07) 1px,transparent 1px)',
-    bgSize:'18px 18px, 9px 9px', dots:false },
-  { id:'clean', label:'Clean', bg:'none', bgSize:'auto', dots:false }
-];
-
-var PATTERNS_PREVIEW = [
-  { id:'streaks', label:'Streaks',
-    bg:'linear-gradient(145deg,transparent 44%,rgba(42,90,200,0.28) 44%,rgba(42,90,200,0.28) 53%,transparent 53%),linear-gradient(145deg,transparent 58%,rgba(42,90,200,0.16) 58%,rgba(42,90,200,0.16) 64%,transparent 64%)',
-    bgSize:'auto', dots:true },
-  { id:'carbon', label:'Carbon',
-    bg:'repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(42,90,200,0.22) 5px,rgba(42,90,200,0.22) 6px),repeating-linear-gradient(-45deg,transparent,transparent 5px,rgba(42,90,200,0.22) 5px,rgba(42,90,200,0.22) 6px)',
-    bgSize:'auto', dots:true },
-  { id:'grid', label:'Grid',
-    bg:'repeating-linear-gradient(0deg,transparent,transparent 24px,rgba(42,90,200,0.22) 24px,rgba(42,90,200,0.22) 25px),repeating-linear-gradient(90deg,transparent,transparent 24px,rgba(42,90,200,0.22) 24px,rgba(42,90,200,0.22) 25px)',
-    bgSize:'auto', dots:true },
-  { id:'halftone', label:'Halftone',
-    bg:'radial-gradient(circle,rgba(42,90,200,0.28) 1.5px,transparent 1.5px)',
-    bgSize:'11px 11px', dots:true },
-  { id:'pulse', label:'Pulse',
-    bg:'repeating-radial-gradient(ellipse at 110% 110%,transparent,transparent 14px,rgba(50,100,210,0.24) 14px,rgba(50,100,210,0.24) 16px)',
-    bgSize:'auto', dots:true },
-  { id:'slash', label:'Slash',
-    bg:'repeating-linear-gradient(-60deg,transparent,transparent 10px,rgba(42,90,200,0.22) 10px,rgba(42,90,200,0.22) 12px)',
-    bgSize:'auto', dots:true },
-  { id:'diamonds', label:'Diamonds',
-    bg:'repeating-linear-gradient(45deg,rgba(42,90,200,0.18) 0,rgba(42,90,200,0.18) 1px,transparent 0,transparent 50%),repeating-linear-gradient(135deg,rgba(42,90,200,0.18) 0,rgba(42,90,200,0.18) 1px,transparent 0,transparent 50%)',
-    bgSize:'16px 16px', dots:true },
-  { id:'noise', label:'Scatter',
-    bg:'radial-gradient(circle,rgba(42,90,200,0.28) 1px,transparent 1px),radial-gradient(circle,rgba(42,90,200,0.18) 1px,transparent 1px)',
-    bgSize:'18px 18px, 9px 9px', dots:true },
-  { id:'clean', label:'Clean', bg:'none', bgSize:'auto', dots:true }
-];
-
-/* Halftime patterns — tuned for mid-navy #1e3a6b. Uses lighter white/blue
-   accents similar to score card, but slightly higher contrast since the
-   background is lighter than score-card navy. */
-var PATTERNS_HALFTIME = [
-  { id:'streaks', label:'Streaks',
-    bg:'linear-gradient(145deg,transparent 44%,rgba(120,170,240,0.3) 44%,rgba(120,170,240,0.3) 53%,transparent 53%),linear-gradient(145deg,transparent 58%,rgba(120,170,240,0.18) 58%,rgba(120,170,240,0.18) 64%,transparent 64%)',
-    bgSize:'auto', dots:true },
-  { id:'carbon', label:'Carbon',
-    bg:'repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(255,255,255,0.07) 5px,rgba(255,255,255,0.07) 6px),repeating-linear-gradient(-45deg,transparent,transparent 5px,rgba(255,255,255,0.07) 5px,rgba(255,255,255,0.07) 6px)',
-    bgSize:'auto', dots:true },
-  { id:'grid', label:'Grid',
-    bg:'repeating-linear-gradient(0deg,transparent,transparent 24px,rgba(255,255,255,0.11) 24px,rgba(255,255,255,0.11) 25px),repeating-linear-gradient(90deg,transparent,transparent 24px,rgba(255,255,255,0.11) 24px,rgba(255,255,255,0.11) 25px)',
-    bgSize:'auto', dots:true },
-  { id:'halftone', label:'Halftone',
-    bg:'radial-gradient(circle,rgba(255,255,255,0.2) 1.5px,transparent 1.5px)',
-    bgSize:'11px 11px', dots:true },
-  { id:'pulse', label:'Pulse',
-    bg:'repeating-radial-gradient(ellipse at 110% 110%,transparent,transparent 14px,rgba(140,185,240,0.26) 14px,rgba(140,185,240,0.26) 16px)',
-    bgSize:'auto', dots:true },
-  { id:'slash', label:'Slash',
-    bg:'repeating-linear-gradient(-60deg,transparent,transparent 10px,rgba(255,255,255,0.09) 10px,rgba(255,255,255,0.09) 12px)',
-    bgSize:'auto', dots:true },
-  { id:'diamonds', label:'Diamonds',
-    bg:'repeating-linear-gradient(45deg,rgba(255,255,255,0.07) 0,rgba(255,255,255,0.07) 1px,transparent 0,transparent 50%),repeating-linear-gradient(135deg,rgba(255,255,255,0.07) 0,rgba(255,255,255,0.07) 1px,transparent 0,transparent 50%)',
-    bgSize:'16px 16px', dots:true },
-  { id:'noise', label:'Scatter',
-    bg:'radial-gradient(circle,rgba(255,255,255,0.14) 1px,transparent 1px),radial-gradient(circle,rgba(255,255,255,0.09) 1px,transparent 1px)',
-    bgSize:'18px 18px, 9px 9px', dots:true },
-  { id:'clean', label:'Clean', bg:'none', bgSize:'auto', dots:true }
-];
-
-function currentPatternsArray() {
-  if (currentMode === 'score') return PATTERNS_SCORE;
-  if (currentMode === 'halftime') return PATTERNS_HALFTIME;
-  return PATTERNS_PREVIEW;
+/* Pattern config for each card mode. Score and Halftime use the same
+   navy tint family on a dark background; Preview flips the neutral
+   overlays to navy (with boosted opacity) for a light background.
+   All three modes share the same 9 patterns and the same picker —
+   only the colour family + light flag change. */
+function patternOptsForMode(mode) {
+  if (mode === 'preview') {
+    return { stripeRgb:'42,90,200', pulseRgb:'50,100,210', accentRgb:'42,90,200', light:true };
+  }
+  /* 'score' and 'halftime' both fall through here. */
+  return { stripeRgb:'42,90,200', pulseRgb:'50,100,210' };
 }
 
+function patternTargetForMode(mode) {
+  if (mode === 'score')    return { el: document.getElementById('card-top'),            base: '#0d1f42' };
+  if (mode === 'halftime') return { el: document.getElementById('card-halftime-inner'), base: '#1e3a6b' };
+  return                          { el: document.getElementById('card-preview-inner'),  base: '#cddaeb' };
+}
+
+/* Rebuild the swatch picker AND repaint the active card's pattern
+   overlay so they stay in sync. Called on init, on mode change, and
+   on pattern change. The swatch backgrounds (#0d1f42 / #1e3a6b /
+   #cddaeb) come from the .pattern-grid.mode-* CSS classes above so
+   each mode's picker accurately previews how the pattern will read
+   on the actual card body. */
 function buildPatternPicker() {
+  var patterns = WWCommon.makeSoccerPatterns(patternOptsForMode(currentMode));
+  var target   = patternTargetForMode(currentMode);
+  if (target.el) WWCommon.applyPatternToElement(target.el, patterns, currentPattern, target.base);
   var grid = document.getElementById('pattern-grid');
-  grid.innerHTML = '';
-  grid.className = 'pattern-grid mode-' + currentMode;
-  var patterns = currentPatternsArray();
-  patterns.forEach(function(p) {
-    var btn = document.createElement('div');
-    btn.className = 'pat-btn' + (p.id === currentPattern ? ' active' : '');
-    btn.id = 'pat-' + p.id;
-    btn.onclick = function() { setPattern(p.id); };
-    var prev = document.createElement('div');
-    prev.className = 'pat-preview';
-    prev.style.background = p.bg;
-    prev.style.backgroundSize = p.bgSize;
-    var lbl = document.createElement('div');
-    lbl.className = 'pat-name';
-    lbl.textContent = p.label;
-    btn.appendChild(prev);
-    btn.appendChild(lbl);
-    grid.appendChild(btn);
-  });
+  if (grid) {
+    grid.className = 'pattern-grid mode-' + currentMode;
+    WWCommon.buildPatternPicker(grid, patterns, {
+      currentId: currentPattern,
+      onPick: setPattern
+    });
+  }
 }
 
 function setPattern(id) {
   currentPattern = id;
-  document.querySelectorAll('.pat-btn').forEach(function(b) {
-    b.classList.toggle('active', b.id === 'pat-' + id);
-  });
-  /* redraw the active card's pattern canvas */
-  if (currentMode === 'score') {
-    document.getElementById('pat-dots-score').style.display = 'none';
-    drawPatternCanvasScore(id);
-  } else if (currentMode === 'halftime') {
-    drawPatternCanvasHalftime(id);
-  } else {
-    drawPatternCanvasPreview(id);
-  }
+  buildPatternPicker();
 }
-
-/* ══════════════════════════════════════════════════════════════
-   PATTERN CANVAS — SCORE CARD
-   ══════════════════════════════════════════════════════════════ */
-function drawDotsScore(ctx, w) {
-  var spacing = 8, radius = 1.5, areaSize = 80;
-  for (var x = w - areaSize; x <= w + spacing; x += spacing) {
-    for (var y = 0; y <= areaSize + spacing; y += spacing) {
-      var dx = (w - x) / areaSize;
-      var dy = y / areaSize;
-      var dist = Math.sqrt(dx * dx + dy * dy);
-      var alpha = dist <= 0.2 ? 0.5
-                : dist >= 0.75 ? 0
-                : 0.5 * (1 - (dist - 0.2) / 0.55);
-      if (alpha > 0.01) {
-        ctx.fillStyle = 'rgba(100,160,255,' + alpha.toFixed(3) + ')';
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-  }
-}
-
-function drawPatternCanvasScore(id) {
-  var topEl = document.getElementById('card-top');
-  var canvas = document.getElementById('pat-canvas-score');
-  var w = topEl.offsetWidth  || 185;
-  var h = topEl.offsetHeight || 390;
-  canvas.width  = w;
-  canvas.height = h;
-  var ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, w, h);
-
-  switch (id) {
-    case 'streaks':
-      ctx.save();
-      ctx.translate(w / 2, h / 2);
-      ctx.rotate(-35 * Math.PI / 180);
-      var len = Math.sqrt(w * w + h * h);
-      ctx.fillStyle = 'rgba(42,90,200,0.28)';
-      ctx.fillRect(-len, len * 0.44 - len / 2, len * 2, len * 0.09);
-      ctx.fillStyle = 'rgba(42,90,200,0.16)';
-      ctx.fillRect(-len, len * 0.58 - len / 2, len * 2, len * 0.06);
-      ctx.restore();
-      break;
-    case 'carbon':
-      ctx.strokeStyle = 'rgba(255,255,255,0.09)';
-      ctx.lineWidth = 1;
-      for (var x = -h; x < w + h; x += 6) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + h, h); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x + h, 0); ctx.stroke();
-      }
-      break;
-    case 'grid':
-      ctx.strokeStyle = 'rgba(255,255,255,0.09)';
-      ctx.lineWidth = 1;
-      for (var gx = 0; gx <= w; gx += 25) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke(); }
-      for (var gy = 0; gy <= h; gy += 25) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke(); }
-      break;
-    case 'halftone':
-      ctx.fillStyle = 'rgba(255,255,255,0.18)';
-      for (var hx = 5.5; hx < w + 11; hx += 11) {
-        for (var hy = 5.5; hy < h + 11; hy += 11) {
-          ctx.beginPath(); ctx.arc(hx, hy, 1.5, 0, Math.PI * 2); ctx.fill();
-        }
-      }
-      break;
-    case 'pulse':
-      ctx.strokeStyle = 'rgba(50,100,210,0.28)';
-      ctx.lineWidth = 2;
-      for (var r = 14; r < Math.sqrt(w * w + h * h) * 1.5; r += 30) {
-        ctx.beginPath(); ctx.arc(w, h, r, 0, Math.PI * 2); ctx.stroke();
-      }
-      break;
-    case 'slash':
-      ctx.strokeStyle = 'rgba(255,255,255,0.09)';
-      ctx.lineWidth = 2;
-      var slope = Math.tan(60 * Math.PI / 180);
-      for (var sx = -h * slope * 2; sx < w + h * slope; sx += 12) {
-        ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx + h * slope, h); ctx.stroke();
-      }
-      break;
-    case 'diamonds':
-      ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-      ctx.lineWidth = 1;
-      for (var dx = -h; dx < w + h; dx += 16) {
-        ctx.beginPath(); ctx.moveTo(dx, 0); ctx.lineTo(dx + h, h); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(dx, 0); ctx.lineTo(dx - h, h); ctx.stroke();
-      }
-      break;
-    case 'noise':
-      ctx.fillStyle = 'rgba(255,255,255,0.14)';
-      for (var nx = 9; nx < w + 18; nx += 18) {
-        for (var ny = 9; ny < h + 18; ny += 18) {
-          ctx.beginPath(); ctx.arc(nx, ny, 1, 0, Math.PI * 2); ctx.fill();
-        }
-      }
-      ctx.fillStyle = 'rgba(255,255,255,0.08)';
-      for (var nx2 = 4.5; nx2 < w + 9; nx2 += 9) {
-        for (var ny2 = 4.5; ny2 < h + 9; ny2 += 9) {
-          ctx.beginPath(); ctx.arc(nx2, ny2, 1, 0, Math.PI * 2); ctx.fill();
-        }
-      }
-      break;
-    case 'clean':
-      break;
-  }
-
-  /* Carve out the upper-right corner so the dots sit on a clean navy field
-     (same visual strategy as the preview card's angled fade). The mask area
-     is larger than the dot area itself so there's a buffer — the dots fade
-     out around 60px from the corner, and the pattern doesn't start bleeding
-     back in until ~108px, leaving clear visual breathing room. */
-  ctx.save();
-  ctx.globalCompositeOperation = 'destination-out';
-  var cornerGrad = ctx.createRadialGradient(w, 0, 0, w, 0, 120);
-  cornerGrad.addColorStop(0.00, 'rgba(0,0,0,1)');
-  cornerGrad.addColorStop(0.55, 'rgba(0,0,0,1)');
-  cornerGrad.addColorStop(0.90, 'rgba(0,0,0,0)');
-  cornerGrad.addColorStop(1.00, 'rgba(0,0,0,0)');
-  ctx.fillStyle = cornerGrad;
-  ctx.fillRect(w - 120, 0, 120, 120);
-  ctx.restore();
-
-  /* Dots drawn AFTER the mask so they're not affected by destination-out */
-  drawDotsScore(ctx, w);
-}
-
-/* ══════════════════════════════════════════════════════════════
-   PATTERN CANVAS — PREVIEW CARD
-   ══════════════════════════════════════════════════════════════ */
-function drawDotsPreview(ctx, w) {
-  var spacing = 8, radius = 1.5, areaSize = 80;
-  for (var x = w - areaSize; x <= w + spacing; x += spacing) {
-    for (var y = 0; y <= areaSize + spacing; y += spacing) {
-      var dx = (w - x) / areaSize, dy = y / areaSize;
-      var dist = Math.sqrt(dx * dx + dy * dy);
-      var alpha = dist <= 0.2 ? 0.5 : dist >= 0.75 ? 0 : 0.5 * (1 - (dist - 0.2) / 0.55);
-      if (alpha > 0.01) {
-        ctx.fillStyle = 'rgba(42,90,200,' + alpha.toFixed(3) + ')';
-        ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
-      }
-    }
-  }
-}
-
-function drawPatternCanvasPreview(id) {
-  var patCanvas = document.getElementById('pat-canvas-preview');
-  var topEl = document.getElementById('card-preview-inner');
-  if (!patCanvas || !topEl) return;
-
-  var ctx = patCanvas.getContext('2d');
-
-  /* Sync canvas to card size on normal renders (download pre-sets it to 3x) */
-  if (patCanvas.width < topEl.offsetWidth) {
-    patCanvas.width  = topEl.offsetWidth;
-    patCanvas.height = topEl.offsetHeight;
-  }
-
-  var w = topEl.offsetWidth;
-  var h = topEl.offsetHeight;
-
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, patCanvas.width, patCanvas.height);
-  ctx.restore();
-
-  switch (id) {
-    case 'streaks':
-      var ang = 145 * Math.PI / 180;
-      var len = Math.sqrt(w * w + h * h);
-      ctx.save(); ctx.translate(w / 2, h / 2); ctx.rotate(ang - Math.PI / 2);
-      ctx.fillStyle = 'rgba(42,90,200,0.28)';
-      ctx.fillRect(-len, h * 0.44 - h / 2, len * 2, h * 0.09);
-      ctx.fillStyle = 'rgba(42,90,200,0.16)';
-      ctx.fillRect(-len, h * 0.58 - h / 2, len * 2, h * 0.06);
-      ctx.restore(); break;
-    case 'carbon':
-      ctx.strokeStyle = 'rgba(42,90,200,0.22)'; ctx.lineWidth = 1;
-      for (var cx = -h; cx < w + h; cx += 6) {
-        ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx + h, h); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx + h, 0); ctx.lineTo(cx, h); ctx.stroke();
-      } break;
-    case 'grid':
-      ctx.strokeStyle = 'rgba(42,90,200,0.22)'; ctx.lineWidth = 1;
-      for (var gx = 0; gx <= w; gx += 25) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke(); }
-      for (var gy = 0; gy <= h; gy += 25) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke(); }
-      break;
-    case 'halftone':
-      ctx.fillStyle = 'rgba(42,90,200,0.28)';
-      for (var hx = 5.5; hx < w + 11; hx += 11)
-        for (var hy = 5.5; hy < h + 11; hy += 11) { ctx.beginPath(); ctx.arc(hx, hy, 1.5, 0, Math.PI * 2); ctx.fill(); }
-      break;
-    case 'pulse':
-      ctx.strokeStyle = 'rgba(50,100,210,0.28)'; ctx.lineWidth = 2;
-      for (var r = 14; r < Math.sqrt(w * w + h * h) * 1.5; r += 30) { ctx.beginPath(); ctx.arc(w, h, r, 0, Math.PI * 2); ctx.stroke(); }
-      break;
-    case 'slash':
-      ctx.strokeStyle = 'rgba(42,90,200,0.22)'; ctx.lineWidth = 2;
-      var slope = Math.tan(60 * Math.PI / 180);
-      for (var sx = -h * slope * 2; sx < w + h * slope; sx += 12) { ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx + h * slope, h); ctx.stroke(); }
-      break;
-    case 'diamonds':
-      ctx.strokeStyle = 'rgba(42,90,200,0.18)'; ctx.lineWidth = 1;
-      for (var dx = -h; dx < w + h; dx += 16) {
-        ctx.beginPath(); ctx.moveTo(dx, 0); ctx.lineTo(dx + h, h); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(dx, 0); ctx.lineTo(dx - h, h); ctx.stroke();
-      } break;
-    case 'noise':
-      ctx.fillStyle = 'rgba(42,90,200,0.28)';
-      for (var nx = 9; nx < w + 18; nx += 18) for (var ny = 9; ny < h + 18; ny += 18) { ctx.beginPath(); ctx.arc(nx, ny, 1, 0, Math.PI * 2); ctx.fill(); }
-      ctx.fillStyle = 'rgba(42,90,200,0.18)';
-      for (var nx2 = 4.5; nx2 < w + 9; nx2 += 9) for (var ny2 = 4.5; ny2 < h + 9; ny2 += 9) { ctx.beginPath(); ctx.arc(nx2, ny2, 1, 0, Math.PI * 2); ctx.fill(); }
-      break;
-    case 'clean': break;
-  }
-
-  /* Angled fade matching stripe angle (-18 deg from vertical) using destination-in. */
-  var tilt = -h * Math.tan(18 * Math.PI / 180);
-  var fadeMidX = w * 0.755;
-  var perpLen = Math.sqrt(h * h + tilt * tilt);
-  var pnx = h / perpLen;
-  var pny = tilt / perpLen;
-  var fadeHalf = 28;
-  ctx.save();
-  ctx.globalCompositeOperation = 'destination-in';
-  var fadeGrad = ctx.createLinearGradient(
-    fadeMidX - fadeHalf * pnx, h / 2 - fadeHalf * pny,
-    fadeMidX + fadeHalf * pnx, h / 2 + fadeHalf * pny
-  );
-  fadeGrad.addColorStop(0, 'rgba(0,0,0,1)');
-  fadeGrad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = fadeGrad;
-  ctx.fillRect(0, 0, w, h);
-  ctx.restore();
-
-  var p = PATTERNS_PREVIEW.find(function(x) { return x.id === id; });
-  if (p && p.dots) drawDotsPreview(ctx, w);
-}
-
-/* ══════════════════════════════════════════════════════════════
-   PATTERN CANVAS — HALFTIME CARD (mid-navy bg, light accents)
-   ══════════════════════════════════════════════════════════════ */
-function drawDotsHalftime(ctx, w) {
-  var spacing = 8, radius = 1.5, areaSize = 80;
-  for (var x = w - areaSize; x <= w + spacing; x += spacing) {
-    for (var y = 0; y <= areaSize + spacing; y += spacing) {
-      var dx = (w - x) / areaSize, dy = y / areaSize;
-      var dist = Math.sqrt(dx * dx + dy * dy);
-      var alpha = dist <= 0.2 ? 0.55 : dist >= 0.75 ? 0 : 0.55 * (1 - (dist - 0.2) / 0.55);
-      if (alpha > 0.01) {
-        ctx.fillStyle = 'rgba(140,190,245,' + alpha.toFixed(3) + ')';
-        ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
-      }
-    }
-  }
-}
-
-function drawPatternCanvasHalftime(id) {
-  var patCanvas = document.getElementById('pat-canvas-halftime');
-  var topEl = document.getElementById('card-halftime-inner');
-  if (!patCanvas || !topEl) return;
-
-  var ctx = patCanvas.getContext('2d');
-
-  /* Sync canvas to card size on normal renders (download pre-sets it to 3x) */
-  if (patCanvas.width < topEl.offsetWidth) {
-    patCanvas.width  = topEl.offsetWidth;
-    patCanvas.height = topEl.offsetHeight;
-  }
-
-  var w = topEl.offsetWidth;
-  var h = topEl.offsetHeight;
-
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, patCanvas.width, patCanvas.height);
-  ctx.restore();
-
-  switch (id) {
-    case 'streaks':
-      var ang = 145 * Math.PI / 180;
-      var len = Math.sqrt(w * w + h * h);
-      ctx.save(); ctx.translate(w / 2, h / 2); ctx.rotate(ang - Math.PI / 2);
-      ctx.fillStyle = 'rgba(120,170,240,0.3)';
-      ctx.fillRect(-len, h * 0.44 - h / 2, len * 2, h * 0.09);
-      ctx.fillStyle = 'rgba(120,170,240,0.18)';
-      ctx.fillRect(-len, h * 0.58 - h / 2, len * 2, h * 0.06);
-      ctx.restore(); break;
-    case 'carbon':
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
-      for (var cx = -h; cx < w + h; cx += 6) {
-        ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx + h, h); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx + h, 0); ctx.lineTo(cx, h); ctx.stroke();
-      } break;
-    case 'grid':
-      ctx.strokeStyle = 'rgba(255,255,255,0.11)'; ctx.lineWidth = 1;
-      for (var gx = 0; gx <= w; gx += 25) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke(); }
-      for (var gy = 0; gy <= h; gy += 25) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke(); }
-      break;
-    case 'halftone':
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      for (var hx = 5.5; hx < w + 11; hx += 11)
-        for (var hy = 5.5; hy < h + 11; hy += 11) { ctx.beginPath(); ctx.arc(hx, hy, 1.5, 0, Math.PI * 2); ctx.fill(); }
-      break;
-    case 'pulse':
-      ctx.strokeStyle = 'rgba(140,185,240,0.3)'; ctx.lineWidth = 2;
-      for (var r = 14; r < Math.sqrt(w * w + h * h) * 1.5; r += 30) { ctx.beginPath(); ctx.arc(w, h, r, 0, Math.PI * 2); ctx.stroke(); }
-      break;
-    case 'slash':
-      ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 2;
-      var slope = Math.tan(60 * Math.PI / 180);
-      for (var sx = -h * slope * 2; sx < w + h * slope; sx += 12) { ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx + h * slope, h); ctx.stroke(); }
-      break;
-    case 'diamonds':
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
-      for (var dx = -h; dx < w + h; dx += 16) {
-        ctx.beginPath(); ctx.moveTo(dx, 0); ctx.lineTo(dx + h, h); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(dx, 0); ctx.lineTo(dx - h, h); ctx.stroke();
-      } break;
-    case 'noise':
-      ctx.fillStyle = 'rgba(255,255,255,0.16)';
-      for (var nx = 9; nx < w + 18; nx += 18) for (var ny = 9; ny < h + 18; ny += 18) { ctx.beginPath(); ctx.arc(nx, ny, 1, 0, Math.PI * 2); ctx.fill(); }
-      ctx.fillStyle = 'rgba(255,255,255,0.09)';
-      for (var nx2 = 4.5; nx2 < w + 9; nx2 += 9) for (var ny2 = 4.5; ny2 < h + 9; ny2 += 9) { ctx.beginPath(); ctx.arc(nx2, ny2, 1, 0, Math.PI * 2); ctx.fill(); }
-      break;
-    case 'clean': break;
-  }
-
-  /* Angled fade matching stripe angle (same as preview card) */
-  var tilt = -h * Math.tan(18 * Math.PI / 180);
-  var fadeMidX = w * 0.755;
-  var perpLen = Math.sqrt(h * h + tilt * tilt);
-  var pnx = h / perpLen;
-  var pny = tilt / perpLen;
-  var fadeHalf = 28;
-  ctx.save();
-  ctx.globalCompositeOperation = 'destination-in';
-  var fadeGrad = ctx.createLinearGradient(
-    fadeMidX - fadeHalf * pnx, h / 2 - fadeHalf * pny,
-    fadeMidX + fadeHalf * pnx, h / 2 + fadeHalf * pny
-  );
-  fadeGrad.addColorStop(0, 'rgba(0,0,0,1)');
-  fadeGrad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = fadeGrad;
-  ctx.fillRect(0, 0, w, h);
-  ctx.restore();
-
-  var p = PATTERNS_HALFTIME.find(function(x) { return x.id === id; });
-  if (p && p.dots) drawDotsHalftime(ctx, w);
-}
-
 
 /* ══════════════════════════════════════════════════════════════
    OPPONENT LIBRARY (shared between modes)
@@ -3801,27 +3352,23 @@ function setMode(mode) {
   document.getElementById('card-halftime').hidden = (mode !== 'halftime');
   document.getElementById('card-preview').hidden  = (mode !== 'preview');
 
-  /* Rebuild pattern picker with mode-appropriate swatches */
+  /* Rebuild pattern picker AND repaint the active card. Has to run
+     after the card visibility flip above so the target element's
+     offsetWidth/Height returns real values (applyPatternToElement
+     reads layout dimensions implicitly via the rendered background). */
   buildPatternPicker();
 
-  /* Redraw active card's pattern canvas (it needs the card to be visible
-     so offsetWidth/Height returns real values) + re-run update so the
-     shrink-to-fit headlines measure correctly now that they're rendered. */
+  /* Re-run mode-specific update so the shrink-to-fit headlines measure
+     correctly now that the card is rendered, and re-render the scorer
+     lists since their fitScorersList() measurements only work when the
+     card is visible. */
   if (mode === 'score') {
-    document.getElementById('pat-dots-score').style.display = 'none';
-    drawPatternCanvasScore(currentPattern);
-    /* Card is now visible — re-render scorers so fitScorersList()'s
-       offsetParent/clientHeight measurements produce real values. */
     renderScorersOnCard();
   } else if (mode === 'halftime') {
-    drawPatternCanvasHalftime(currentPattern);
-    updateHalftime();  /* re-measure headline now that card is visible */
-    /* Re-render the halftime scorers list — the card must be visible
-       for the shrink-to-fit measurements to work. */
+    updateHalftime();
     renderScorersOnHalftimeCard();
   } else {
-    drawPatternCanvasPreview(currentPattern);
-    updatePreview();  /* re-measure headline now that card is visible */
+    updatePreview();
   }
 
   /* Re-fit the spine text now that the active card has real dimensions */
@@ -3837,14 +3384,13 @@ document.documentElement.scrollTop = 0;
 document.body.scrollTop = 0;
 
 buildOppSelect();
-buildPatternPicker();
 updateSpineText();
 update();
-/* Start in preview mode and draw its pattern canvas. The score-card pat-dots
-   layer is hidden at load because only its canvas-based pattern is drawn
-   when that card becomes active. */
-document.getElementById('pat-dots-score').style.display = 'none';
-drawPatternCanvasPreview(currentPattern);
+/* buildPatternPicker() paints the pattern AND builds the swatch grid for
+   the current mode in one step (see PATTERN DEFINITIONS section above).
+   Call after update() so the active card has been laid out before the
+   pattern's target element is queried for dimensions. */
+buildPatternPicker();
 
 /* Mount the GitHub config panel (collapsed by default; status pill always
    visible). renderGitHubConfigPanel attaches its own event handlers and
@@ -3901,16 +3447,6 @@ function activeCardEl() {
   if (currentMode === 'halftime') return document.getElementById('card-halftime-inner');
   return document.getElementById('card-preview-inner');
 }
-function activePatCanvas() {
-  if (currentMode === 'score')    return document.getElementById('pat-canvas-score');
-  if (currentMode === 'halftime') return document.getElementById('pat-canvas-halftime');
-  return document.getElementById('pat-canvas-preview');
-}
-function activeDrawPattern() {
-  if (currentMode === 'score')         drawPatternCanvasScore(currentPattern);
-  else if (currentMode === 'halftime') drawPatternCanvasHalftime(currentPattern);
-  else                                 drawPatternCanvasPreview(currentPattern);
-}
 function downloadFilename() {
   var dateVal = document.getElementById('game-date').value;
   var dateSuffix = dateVal ? dateVal.replace(/-/g, '') : 'nodate';
@@ -3922,16 +3458,6 @@ function downloadFilename() {
 
 var downloadInProgress = false;
 
-/* Shared by download() and copyToClipboard(): both upscale the pattern canvas to 3×
-   for the PNG capture, then need to restore it to its original on-screen size. */
-function restorePatternCanvas(canvas, origW, origH) {
-  canvas.width  = origW;
-  canvas.height = origH;
-  canvas.style.width  = '';
-  canvas.style.height = '';
-  activeDrawPattern();
-}
-
 function download() {
   if (downloadInProgress) return;
   downloadInProgress = true;
@@ -3941,26 +3467,13 @@ function download() {
   document.getElementById('drag-tip').style.display = 'none';
   /* Logos live in ./Logos/ (same origin as the page on GitHub Pages), so
      html2canvas with useCORS:true can fetch them directly — no data-URL
-     upgrade needed like the old File-System-Access path required. */
+     upgrade needed like the old File-System-Access path required.
 
-  /* Redraw pattern canvas at 3× so it's sharp in the PNG.
-     The Final card's canvas lives inside .card-top (narrower right panel),
-     while Halftime/Preview canvases cover the full wrapper. Use the correct
-     host so the canvas isn't stretched past .card-top's overflow:hidden
-     bounds (which was clipping the corner dots out of the PNG). */
-  var cardEl = activeCardEl();
-  var patCanvas = activePatCanvas();
-  var canvasHost = (currentMode === 'score')
-    ? document.getElementById('card-top')
-    : cardEl;
-  var origW = canvasHost.offsetWidth, origH = canvasHost.offsetHeight;
-  patCanvas.width  = origW * 3;
-  patCanvas.height = origH * 3;
-  patCanvas.style.width  = origW + 'px';
-  patCanvas.style.height = origH + 'px';
-  var ctx3 = patCanvas.getContext('2d');
-  ctx3.scale(3, 3);
-  activeDrawPattern();
+     The pattern is now a CSS background on the card body element —
+     html2canvas captures it natively at scale:3, no pre-render dance
+     needed. (Pre-v7 this function pre-rendered a 3× canvas overlay
+     because the pattern lived in a <canvas> element; the move to CSS
+     backgrounds in v7 removed all that boilerplate.) */
 
   function restoreBtn() {
     downloadInProgress = false;
@@ -3981,11 +3494,9 @@ function download() {
       a.download = downloadFilename();
       a.href = canvas.toDataURL('image/png');
       a.click();
-      restorePatternCanvas(patCanvas, origW, origH);
       restoreBtn();
     }).catch(function(err) {
       document.body.classList.remove('exporting');
-      restorePatternCanvas(patCanvas, origW, origH);
       restoreBtn();
       toast('Could not generate image: ' + (err && err.message ? err.message : err), 'error');
     });
@@ -4002,20 +3513,6 @@ function copyToClipboard() {
   btn.disabled = true;
   btn.textContent = 'Copying…';
 
-  var cardEl = activeCardEl();
-  var patCanvas = activePatCanvas();
-  var canvasHost = (currentMode === 'score')
-    ? document.getElementById('card-top')
-    : cardEl;
-  var origW = canvasHost.offsetWidth, origH = canvasHost.offsetHeight;
-  patCanvas.width  = origW * 3;
-  patCanvas.height = origH * 3;
-  patCanvas.style.width  = origW + 'px';
-  patCanvas.style.height = origH + 'px';
-  var ctx3 = patCanvas.getContext('2d');
-  ctx3.scale(3, 3);
-  activeDrawPattern();
-
   function restoreBtn() {
     btn.disabled = false;
     btn.textContent = '\uD83D\uDCCB Copy card to clipboard';
@@ -4027,7 +3524,6 @@ function copyToClipboard() {
     document.body.classList.add('exporting');
     html2canvas(captureEl, {scale:3, useCORS:true, backgroundColor:null}).then(function(canvas) {
       document.body.classList.remove('exporting');
-      restorePatternCanvas(patCanvas, origW, origH);
       canvas.toBlob(function(blob) {
         var item = new ClipboardItem({'image/png': blob});
         navigator.clipboard.write([item]).then(function() {
@@ -4041,7 +3537,6 @@ function copyToClipboard() {
       }, 'image/png');
     }).catch(function(err) {
       document.body.classList.remove('exporting');
-      restorePatternCanvas(patCanvas, origW, origH);
       restoreBtn();
       toast('Could not capture card: ' + (err && err.message ? err.message : err), 'error');
     });

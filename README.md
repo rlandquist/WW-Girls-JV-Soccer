@@ -281,10 +281,10 @@ If your change affects how data is read or written (any `common.js` change, any 
 
 ```js
 // sw.js, near the top
-const CACHE_VERSION = 'v5';   // bump to 'v6', 'v7', etc.
+const CACHE_VERSION = 'v7';   // bump to 'v8', 'v9', etc.
 ```
 
-Current version: `v5` (May 2026 — Card tool's scorer-display preference split per-card-mode, with a one-time legacy-key migration; `v4` added Classic 8 + photo-credit logos to the pre-cached shell; `v3` was the unified app-shell across Card / Schedule / Roster; `v2` added the Goals tool to the shell). Bumping forces a clean install on first reload; without a bump, returning users still pick up the new shell on their second reload via stale-while-revalidate.
+Current version: `v7` (May 2026 — Card tool's pattern rendering moved from canvas drawing to CSS-background overlays via `WWCommon.applyPatternToElement`, matching how Schedule and Roster already render their patterns; the extended `makeSoccerPatterns` helper gained `accentRgb` and `light:true` options so the same helper drives all three card modes including Preview's light-bg flip; `v6` added `shared.css` plus a suite of shared helpers in `common.js` (`makeSoccerPatterns`, `applyPatternToElement`, `downloadElementAsPng`, etc.); `v5` was the Card scorer-display split per-card-mode; `v4` added Classic 8 + photo-credit logos to the pre-cached shell; `v3` was the unified app-shell across Card / Schedule / Roster; `v2` added the Goals tool to the shell). Bumping forces a clean install on first reload; without a bump, returning users still pick up the new shell on their second reload via stale-while-revalidate.
 
 ### Telling deployed builds apart
 

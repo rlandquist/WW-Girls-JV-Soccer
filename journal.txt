@@ -3044,3 +3044,211 @@ PROCESS NOTES:
   session. GitHub renders the body cleanly on the commit page, and
   the subject line stays grep-friendly in `git log --oneline`.]
 
+
+=== Journal Entry 2026-05-10T20:00:00.000000+00:00 ===
+2026-05-10-20-00-00-tier2-card-css-patterns.txt
+[Tier 2 refactor: moved Card.html's pattern rendering from canvas
+drawing to CSS-background overlays via WWCommon.applyPatternToElement,
+matching how Schedule and Roster already work. Card's three card modes
+(Score / Halftime / Preview) now call the same makeSoccerPatterns
+helper as the other two tools, with mode-specific opts to pick the
+right accent colour family per card-body background. Work spanned two
+conversations — the design discussion and the helper-signature
+decisions in one session, the actual edits + this journal entry in a
+follow-up — because the Card.html dump routing through
+/mnt/user-data/tool_results consumed context faster than the work
+could complete. Same lesson as the 2026-05-10T17:00 entry's
+"anchored reads on large files" process note, hitting it from a
+different angle.
+
+CONVERSATION ARC: Rob opened with the higher-level question of whether
+Card's three mode-specific PATTERNS_X arrays could share Schedule and
+Roster's WWCommon.makeSoccerPatterns helper. The answer was conditional
+— feasible, but Card had three things the other tools didn't (canvas
+drawing instead of CSS backgrounds, corner-fade masks, dot overlays in
+the top-right of every card) so unification required dropping or
+reconciling each one. Rob worked through them in two rounds: first
+round confirmed dropping dots entirely and moving to CSS overall;
+second round collapsed the Halftime contrast tweak (Score and Halftime
+now share identical pattern opts) and dropped the angled right-edge
+fade on Preview/Halftime. The boosted opacities on Preview's neutral
+patterns stayed — those are what made the navy-on-light-blue overlays
+read at all without disappearing into the card body.
+
+WHY DROP THE CANVAS PATH: Three motivations stacked. (1) Schedule and
+Roster already do CSS-background patterns via applyPatternToElement
+and they look fine, including in the PNG export — html2canvas captures
+CSS gradients natively at any scale. (2) The canvas path required ~400
+lines of drawing code in Card (three nine-case switch statements plus
+three drawDots* functions plus three drawPatternCanvas* setup
+functions plus a corner-mask routine) to reproduce what the helper
+already does in ~50 lines of CSS strings. (3) The canvas path forced
+download() and copyToClipboard() to pre-upscale the canvas to 3× and
+restore it afterwards, ~25 lines of state-juggling per function that
+goes away with CSS backgrounds. The net delete was significant.
+
+THE HELPER EXTENSION: makeSoccerPatterns(opts) gained two new optional
+params, accentRgb (default '255,255,255') and light (default false).
+When light:true, the six neutral patterns' opacities get multiplied by
+3.0× and clamped at 1.0. Streaks and Pulse — the two colour-tinted
+patterns — keep their existing opacities regardless of light, because
+they're tinted with stripeRgb/pulseRgb (navy in Card's case) and read
+fine on either base at the same alpha. Schedule and Roster's existing
+calls (just stripeRgb + pulseRgb) are byte-identical to before because
+the default accentRgb of white plus boost of 1.0 produces the same
+rgba() strings the previous hardcoded version emitted. Verified by
+eye on the diff: the default-path output strings are character-for-
+character the same as v6.
+
+THE BOOST FACTOR DECISION: Today's Preview-mode opacities weren't a
+uniform multiple of Score's — the per-pattern ratios ranged from 1.56×
+(halftone) to 3.67× (carbon), averaging around 2.76×. Rob's choice
+was between hand-tuning per-pattern multipliers (preserves the current
+look pixel-for-pixel) and using a single scalar (slight visual drift
+on a couple patterns but a much cleaner helper). He went with the
+single scalar. At 3.0×, carbon lands at 0.18 (vs current 0.22 —
+slightly less bold), halftone at 0.54 (vs current 0.28 — bolder),
+slash at 0.21 (vs current 0.22 — basically identical). Halftone
+reading bolder is the most visible change in this set; if it ends up
+looking too heavy in practice, the right knob to tune is the 3.0
+constant itself, not the per-pattern values. The constant lives in
+one place inside the helper.
+
+WHAT CARD'S NEW PATTERN PATH LOOKS LIKE: Two tiny config functions
+(patternOptsForMode and patternTargetForMode) plus a slim
+buildPatternPicker that calls WWCommon.makeSoccerPatterns +
+WWCommon.applyPatternToElement + WWCommon.buildPatternPicker. The
+target element is #card-top for Score (only the navy right-panel; the
+photo half doesn't get the pattern), #card-halftime-inner for Halftime,
+and #card-preview-inner for Preview. The base background colours
+(#0d1f42 / #1e3a6b / #cddaeb) stay distinct between the three modes —
+"all cards as similar as possible" was always about the rendering
+approach, not the body colours.
+
+CARD CHANGES IN DETAIL:
+
+- CSS: deleted #pat-canvas-score, #pat-dots-score (the static
+  radial-gradient dot div), #pat-canvas-preview, and
+  #pat-canvas-halftime rules. Each replaced with a short comment
+  noting the new mechanism.
+- HTML: removed three <canvas> elements (one per card mode) and the
+  static <div id="pat-dots-score"> from inside #card-top.
+- JS pattern section: deleted PATTERNS_SCORE, PATTERNS_PREVIEW, and
+  PATTERNS_HALFTIME (the three nine-element arrays), currentPatterns-
+  Array(), the old picker-rebuilding buildPatternPicker(), and the
+  old setPattern(). In their place: patternOptsForMode,
+  patternTargetForMode, a new buildPatternPicker that does both
+  picker rebuild + paint in one step, and a slim setPattern that
+  just sets currentPattern and calls buildPatternPicker.
+- JS canvas section: deleted drawDotsScore, drawPatternCanvasScore,
+  drawDotsPreview, drawPatternCanvasPreview, drawDotsHalftime, and
+  drawPatternCanvasHalftime — about 400 lines total.
+- JS setMode(): removed the per-mode drawPatternCanvas* calls and
+  the pat-dots-score display=none line. buildPatternPicker() does
+  everything now.
+- JS INITIAL RENDER: removed the standalone drawPatternCanvasPreview
+  call and the pat-dots-score display=none line. Same reason.
+- JS download() and copyToClipboard(): removed the 3× canvas-
+  upscaling blocks (origW/origH capture, patCanvas resize,
+  ctx3.scale(3,3), activeDrawPattern call, and the restorePattern-
+  Canvas call in the finally branches). html2canvas at scale:3 now
+  captures the CSS background directly. Net delete per function:
+  ~20 lines.
+- JS helpers: removed activePatCanvas, activeDrawPattern, and
+  restorePatternCanvas. Kept activeCardEl — still used by both
+  download() and copyToClipboard() to find the wrapper element
+  (.card-wrapper, parent of -inner) that html2canvas captures.
+
+COSMETIC LEFTOVERS (sweep later, per Tier 1 precedent): four orphaned
+/* ══...══ */ section headers remain in Card.html. PATTERN DEFINITIONS
+now sits above the new helper functions rather than the old arrays —
+fine, the label still loosely fits. The three PATTERN CANVAS — SCORE
+CARD / PREVIEW CARD / HALFTIME CARD headers stand alone where their
+function bodies used to be, three stale labels in a row. None of this
+breaks the file; the same pattern exists in shared.css-extracted
+regions from the 2026-05-10T01:00 Tier 1 work where APP HEADER +
+MOBILE RESPONSIVENESS now sits above a "lives in shared.css" marker.
+Mass orphan cleanup is a single dedicated session at some point.
+
+OTHER FILES:
+
+- common.js: the makeSoccerPatterns extension described above. The
+  CARD-BUILDER HELPERS section header comment block at the top of
+  that region also updated to drop the line about Card having its
+  own canvas-based path (no longer true).
+- sw.js: CACHE_VERSION v6 → v7 with a new changelog block at the
+  top documenting the Tier 2 reason. APP_SHELL_URLS unchanged.
+- README.md: CACHE_VERSION example bumped v5 → v7 (README had
+  drifted by one version already; the v6 work in the Tier 1
+  session shipped without a README bump, so this catches up both
+  versions in one edit). The "Current version" callout grew two
+  new entries at the front for v7 (this work) and v6 (shared.css
+  + common.js helpers). README-drift discipline rule from
+  2026-05-09T23:55 (any CACHE_VERSION bump updates the README in
+  the same edit batch) is back on track after this catch-up.
+
+VALIDATION: visual smoke-test left to Rob — switch through all three
+card modes, confirm pattern overlays render on each card body,
+confirm swatch picker tiles match each mode's card colour, confirm
+Score's pattern stays in just the navy right panel rather than
+bleeding onto the photo half, confirm download + copy still produce
+sharp PNGs at the same scale as before. No HTMLParser run this
+session; the surgical-edit approach kept the file structurally
+intact and the diffs were small enough per edit to review by eye.
+
+PROCESS NOTES:
+
+- Atomic-rollback on edit_file batch failures bit early. The first
+  attempt at the wiring edits (setMode, INITIAL RENDER,
+  helper-removal, download/copy rewrite) was a single edit_file call
+  with four edits. One — the big download+copy rewrite — failed to
+  match its oldText. The whole batch rolled back atomically; the
+  other three edits that would have matched got reverted along with
+  the failing one. After the rollback the workaround was easy: split
+  into a 2-edit call (the two that had worked) plus a separate
+  1-edit call (the one that needed reattempting). Both landed clean.
+  Lesson: when batching edits, group by failure risk rather than
+  logical affinity. The CSS, HTML, and PATTERNS-array edits were
+  all anchor-clean and could safely batch together; the
+  download/copy rewrite was a 100+ line oldText with a higher risk
+  profile and deserved to ride alone.
+
+- The 22 KB single-edit instinct was correctly resisted. Initial
+  plan was a single edit_file call replacing the whole PATTERN
+  DEFINITIONS section plus the three PATTERN CANVAS sections (~22
+  KB old text, ~2 KB new text, 372 box-drawing chars). The last
+  Tier 1 journal entry's process note about "filesystem:edit_file
+  mismatches on large blocks containing box-drawing characters"
+  made me chunk it into four smaller edits instead (one for
+  PATTERNS+helpers at 7.9KB with zero box-drawing chars, then three
+  function-deletion edits at ~4.8KB each with 124 box-drawing chars
+  each). All four landed clean on first attempt. Chunking added
+  maybe 30 seconds of planning overhead; the alternative of a
+  single 22 KB edit failing and rolling back would have cost much
+  more.
+
+- Anchored reads beat full-file reads on large files. Card.html at
+  ~186 KB is too big for read_text_file's direct return — it routes
+  through /mnt/user-data/tool_results, which both consumes context
+  budget and is awkward to grep. This session used Python from the
+  bash tool to load the cached JSON and slice out specific function
+  blocks for exact-match planning. Worked well; the 7.9 KB PATTERNS
+  block came back exact and the edit matched first try. Same
+  lesson the 2026-05-10T17:00 entry's process notes called out —
+  use view_range or anchored reads against specific regions for
+  files over ~100 KB.
+
+- Conversation continuation via compaction is now a real workflow
+  step. This session opened with a compaction summary from a prior
+  conversation that had run up against its context limit. The
+  summary captured every decision and the full set of pending edits
+  with enough fidelity that resuming was straightforward — common.js
+  had already been edited in the prior session and the journal
+  summary reconstructed exactly which edits had landed and which
+  were still pending. Worth treating compaction summaries as a
+  first-class artifact: if a session looks like it'll run long, the
+  detailed-decisions-with-rationale format the summary uses works
+  well as a handoff. Less important now that the summary format
+  has settled into something detailed; was a much bigger gap the
+  first time this happened in the 2026-05-10T17:00 entry.]
+

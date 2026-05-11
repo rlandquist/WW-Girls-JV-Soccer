@@ -22,6 +22,18 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
+ * v7 (May 2026): Card tool's pattern rendering moved from canvas
+ * drawing to CSS-background overlays via WWCommon.applyPatternToElement,
+ * matching how Schedule and Roster already render their patterns. The
+ * three mode-specific PATTERNS arrays in Card.html collapsed to three
+ * single-line calls to the extended makeSoccerPatterns helper, which
+ * now accepts accentRgb + light:true for the light-bg flip used by
+ * Preview mode. Dot overlays, the Score corner mask, and the angled
+ * right-edge fades on Preview / Halftime are gone — the cards now
+ * render uniformly with the same approach as Schedule / Roster.
+ * Bumped so v6-cached devices evict and pick up both the trimmed
+ * Card.html and the extended common.js on next visit.
+ *
  * v6 (May 2026): Added shared.css — a new top-level stylesheet that owns
  * the chrome shared by every page (app-header, mobile media query,
  * photo-credit pill, toast, CSS variables, etc.). Each tool's inline
@@ -72,7 +84,7 @@
  * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v6';
+const CACHE_VERSION    = 'v7';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 
