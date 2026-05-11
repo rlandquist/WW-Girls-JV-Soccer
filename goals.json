@@ -94,6 +94,16 @@
         "minute": null,
         "half": 1
       }
+    ],
+    "2026-05-11|catholic memorial": [
+      {
+        "id": "go_mp1q3194xp76",
+        "minute": 3,
+        "half": 1,
+        "kind": "unknown",
+        "playerId": "",
+        "customName": ""
+      }
     ]
   }
 }
