@@ -320,3 +320,109 @@ PROCESS NOTES:
   the box borders), so byte-exact matching just worked. The box
   borders were preserved by leaving them outside the replacement
   window.
+
+
+=== Journal Entry 2026-05-11T16:00:00.000000+00:00 ===
+2026-05-11-16-00-00-tier3-1-card-media-prune.txt
+[Tier 3 #1 from the Tier 2 follow-up backlog. Card.html's
+@media (max-width: 900px) block was diffed rule-by-rule against
+shared.css and removed in full — every rule in Card's block was
+functionally identical to shared's. Block + decorated orphan-comment
+chrome above it went from ~145 lines to a single 14-line explanatory
+comment. Card.html dropped ~3.6 KB; sw.js bumped v8 -> v9 with a v9
+history block. No build-date bump on Card.html: this work happened
+on the same calendar day as the Tier 2 commit that set Card to
+2026-05-11, so the stamp already covers it. Two files touched (Card +
+sw.js) plus this journal entry.]
+
+CONVERSATION ARC: Rob's request was a one-liner: "Tier 3 #1 — prune
+Card.html's @media (max-width:900px) against shared.css." The Tier 2
+journal entry above had flagged this as a Tier 3 candidate with the
+rationale that the block "largely duplicates rules now in shared.css"
+and had cited the original Tier 1 hesitation (a `position: static
+!important` reset that shared.css now also covers). Conversation_search
+recovered both the framing and the Tier 1 history. Read shared.css's
+@media block in full, read Card.html through line 800 to capture the
+@media region plus the orphan-comment chrome above it, and ran the
+diff in-head. Every Card rule mapped to an identical or no-op-different
+shared rule. One dryRun edit_file probe validated that the byte-exact
+match across the box-drawing characters still held (Tier 2 had logged
+a corruption-at-line-573 gotcha for this file); dryRun matched cleanly
+so the real edit applied in one pass.
+
+DIFF DETAILS (recorded so future audits don't need to re-derive):
+
+- .app-body                          identical
+- .editor                            identical
+- .editor.collapsed                  identical
+- .editor-toggle                     identical except `color: #0d1f42`
+                                     (Card) vs `color: var(--ink)`
+                                     (shared). Card doesn't override
+                                     --ink in :root, so var(--ink)
+                                     resolves to #0d1f42. No-op.
+- .editor-toggle:active              identical
+- .editor-toggle .chev               identical
+- .card-container                    Card lacks `justify-content:
+                                     flex-start`. Inert anyway:
+                                     Card's desktop .card-container
+                                     rule sets no display:flex, so
+                                     the property has no flex
+                                     container to act on.
+- .card-container > *                identical
+- .editor input/.../.editor textarea identical
+- .editor button                     identical
+- .app-header / .paw / h1            identical
+- .photo-credit (and children)       identical
+- body.exporting .card-container     identical
+
+The Tier-1-flagged worry was Card's desktop
+`.card-container { position: sticky; ... }`, which needs a mobile
+reset so the stacked layout doesn't try to stick anything. Shared's
+`.card-container { position: static !important; ... }` covers that:
+same specificity, and !important seals it. Verified by reading both
+rules side-by-side; nothing Card-specific is left to keep.
+
+FILES TOUCHED:
+
+- GirlsJVSoccerCard.html  (~130-line @media block + ~15-line
+                            decorated orphan-comment chrome above it
+                            collapsed to a 14-line explanatory
+                            comment; ~3.6 KB lighter)
+- sw.js                    (v8 -> v9 + v9 history block)
+- journal-2.txt            (this entry)
+
+No build-date bump on Card.html — Tier 2 already stamped it
+2026-05-11 earlier in the same day. Same date, same line, no change
+needed. The cache-version bump in sw.js is what actually forces
+clients to evict the v8-cached Card.html on next visit; the build
+date is human-reference only.
+
+TIER 3 REMAINING CANDIDATES (carried over from the Tier 2 entry):
+
+- WWCommon's failure-toast wording is now Card's wording too. If a
+  friendlier per-tool error message is wanted on Card, the right move
+  is to add an opts.errorToastFn (or opts.errorPrefix). Only worth
+  doing if Rob actually feels the difference in practice.
+- Schedule and Roster have NO @media block in their inline <style>
+  any more — the boxed comment block at the bottom of each is now
+  pure explanation. Could be reduced to a 2-line `/* ... */` plain
+  comment without the heavy `=========` borders. Cosmetic only.
+
+PROCESS NOTES:
+
+- dryRun-before-real-edit paid off as expected. The Tier 2 entry had
+  flagged box-drawing bytes in this file as a known corruption risk
+  (line 573 specifically). dryRun matched first try, which both
+  validated the bytes and gave a full diff preview of the deletion.
+  Cheap insurance, and the right reflex for any large single-edit
+  pass against a file with a documented byte-level gotcha.
+
+- The diff was done in-head from the two full reads, not by running
+  a structural CSS diff in code. For a comparison this size it's
+  faster, and the journal record above documents the result in enough
+  detail that any future "why is there no @media in Card?" question
+  is answerable from this file alone without re-diffing.
+
+- Two-file refactor + bump means git status should show exactly
+  three modified files: GirlsJVSoccerCard.html, sw.js, journal-2.txt.
+  No other files were touched.

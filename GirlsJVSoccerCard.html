@@ -559,144 +559,20 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 .empty-hint{text-align:center;color:#888;padding:16px 8px;font-size:11.5px;line-height:1.5;}
 /* Toast styling + #toast-container live in shared.css. */
 
-/* ═══════════════════════════════════════════════════════════════ */
-/* MOBILE OVERRIDES (Card-specific, on top of shared.css)         */
-/* App-header chrome, .app-body, .editor-toggle, .photo-credit,    */
-/* and the shared mobile @media block all live in shared.css. The  */
-/* @media block below is Card-only and mostly mirrors shared (kept */
-/* intact during Tier 1 for safety); Tier 3 candidate to collapse. */
-/* ═══════════════════════════════════════════════════════════════ */
-/* .app-header chrome lives in shared.css. The marker stripe under
-   the header is set via --tool-marker (#3a6090, lighter navy) in the
-   :root override at the top of this <style> block. */
-
-/* .app-body + .editor-toggle (mobile) live in shared.css. */
-
-/* ─── MOBILE (≤900 px) ─────────────────────────────────────────
-   Below 900 px the desktop layout is broken anyway (editor 260 +
-   card 440 + gap 24 + padding 40 = 764 minimum and that's before
-   double-column at 800 px). Stack everything vertically. */
-@media (max-width: 900px) {
-  .app-body {
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px;
-    /* iOS PWA bottom safe-area for the home indicator. */
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-  }
-
-  /* Editor: full-width, part of normal page scroll (not its own
-     scroll container). */
-  .editor {
-    width: 100% !important;
-    max-width: 100% !important;
-    max-height: none !important;
-    overflow-y: visible !important;
-    flex-shrink: 1;
-  }
-  /* Collapsed: hidden entirely; the toggle button stays visible. */
-  .editor.collapsed { display: none; }
-
-  /* The toggle that hides/shows the editor on phones. */
-  .editor-toggle {
-    display: inline-flex;
-    align-self: flex-start;
-    align-items: center;
-    gap: 8px;
-    padding: 11px 16px;
-    background: #fff;
-    color: #0d1f42;
-    border: 1px solid #d0dcec;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    min-height: 44px;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .editor-toggle:active { background: #f0f4fa; }
-  .editor-toggle .chev {
-    font-size: 11px;
-    line-height: 1;
-    transform: translateY(1px);
-  }
-
-  /* Card preview: scroll horizontally on its own when 440 px (or 800 px
-     in any future double-layout) overflows the viewport. The card's
-     real width is preserved so html2canvas exports at full resolution. */
-  .card-container {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    /* Sticky doesn't fit a column layout — turn it off. */
-    position: static !important;
-    padding-top: 4px;
-    padding-bottom: 4px;
-    /* Give the inner card a tiny bit of horizontal breathing room
-       so it doesn't kiss the edge of the viewport. */
-    padding-left: 2px;
-    padding-right: 2px;
-  }
-  .card-container > * { flex-shrink: 0; }
-
-  /* Bigger touch targets for the editor's form controls. 16 px font
-     prevents iOS auto-zoom-on-focus. */
-  .editor input[type="text"],
-  .editor input[type="number"],
-  .editor input[type="date"],
-  .editor input[type="time"],
-  .editor select,
-  .editor textarea {
-    font-size: 16px;
-    padding: 10px 11px;
-    min-height: 44px;
-  }
-  .editor button {
-    min-height: 40px;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  /* Header tightens slightly on small phones. */
-  .app-header { padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
-  .app-header .paw { width: 24px; height: 30px; }
-  .app-header h1 { font-size: 15px; }
-  /* Back-link stays at desktop size on mobile — it's the primary nav
-     control and shouldn't shrink to a hard-to-tap pill. */
-
-  /* Photo credit drops out of fixed positioning on phones so it sits
-     below the card preview rather than overlaying its bottom edge.
-     Also shrinks to take less screen space, and respects the iOS
-     PWA home-indicator safe area via margin-bottom. */
-  .photo-credit {
-    position: static;
-    transform: none;
-    align-self: center;
-    margin-top: 4px;
-    margin-bottom: max(8px, env(safe-area-inset-bottom));
-    padding: 6px 12px 6px 6px;
-  }
-  .photo-credit .rlp-logo { height: 36px; }
-  .photo-credit .rlp-text { font-size: 10px; }
-
-  /* During PNG export, lift the overflow clip on .card-container so
-     html2canvas captures the card at its full natural width. The
-     body.exporting class is added by download() / copyToClipboard()
-     immediately before the html2canvas call and removed when it
-     resolves. Brief layout flicker during the capture is acceptable
-     since the user has just tapped Download. */
-  body.exporting .card-container {
-    overflow: visible !important;
-    width: auto !important;
-    max-width: none !important;
-    align-self: flex-start !important;
-    flex-shrink: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-}
+/* Mobile (max-width: 900 px) is fully handled by shared.css.
+   The previous Card-specific @media block (~130 lines) was an
+   exact functional duplicate of shared's @media block — every
+   rule was either byte-identical or a no-op variant (.editor-
+   toggle's hard-coded #0d1f42 resolves to the same value as
+   shared's var(--ink); .card-container is missing
+   justify-content: flex-start, which is inert anyway because
+   the desktop rule above doesn't set display: flex on it). The
+   one Tier-1-flagged concern — Card's desktop
+   `position: sticky` on .card-container — is covered by
+   shared's `.card-container { position: static !important }`.
+   Pruned in Tier 3 #1. Add a `@media (max-width: 900px) { ... }`
+   block here if Card ever needs a genuinely Card-specific
+   mobile override. */
 </style>
 </head>
 <body>

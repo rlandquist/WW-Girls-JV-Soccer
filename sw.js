@@ -22,6 +22,22 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
+ * v9 (May 2026): Tier 3 #1 — pruned Card.html's mobile @media
+ * (max-width: 900px) block. After diffing rule-by-rule against
+ * shared.css, every rule in Card's @media was a duplicate of
+ * shared's: identical values, identical selectors, identical
+ * comments-stripped semantics. The only differences were inert
+ * (.editor-toggle: #0d1f42 hard-coded vs var(--ink), which resolve
+ * to the same colour; .card-container missing justify-content:
+ * flex-start, which doesn't apply because Card's .card-container
+ * isn't a flex container). Tier 1 kept the block intact for safety;
+ * the concern at the time was Card's desktop `position: sticky` on
+ * .card-container needing a mobile reset, but shared's @media
+ * already handles that with `position: static !important`. The
+ * 130-line block collapsed to a 14-line comment explaining where
+ * mobile lives. Card.html dropped ~3.6 KB. Bumped so v8-cached
+ * devices evict and pick up the trimmed Card.html on next visit.
+ *
  * v8 (May 2026): Tier 2 cleanup pass. Card tool's download() and
  * copyToClipboard() now delegate to WWCommon.downloadElementAsPng
  * and copyElementAsPngToClipboard — the html2canvas + blob plumbing
@@ -100,7 +116,7 @@
  * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v8';
+const CACHE_VERSION    = 'v9';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 
