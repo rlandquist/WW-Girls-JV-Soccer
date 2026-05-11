@@ -96,9 +96,9 @@
       "date": "2026-05-11",
       "opponent": "Catholic Memorial",
       "location": "home",
-      "status": "scheduled",
-      "scoreUs": null,
-      "scoreThem": null,
+      "status": "final",
+      "scoreUs": 7,
+      "scoreThem": 0,
       "time": "4:30 PM",
       "venue": "Waukesha West Stadium",
       "address": ""
