@@ -3370,10 +3370,15 @@ function download() {
      body element — html2canvas captures it natively at scale:3, no
      pre-render canvas dance like the v6 path needed. */
   WWCommon.downloadElementAsPng(activeCardEl().parentNode, {
-    filename:  downloadFilename(),
-    button:    document.getElementById('download-btn'),
-    busyLabel: 'Generating…',
-    before:    hideDragTip
+    filename:     downloadFilename(),
+    button:       document.getElementById('download-btn'),
+    busyLabel:    'Generating…',
+    before:       hideDragTip,
+    /* Friendlier wording for Card specifically — a coach hitting Save
+       on game day shouldn't see a stack-trace-style 'Download failed:
+       TypeError ...' toast. The helper's default wording still kicks in
+       for any tool that omits this opt. */
+    errorMessage: 'Could not save image — please try again.'
   }).catch(function(){}).then(function() {
     downloadInProgress = false;
   });
@@ -3389,7 +3394,11 @@ function copyToClipboard() {
     button:    document.getElementById('copy-btn'),
     idleLabel: '\uD83D\uDCCB Copy card to clipboard',
     busyLabel: 'Copying…',
-    before:    hideDragTip
+    before:    hideDragTip,
+    /* If the clipboard write or html2canvas fails (rare), steer the
+       user toward Download instead of showing a raw error. Clipboard-
+       unsupported (Safari < 13.4) keeps the helper's own warn toast. */
+    errorMessage: 'Could not copy image — try the Download button instead.'
   });
 }
 </script>

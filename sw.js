@@ -22,6 +22,22 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
+ * v10 (May 2026): Tier 3 #2 + #3 — friendlier error wording on the
+ * Card tool, plus a cosmetic comment-block slim on Schedule and Roster.
+ * WWCommon.downloadElementAsPng and copyElementAsPngToClipboard gained
+ * a new opts.errorMessage (string or function(err) => string) that
+ * overrides the default 'Download failed: <err>' / 'Copy failed: <err>'
+ * / 'Render failed: <err>' toast text; the clipboard-unsupported warn
+ * is unaffected. Card now passes 'Could not save image — please try
+ * again.' on download() and 'Could not copy image — try the Download
+ * button instead.' on copyToClipboard() so a coach hitting an export
+ * during a game doesn't see a raw stack-trace prefix. Schedule and
+ * Roster's bottom-of-style boxed comment blocks (the heavy =====
+ * borders Tier 1 left in place once the rules moved to shared.css)
+ * collapsed to a 4-line plain comment each — same information, no
+ * visual noise. Bumped so v9-cached devices evict and pick up the
+ * extended common.js plus the trimmed Schedule/Roster on next visit.
+ *
  * v9 (May 2026): Tier 3 #1 — pruned Card.html's mobile @media
  * (max-width: 900px) block. After diffing rule-by-rule against
  * shared.css, every rule in Card's @media was a duplicate of
@@ -116,7 +132,7 @@
  * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v9';
+const CACHE_VERSION    = 'v10';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 

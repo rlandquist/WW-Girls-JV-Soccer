@@ -658,20 +658,10 @@ input[type="number"] { padding-right: 4px; }
    fallback path is unused when common.js loads normally so the visual
    difference doesn't show up in practice. */
 
-/* ═══════════════════════════════════════════════════════════════ */
-/* MOBILE OVERRIDES (Roster-specific, on top of shared.css)       */
-/* All app-shell chrome (header, .app-body, .editor-toggle,        */
-/* .photo-credit, toast, mobile @media block) lives in shared.css. */
-/* Roster adds no per-tool mobile rules; --tool-marker (gold,      */
-/* via var(--accent)) in :root above is the only customization.    */
-/* ═══════════════════════════════════════════════════════════════ */
-/* .app-header chrome lives in shared.css. The gold marker stripe is
-   set via --tool-marker: var(--accent) in the :root above. */
-
-
-/* .app-body + .editor-toggle (mobile) live in shared.css. */
-
-/* Mobile (≤900 px) overrides live in shared.css. */
+/* No per-tool mobile overrides. All app-shell chrome (header,
+   .app-body, .editor-toggle, .photo-credit, toast, @media ≤900 px)
+   lives in shared.css; Roster's only customization is --tool-marker
+   (gold via var(--accent)) set in :root above. */
 </style>
 </head>
 <body>

@@ -1008,6 +1008,11 @@
                            (success or failure), once body.exporting has been
                            removed. Use to re-enable / unhide what `before` toggled.
      opts.toastFn        — callback for showing toasts (defaults to WWCommon.toast)
+     opts.errorMessage   — overrides the failure-toast text. Pass a string
+                           for a static message (the err detail is not
+                           appended), or a function(err) => string to build
+                           the message dynamically. When absent, the default
+                           'Download failed: <err>' is used.
      Returns a Promise that resolves with the filename or rejects with the error. */
   function downloadElementAsPng(node, opts) {
     opts = opts || {};
@@ -1022,6 +1027,17 @@
     var toastFn = opts.toastFn || toast;
     var beforeFn = (typeof opts.before === 'function') ? opts.before : null;
     var afterFn  = (typeof opts.after  === 'function') ? opts.after  : null;
+    var errMsg   = opts.errorMessage;
+    /* Build the failure-toast message. errMsg wins if supplied: as a
+       string it replaces the entire toast text; as a function(err) it
+       returns the toast text. Otherwise we fall back to the default
+       '<prefix>: <err.message>' form so existing callers see no change. */
+    function failToast(prefix, err) {
+      if (!toastFn) return;
+      var msg = (typeof errMsg === 'function') ? errMsg(err)
+              : (errMsg || (prefix + ': ' + (err && err.message || err)));
+      toastFn(msg, 'error');
+    }
 
     if (btn) {
       btn.disabled = true;
@@ -1067,7 +1083,7 @@
             btn.disabled = false;
             btn.textContent = idleLabel;
           }
-          if (toastFn) toastFn('Download failed: ' + (err && err.message || err), 'error');
+          failToast('Download failed', err);
           reject(err);
         });
     });
@@ -1078,6 +1094,9 @@
      expose ClipboardItem (Safari < 13.4, older Firefox). Supports the same
      before/after hooks as downloadElementAsPng for tool-specific DOM tweaks
      during capture (e.g. Card hides #drag-tip via the before hook).
+     Supports opts.errorMessage (string or function(err) => string) which
+     overrides both the 'Copy failed: ...' and 'Render failed: ...' default
+     wording; the clipboard-unsupported warn is unaffected.
      Returns a Promise. */
   function copyElementAsPngToClipboard(node, opts) {
     opts = opts || {};
@@ -1091,6 +1110,16 @@
     var toastFn = opts.toastFn || toast;
     var beforeFn = (typeof opts.before === 'function') ? opts.before : null;
     var afterFn  = (typeof opts.after  === 'function') ? opts.after  : null;
+    var errMsg   = opts.errorMessage;
+    /* Same shape as downloadElementAsPng's failToast — see the comment
+       on that helper for details. The clipboard-unsupported warn path
+       below intentionally bypasses this and stays on its terse default. */
+    function failToast(prefix, err) {
+      if (!toastFn) return;
+      var msg = (typeof errMsg === 'function') ? errMsg(err)
+              : (errMsg || (prefix + ': ' + (err && err.message || err)));
+      toastFn(msg, 'error');
+    }
 
     if (btn) {
       btn.disabled = true;
@@ -1135,7 +1164,7 @@
                   btn.disabled = false;
                   btn.textContent = idleLabel;
                 }
-                if (toastFn) toastFn('Copy failed: ' + (err && err.message || err), 'error');
+                failToast('Copy failed', err);
                 reject(err);
               });
           });
@@ -1147,7 +1176,7 @@
             btn.disabled = false;
             btn.textContent = idleLabel;
           }
-          if (toastFn) toastFn('Render failed: ' + (err && err.message || err), 'error');
+          failToast('Render failed', err);
           reject(err);
         });
     });

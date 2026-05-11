@@ -426,3 +426,157 @@ PROCESS NOTES:
 - Two-file refactor + bump means git status should show exactly
   three modified files: GirlsJVSoccerCard.html, sw.js, journal-2.txt.
   No other files were touched.
+
+
+=== Journal Entry 2026-05-11T19:00:00.000000+00:00 ===
+2026-05-11-19-00-00-tier3-2-and-3-error-toasts-and-comment-slim.txt
+[Tier 3 #2 + #3 from the backlog, shipped together because both are
+small and the v9 -> v10 cache bump is more efficient as one push than
+two. Tier 3 #2 (Card error-toast wording): WWCommon.downloadElementAsPng
+and copyElementAsPngToClipboard gained a new opts.errorMessage — a
+string or function(err) => string that overrides the default
+'Download failed: <err>' / 'Copy failed: <err>' / 'Render failed: <err>'
+toast text. Card now passes friendlier per-tool wording so a coach
+hitting Save during a game doesn't see a TypeError suffix. Tier 3 #3
+(Schedule + Roster cosmetic comment slim): the bottom-of-style boxed
+`==========` comment blocks on Schedule.html and Roster.html (left in
+place by Tier 1 once the rules moved to shared.css) collapsed to a
+4-line plain comment each. Same information; no visual noise. Five
+files touched: common.js, GirlsJVSoccerCard.html, GirlsJVSoccerSchedule
+.html, GirlsJVSoccerRoster.html, sw.js (v9 -> v10 with a v10 history
+block). README's Current-version callout bumped v7 -> v10 in the same
+batch to catch up the v8 + v9 + v10 history that had drifted out of
+sync. No build-date bump on the four HTMLs: all three touched HTMLs
+(Card + Schedule + Roster) were already stamped 2026-05-11 from the
+Tier 2 / Tier 3 #1 work earlier the same day.]
+
+CONVERSATION ARC: Rob's request was "fix the 2 tier 3 items listed"
+after the prior turn had surfaced the backlog from memory. The two
+items were the parked candidates from the Tier 2 entry (2026-05-11
+T13:30) carried forward through Tier 3 #1: friendlier error toast
+wording on Card, and the cosmetic comment-block slim on Schedule
+and Roster. Both had been gated on Rob 'actually feeling the
+difference in practice' / 'pure cosmetic'; the explicit fix-them
+request meant just executing. Work proceeded in this order: read
+common.js's download + copy helpers via /tmp extraction (the file's
+at 63 KB so direct reads route through tool_results), confirm Card's
+download() and copyToClipboard() wiring, dryRun the common.js
+extension, apply, dryRun the Card wiring, apply, dryRun the
+Schedule + Roster slim, apply, bump sw.js, bump README. The journal
+entry is the close-out.
+
+DESIGN OF opts.errorMessage:
+
+- Type: string OR function(err) => string. String wins (no err detail
+  appended); function gets the err and returns the toast text. Absent
+  means existing default behaviour, byte-for-byte. Existing callers
+  (Schedule, Roster, anyone else) keep their current toasts unchanged.
+- A small `failToast(prefix, err)` helper is defined inside each of
+  the two WWCommon functions, captures errMsg + toastFn + the
+  default prefix string at each call site. The duplication is two
+  short functions; the alternative of a module-scope helper would
+  have meant a fourth byte-exact insertion point on a large file
+  for marginal DRY benefit. Inline-per-function won.
+- Three error paths now route through failToast:
+  · downloadElementAsPng's html2canvas catch (default 'Download failed')
+  · copyElementAsPngToClipboard's clipboard.write catch (default 'Copy failed')
+  · copyElementAsPngToClipboard's html2canvas catch (default 'Render failed')
+  The clipboard-unsupported branch (Safari < 13.4) is intentionally
+  excluded — it's a warn, not an error, and the wording 'Clipboard
+  API not supported' is already accurate.
+
+CARD'S NEW WORDING:
+
+- download(): 'Could not save image — please try again.'
+- copyToClipboard(): 'Could not copy image — try the Download button instead.'
+  Slightly altered from the v6-era Card wording ('Could not generate
+  image — try the Download button instead.') to mention 'copy' rather
+  than 'generate' since download has its own message now and the
+  shared 'generate' phrasing is no longer needed.
+
+ORDER OF EDITS (recorded so post-mortems don't have to re-derive):
+
+1. common.js: five edits in one batch — download docstring +
+   var/helper insertion + download catch swap + copy docstring +
+   copy var/helper insertion + two copy catch swaps. DryRun matched
+   all five; applied clean.
+2. Card.html: two edits — download options block + copy options block.
+   The copy block hit a byte-exact gotcha worth recording (see below).
+3. Schedule.html and Roster.html: one edit each, replacing the boxed
+   comment block with a 4-line plain comment.
+4. sw.js: v10 history block prepended to the changelog comment +
+   CACHE_VERSION bumped 'v9' -> 'v10'.
+5. README.md: example line bumped 'v7' -> 'v10' and the Current-version
+   callout rewritten to start with v10 and walk back through v9 and v8.
+
+FILES TOUCHED:
+
+- common.js                       (+~30 lines: docstrings, errMsg vars,
+                                   inline failToast helpers, three
+                                   catch-block swaps)
+- GirlsJVSoccerCard.html          (+~12 lines: errorMessage opt added
+                                   to both download + copy call sites)
+- GirlsJVSoccerSchedule.html      (-~10 lines: 13-line boxed block ->
+                                   4-line plain comment)
+- GirlsJVSoccerRoster.html        (-~12 lines: 15-line boxed block ->
+                                   4-line plain comment)
+- sw.js                           (v9 -> v10 + v10 history block)
+- README.md                       (example bumped v7 -> v10; Current-
+                                   version callout rewritten to start
+                                   at v10 and walk back through v9, v8)
+- journal-2.txt                   (this entry)
+
+TIER 3 REMAINING:
+
+- Web Share API integration on Card (navigator.share({files: [...]}))
+  still parked at 'very low priority, may not use.' Has been in the
+  backlog unchanged since the 2026-05-10T02:30 entry. Not opening it
+  unless Rob explicitly asks.
+
+PROCESS NOTES:
+
+- BYTE-EXACT GOTCHA: tried to swap Card.html's copyToClipboard()
+  options block (which contains `idleLabel: '📋 Copy card
+  to clipboard'` — a literal 12-char JS escape sequence on disk, not
+  the composed emoji). Three attempts failed before landing the
+  correct anchor strategy:
+  · First attempt sent `📋` in the JSON oldText — JSON
+    parser composed the surrogate pair into the literal emoji 📋,
+    didn't match the file's escape-sequence bytes.
+  · Second attempt sent `\\\\uD83D\\\\uDCCB` (four backslashes per
+    escape) — JSON parser produced `\\uD83D` (two backslashes) which
+    over-doubled and didn't match the file's single-backslash form.
+  · Final fix: anchor AFTER the idleLabel line entirely. Matched on
+    `busyLabel: 'Copying…',\n    before:    hideDragTip\n  });`
+    which is unique to copyToClipboard and avoids the escape
+    sequence altogether. Same anchor-around-the-tricky-bytes pattern
+    the Tier 1 + Tier 2 journals recorded for box-drawing chars; new
+    instance of the same lesson on a different character class.
+- Save-file-to-/tmp workflow paid off again. common.js (63 KB) and
+  Card.html (162 KB) both blow the direct-read budget; extracting
+  the JSON-wrapped saved tool-result via python3 into /tmp/*.js was
+  fast and let grep / sed do the structural reading without burning
+  conversation context. Same pattern the 2026-05-10T20:00 Tier 2
+  patterns entry called out; worth treating as the default for any
+  read of common.js or Card.html going forward.
+- dryRun-then-apply held the line on a 5-edit common.js batch and a
+  2-edit Card.html batch. All edits in both batches matched first try
+  once anchors were chosen correctly. The atomic-rollback risk Tier 2
+  flagged (one failing edit in a batch reverts the whole batch) did
+  not bite here because each edit had small oldText scope and the
+  byte-exact gotcha surfaced as an immediate dryRun failure on a
+  single-edit retry, not buried in a batch.
+- README catch-up worked: previous sessions (v8, v9) shipped without
+  bumping the Current-version callout; this entry caught up all
+  three (v8 + v9 + v10) in one batch. The 'CACHE_VERSION bump
+  updates the README in the same batch' discipline rule from
+  2026-05-09T23:55 is back on track.
+- Cosmetic asymmetry on Card.html: download() options block ended
+  up with prettier 'filename: / button: / busyLabel: / before: /
+  errorMessage:' alignment (each value column aligned at
+  4-space-after-colon), while copyToClipboard() options kept the
+  original tighter alignment because the second oldText anchored
+  around the idleLabel escape sequence and didn't reach the button
+  + idleLabel lines. Functional output is identical; if the
+  asymmetry bothers a future eye, a one-shot cosmetic edit can fix
+  it. Not worth doing now — the function works.]

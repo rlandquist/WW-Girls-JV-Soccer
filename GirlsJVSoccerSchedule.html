@@ -650,19 +650,10 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
 
 /* Toast styling + #toast-container live in shared.css. */
 
-/* ═══════════════════════════════════════════════════════════════ */
-/* MOBILE OVERRIDES (Schedule-specific, on top of shared.css)     */
-/* All app-shell chrome (header, .app-body, .editor-toggle,        */
-/* .photo-credit, toast, mobile @media block) lives in shared.css. */
-/* Schedule adds no per-tool mobile rules; --tool-marker (green)   */
-/* set in :root above is the only Schedule-side customization.     */
-/* ═══════════════════════════════════════════════════════════════ */
-/* .app-header chrome lives in shared.css. */
-
-
-/* .app-body + .editor-toggle (mobile) live in shared.css. */
-
-/* Mobile (≤900 px) overrides live in shared.css. */
+/* No per-tool mobile overrides. All app-shell chrome (header,
+   .app-body, .editor-toggle, .photo-credit, toast, @media ≤900 px)
+   lives in shared.css; Schedule's only customization is --tool-marker
+   (green via var(--good)) set in :root above. */
 </style>
 </head>
 <body>
