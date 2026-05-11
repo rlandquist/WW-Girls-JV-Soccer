@@ -580,3 +580,153 @@ PROCESS NOTES:
   + idleLabel lines. Functional output is identical; if the
   asymmetry bothers a future eye, a one-shot cosmetic edit can fix
   it. Not worth doing now — the function works.]
+
+
+=== Journal Entry 2026-05-11T22:00:00.000000+00:00 ===
+2026-05-11-22-00-00-card-preview-halftime-stripes-removed.txt
+[Removed the decorative diagonal stripes from the Card tool's Preview
+and Halftime cards — both the upper-right .card-stripe pair on each
+card body and the upper-left .gametime-stripe / .nexthalf-stripe
+inside each card's footer block. Final (Score) card untouched: its
+.photo-stripe pair plus .photo-edge do real structural work blending
+the photo edge into the navy score column, so removing them would
+leave a hard rectangular split between the photo and the right-hand
+score area. The diagonal-line SVG background-image baked into
+.card-next, .card-gametime, and .card-nexthalf footers stays as-is
+in all three card layouts — Rob explicitly asked to keep it. Goal
+stated upfront: bring Preview and Halftime's visual model in line
+with Schedule and Roster (one base colour + one full-card pattern
+via applyPatternToElement, no extra decorative overlays). Three
+files touched: GirlsJVSoccerCard.html, sw.js (v10 -> v11 with v11
+history block prepended), README.md (example line bumped + Current-
+version callout rewritten to lead with v11). No build-date bump on
+Card.html: it was already stamped 2026-05-11 by the Tier 3 #2 + #3
+work earlier the same day.]
+
+CONVERSATION ARC: Rob opened by asking about a visual asymmetry he'd
+noticed — "the background of the cards has stripes in the upper
+right corner, but the schedule and roster do not. why is that. Don't
+make changes just evaluate." The first response inventoried where
+the stripes live: .photo-stripe-1/-2 on the Score card (structural,
+photo-edge transition), .card-stripe-1/-2 on Preview and Halftime
+(decorative corner accents), and the smaller .gametime-stripe /
+.nexthalf-stripe in each footer block; explained that Schedule and
+Roster were list-card layouts built later and never carried those
+stripe overlays. Rob then asked "can they be removed from all 3 of
+the cards"; the second response distinguished Preview / Halftime
+(trivially removable, pure decoration on top of the
+applyPatternToElement background) from Score (.photo-stripe pair
+doubles as the photo->navy transition; removing it would need a
+design call). Rob's follow-up scoped the work cleanly: "can the
+stripes be removed from the preview and half time but kept on
+final?" — confirming that the corner stripes plus the footer
+gametime/nexthalf stripes go from Preview and Halftime only, Final
+stays untouched, and the diagonal-line SVG background pattern in
+all three footers is preserved. The fourth turn was the go-ahead
+to ship.
+
+DESIGN NOTES:
+
+- Three classes of "stripe" element existed in Card.html before this
+  pass. They are not interchangeable and the categorisation drove
+  what was kept vs removed:
+  1. Score's .photo-stripe-1/-2 (with .photo-edge): structural.
+     Sit on the right edge of the photo, rotated -18deg, working
+     together with the horizontal .photo-edge gradient to blend the
+     photograph into the #0d1f42 navy right-hand score column. NOT
+     decoration — removing them would create a vertical hard split
+     between the 58%-wide photo and the 42%-wide score column. Left
+     in place.
+  2. Preview / Halftime .card-stripe-1/-2: decorative. Two rotated
+     rectangles in the upper-right corner of each card body, sitting
+     on top of the applyPatternToElement-painted SVG background.
+     No structural role. Removed.
+  3. Preview .gametime-stripe and Halftime .nexthalf-stripe: also
+     decorative. Small rotated rectangles in the upper-left of each
+     card's footer block (.card-gametime / .card-nexthalf), sitting
+     on top of the footer's diagonal-line SVG background-image.
+     No structural role. Removed.
+
+- The diagonal-line SVG background-image on all three card footers
+  (.card-next on Score, .card-gametime on Preview, .card-nexthalf on
+  Halftime) is a separate concern from the removed stripes — it's a
+  baked-in CSS background, not a child DOM element — and Rob asked
+  to keep it explicitly. The three footers retain their existing
+  texture; only the .gametime-stripe / .nexthalf-stripe child DIVs
+  came out.
+
+- Comment lines above the removed CSS blocks ("/* Pattern overlay
+  applied to #card-preview-inner at runtime via
+  WWCommon.applyPatternToElement. */" and the matching halftime
+  comment) were left in place. They document the pattern path, not
+  the stripes; correct context after removal.
+
+FILES TOUCHED:
+
+- GirlsJVSoccerCard.html  (removed 4 stripe-related CSS blocks +
+                            4 stripe DIVs in markup; ~24 lines
+                            net deletion)
+- sw.js                    (v10 -> v11 + v11 history block)
+- README.md                (example line v10 -> v11; Current-version
+                            callout rewritten to lead with v11 and
+                            walk back through v10, v9, v8, ...)
+- journal-2.txt            (this entry)
+
+ORDER OF EDITS:
+
+1. Card.html: removed Preview corner stripe CSS (3 lines, anchored
+   on the three-line block ending in card-stripe-2). DryRun matched
+   first try.
+2. Card.html: removed Preview corner stripe markup (2 DIVs + the
+   blank line between them and .card-header). Anchored on the
+   surrounding #card-preview-inner / .card-header lines so the
+   collapse is unambiguous. DryRun matched first try.
+3. Card.html: removed Halftime corner stripe CSS + markup as a
+   parallel 2-edit batch, mirroring the Preview pattern.
+4. Card.html: removed gametime-stripe and nexthalf-stripe CSS
+   blocks + their markup divs as a 4-edit batch. All four matched
+   first try.
+5. sw.js: prepended v11 history block above v10; bumped
+   CACHE_VERSION 'v10' -> 'v11'.
+6. README.md: bumped example line v10 -> v11 and rewrote the
+   Current-version callout to lead with v11 and walk back through
+   the previous history entries.
+
+TIER 3 REMAINING:
+
+- Web Share API integration on Card (navigator.share({files: [...]}))
+  still parked at 'very low priority, may not use.' Has been in the
+  backlog unchanged since the 2026-05-10T02:30 entry. Not opening it
+  unless Rob explicitly asks.
+- Score card has not been changed. If a future request asks to make
+  the Final card visually homogeneous with Preview / Halftime /
+  Schedule / Roster, the open design question is what replaces the
+  photo->navy transition: keep .photo-edge for a softer fade, drop
+  it for a clean rectangular split, or restructure the layout away
+  from the 58/42 photo+navy composition entirely. Not in scope for
+  this pass.
+
+PROCESS NOTES:
+
+- dryRun-before-apply held cleanly on all six Card.html edits even
+  though the file is 162 KB (the documented byte-corruption risk
+  zone). Every anchor was small (3-5 lines), every match was first
+  try, every edit completed without rollback. The 'small anchors
+  around the tricky bytes' rule the Tier 2 + Tier 3 #2 entries
+  called out continues to be the right reflex on this file.
+- Reading Card.html still requires the head/tail-with-jq workflow
+  for any pass that wants to inspect the markup below ~700 lines.
+  head 1100 returned 60K chars and got bounced to /tmp; jq on the
+  saved tool-result was the fast path to grep the actual HTML
+  structure. Same pattern as Tier 2 / Tier 3 #2; treat it as the
+  default.
+- Build-date discipline note: Card.html's <!-- Build: 2026-05-11 -->
+  comment was already stamped from the Tier 3 #2 + #3 batch earlier
+  the same day, so no bump needed. Same situation as the Tier 3 #1
+  entry; the rule 'bump the build date on touched HTMLs' is
+  satisfied as long as the date on disk matches the day of the
+  ship, not literally rewritten on each commit.
+- README catch-up was clean: only one Current-version paragraph to
+  rewrite (no historical drift to fix this time, since Tier 3 #2 +
+  #3 already caught up v8 + v9 + v10 in its own batch). Now v11
+  leads with no backlog from prior bumps.]

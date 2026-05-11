@@ -22,6 +22,20 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
+ * v11 (May 2026): Removed decorative diagonal stripes from the
+ * Preview and Halftime cards — both the upper-right .card-stripe
+ * pair on each card body and the upper-left .gametime-stripe /
+ * .nexthalf-stripe inside each card's footer block. Score (Final)
+ * card untouched: its .photo-stripe pair does structural work
+ * blending the photo edge into the navy score column. The
+ * diagonal-line SVG background-image on .card-next, .card-gametime,
+ * and .card-nexthalf footers is preserved. Goal: bring the Preview
+ * and Halftime cards' visual model in line with Schedule and Roster
+ * — one base colour + one full-card pattern via
+ * applyPatternToElement, no extra decorative overlays. Bumped so
+ * v10-cached devices evict and pick up the trimmed Card.html on
+ * next visit.
+ *
  * v10 (May 2026): Tier 3 #2 + #3 — friendlier error wording on the
  * Card tool, plus a cosmetic comment-block slim on Schedule and Roster.
  * WWCommon.downloadElementAsPng and copyElementAsPngToClipboard gained
@@ -132,7 +146,7 @@
  * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v10';
+const CACHE_VERSION    = 'v11';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 
