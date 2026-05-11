@@ -119,6 +119,14 @@
         "kind": "unknown",
         "playerId": "",
         "customName": ""
+      },
+      {
+        "id": "go_mp1qlpab0t5d",
+        "minute": 18,
+        "half": 1,
+        "kind": "roster",
+        "playerId": "p_modbspdh4xpd",
+        "customName": ""
       }
     ]
   }
