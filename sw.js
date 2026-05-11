@@ -22,6 +22,21 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
+ * v6 (May 2026): Added shared.css — a new top-level stylesheet that owns
+ * the chrome shared by every page (app-header, mobile media query,
+ * photo-credit pill, toast, CSS variables, etc.). Each tool's inline
+ * <style> block shrank to its tool-specific rules only, and per-tool
+ * accent colours are now CSS custom properties so re-skinning is a
+ * one-line change. Common.js also gained makeSoccerPatterns,
+ * buildPatternPicker, applyPatternToElement, downloadElementAsPng,
+ * copyElementAsPngToClipboard, setupMobileEditorToggle, and
+ * registerServiceWorker — the JS that was being copy-pasted across
+ * tools moved into one place. Bumped so v5-cached devices evict and
+ * pull both shared.css and the trimmed HTMLs on next visit; without
+ * the bump, the cached HTMLs would <link> a shared.css that wasn't
+ * in cache yet, leaving the page un-styled until the second reload
+ * caught up via stale-while-revalidate.
+ *
  * v5 (May 2026): Card tool's scorer-display preference (totals vs
  * times) is now per-card-mode — Final and Halftime carry independent
  * prefs. New localStorage keys are read on first load with a one-time
@@ -57,7 +72,7 @@
  * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v5';
+const CACHE_VERSION    = 'v6';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 
@@ -74,6 +89,7 @@ const APP_SHELL_URLS = [
   './GirlsJVSoccerRoster.html',
   './GirlsJVSoccerGoals.html',
   './common.js',
+  './shared.css',
   './manifest.json',
   './Logos/WaukeshaWest.png',
   './Logos/Classic8.png',

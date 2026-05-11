@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Build: 2026-05-09 -->
+<!-- Build: 2026-05-10 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -8,6 +8,7 @@
 <meta name="description" content="Social media graphics, schedule, roster, and goal tracking for Waukesha West Girls JV Soccer.">
 <link rel="icon" type="image/png" href="./Logos/WaukeshaWest.png">
 <link rel="manifest" href="./manifest.json">
+<link rel="stylesheet" href="./shared.css">
 <meta name="theme-color" content="#0d1f42">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,37 +16,28 @@
 <link rel="apple-touch-icon" href="./Logos/WaukeshaWest.png">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; }
-
+/* Index-specific styling. The brand palette, document base, toast
+   container, mobile photo-credit, and other shared chrome live in
+   shared.css. Index has no app-header (its own hero serves that role).
+   The two text colours --text and --text-2 below are slightly lighter
+   than shared.css's defaults — index-page content is more long-form
+   prose so the gentler greys read better. */
 :root {
-  /* Brand palette — matches the four tools so this page feels like
-     part of the same product family. */
-  --bg:        #e6e9ef;       /* page background, cool gray-blue */
-  --surface:   #ffffff;       /* card surfaces */
-  --ink:       #0d1f42;       /* deep navy — primary brand */
-  --ink-2:     #1a3a6b;       /* navy hover */
-  --accent:    #c9a13a;       /* varsity gold — sparingly, for stripes & marks */
-  --good:      #2a7a3a;       /* success green */
-  --tool-red:  #8a2a2a;       /* deep red — Goals tool's accent */
-  --text:      #333333;       /* body text */
-  --text-2:    #666666;       /* secondary text */
-  --hint:      #9a9fae;       /* tertiary text & captions */
-  --line:      #e0e4ea;       /* hairline borders */
-  --line-2:    #c0cce0;       /* slightly darker borders for emphasis */
+  --text:   #333333;   /* override shared's #1a1a1a for prose readability */
+  --text-2: #666666;   /* override shared's #555 */
 }
 
 html, body {
-  margin: 0;
-  padding: 0;
-  background: var(--bg);
   color: var(--text);
-  /* Body uses a clean system stack so it stays crisp at small sizes;
-     Oswald is reserved for display text where its character shines. */
+  /* System font stack — only index and Goals use this. The card-builder
+     tools stay on Arial for their compact 13 px editor typography. */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 15px;
   line-height: 1.5;
-  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  /* Belt-and-suspenders against accidental horizontal scroll from the
+     stripe-pattern body::before below. */
+  overflow-x: hidden;
 }
 
 /* Subtle diagonal stripe pattern at the very top — pays homage to
@@ -398,21 +390,6 @@ body::before {
   vertical-align: middle;
 }
 
-/* ─── Toast container ─────────────────────────────────────────── */
-/* common.js's toast() targets #toast-container if present. Including
-   it here means the GH config panel can show feedback on save/test. */
-#toast-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: none;
-}
-
-#toast-container > * { pointer-events: auto; }
 
 /* ─── Site footer (tagline + photo credit) ─────────────────────
    Replaces the original single-line .foot. The credit pill is in
@@ -430,47 +407,14 @@ body::before {
   margin: 0;
   padding: 0;
 }
+/* The credit pill defaults to fixed-positioning (set in shared.css)
+   so it floats over the card preview in the tool pages. Index has no
+   card preview, so we drop it into document flow inside .site-footer.
+   The visual styling (background, padding, logo size, mobile shrink)
+   already comes from shared.css — only the position override is new. */
 .site-footer .photo-credit {
-  background: #000;
-  border-radius: 10px;
-  padding: 10px 18px 10px 10px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-family: Arial, sans-serif;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-}
-.site-footer .photo-credit .rlp-logo {
-  height: 56px;
-  width: auto;
-  display: block;
-  flex-shrink: 0;
-  border-radius: 6px;
-}
-.site-footer .photo-credit .rlp-text {
-  font-size: 13px;
-  color: rgba(255,255,255,0.85);
-  letter-spacing: 0.05em;
-}
-.site-footer .photo-credit .rlp-copy {
-  color: rgba(255,255,255,0.55);
-  margin-right: 2px;
-}
-.site-footer .photo-credit .rlp-name {
-  font-weight: 700;
-  color: #fff;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
-
-/* Mobile: shrink the credit pill so the text doesn't wrap on narrow
-   phones. Matches the Card/Schedule/Roster mobile sizing. */
-@media (max-width: 900px) {
-  .site-footer .photo-credit {
-    padding: 6px 12px 6px 6px;
-  }
-  .site-footer .photo-credit .rlp-logo { height: 36px; }
-  .site-footer .photo-credit .rlp-text { font-size: 10px; }
+  position: static;
+  transform: none;
 }
 </style>
 </head>
@@ -874,16 +818,10 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- ─── Service worker registration ──────────────────────────── -->
-<!-- Caches the five-page app shell + opponent logos so the tools
-     load when offline. Data still flows through localStorage when
-     GitHub is unreachable, courtesy of common.js's existing fallback. -->
+<!-- Delegated to common.js since all five pages do the same thing. -->
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js').catch(function() {
-      /* Offline support just doesn't activate; the page still works. */
-    });
-  });
+if (window.WWCommon && typeof WWCommon.registerServiceWorker === 'function') {
+  WWCommon.registerServiceWorker();
 }
 </script>
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Build: 2026-05-09 -->
+<!-- Build: 2026-05-10 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -7,6 +7,7 @@
 <title>WW Girls JV Soccer — Goal Tracker</title>
 <link rel="icon" type="image/png" href="./Logos/WaukeshaWest.png">
 <link rel="manifest" href="./manifest.json">
+<link rel="stylesheet" href="./shared.css">
 <meta name="theme-color" content="#8a2a2a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,99 +15,52 @@
 <link rel="apple-touch-icon" href="./Logos/WaukeshaWest.png">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* Goals-specific overrides. The brand palette, document base,
+   app-header chrome (background, paw, h1, back-link, ::after stripe),
+   .photo-credit pill visual styling, and shared mobile rules all
+   live in shared.css. Goals doesn't use the .app-body / .editor-toggle
+   pattern (it has its own .container + mobile-first single-column
+   layout), so those bits of shared.css simply never match here. */
+
+/* Aggressive reset that Goals' tight mobile layout depends on —
+   removes all default margins/padding the browser supplies for h1/p/etc.
+   shared.css's `* { box-sizing }` is a superset rule that still applies. */
+* { margin: 0; padding: 0; }
 
 :root {
-  /* Brand palette — same family as the other three tools, with a
-     deep red accent that's this tool's identity. The four tools now
-     read as a set: navy / green / gold / red. */
-  --bg:        #e6e9ef;
-  --surface:   #ffffff;
-  --ink:       #0d1f42;       /* navy — primary brand */
-  --tool:      #8a2a2a;       /* deep red — this tool's accent */
-  --tool-2:    #6a1c1c;       /* deep red, hover */
-  --tool-soft: #fbe8e8;       /* deep red, faintly tinted bg */
-  --good:      #2a7a3a;
-  --warn:      #b07020;
-  --text:      #1a1a1a;
-  --text-2:    #555;
+  /* Per-tool identity. --tool (deep red) is this tool's primary accent,
+     used by the Add button, focus rings, the half-label divider, the
+     view-toggle active state, etc. --tool-marker overrides shared's
+     default --ink so the stripe under the header shows in deep red
+     instead of navy. */
+  --tool:        #8a2a2a;
+  --tool-2:      #6a1c1c;
+  --tool-soft:   #fbe8e8;
+  --tool-marker: #8a2a2a;
+
+  /* Goals shipped with slightly different fine-grained values than
+     shared. Keep the overrides that genuinely differ; the rest are
+     identical to shared so we don't need to re-declare them. */
   --text-3:    #888;
-  --hint:      #9a9fae;
-  --line:      #e0e4ea;
-  --line-2:    #c9d0dc;
+  --line-2:    #c9d0dc;   /* slightly different from shared's #c0cce0 */
 }
 
 html, body {
-  background: var(--bg);
+  /* font-family + size + smoothing + horizontal-scroll guard are
+     Goals-specific (the long-form prose / form layout reads better
+     in a system stack than the Card/Schedule/Roster Arial). */
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 15px;
   line-height: 1.5;
-  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-  /* Don't allow accidental horizontal scroll on phones with edge-to-edge
-     content; we explicitly constrain max-widths everywhere instead. */
   overflow-x: hidden;
 }
 
 /* ─── App header ───────────────────────────────────────────── */
-.app-header {
-  background: var(--ink);
-  color: #fff;
-  padding: 10px 14px;
-  /* Top safe-area inset so iOS notch / status bar doesn't overlap when
-     installed as a PWA. */
-  padding-top: max(10px, env(safe-area-inset-top));
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-}
-.app-header .paw {
-  width: 28px; height: 36px;
-  flex-shrink: 0;
-}
-.app-header h1 {
-  font-family: 'Oswald', sans-serif;
-  font-weight: 600;
-  font-size: 17px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.app-header .back-link {
-  color: rgba(255,255,255,0.85);
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 9px 14px;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.08);
-  flex-shrink: 0;
-  /* iOS tap target */
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-}
-.app-header .back-link:active { background: rgba(255,255,255,0.18); }
-
-/* The deep-red bar under the header is the tool's color marker (parallels
-   the colored tile strip on the index page). */
-.app-header::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0;
-  bottom: -3px;
-  height: 3px;
-  background: var(--tool);
-}
+/* .app-header chrome lives in shared.css. The deep-red marker stripe
+   is set via --tool-marker in the :root above. */
+/* (sentinel) */
 
 /* ─── Container ────────────────────────────────────────────── */
 .container {
@@ -947,50 +901,18 @@ select:focus, input:focus { outline: 2px solid var(--tool); outline-offset: -2px
    content). The Card/Schedule/Roster tools use a fixed-position
    variant of this same pill, but the Goals tool's compact mobile
    layout reads better with the credit anchored to the page end. */
+/* The photo-credit's visual styling (background, padding, logo size,
+   text colours, mobile shrink) comes from shared.css. Goals overrides
+   ONLY the positioning so the pill sits in document flow at the end of
+   the page (its compact mobile layout has no card-preview area for a
+   fixed pill to hover over). max-width keeps the pill from overflowing
+   the narrow container on small phones. */
 .photo-credit {
+  position: static;
+  transform: none;
   margin: 24px auto 8px;
-  background: #000;
-  border-radius: 10px;
-  padding: 10px 18px 10px 10px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-family: Arial, sans-serif;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
   width: max-content;
   max-width: calc(100% - 16px);
-}
-.photo-credit .rlp-logo {
-  height: 56px;
-  width: auto;
-  display: block;
-  flex-shrink: 0;
-  border-radius: 6px;
-}
-.photo-credit .rlp-text {
-  font-size: 13px;
-  color: rgba(255,255,255,0.85);
-  letter-spacing: 0.05em;
-}
-.photo-credit .rlp-copy {
-  color: rgba(255,255,255,0.55);
-  margin-right: 2px;
-}
-.photo-credit .rlp-name {
-  font-weight: 700;
-  color: #fff;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
-
-/* Mobile: shrink the credit pill so the text doesn't wrap on narrow
-   phones. Matches the Card/Schedule/Roster mobile sizing. */
-@media (max-width: 900px) {
-  .photo-credit {
-    padding: 6px 12px 6px 6px;
-  }
-  .photo-credit .rlp-logo { height: 36px; }
-  .photo-credit .rlp-text { font-size: 10px; }
 }
 </style>
 </head>
@@ -2917,12 +2839,8 @@ function setFRSaving(saving) {
 <!-- SERVICE WORKER REGISTRATION                                 -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js').catch(function() {
-      /* Offline support just doesn't activate; the page still works. */
-    });
-  });
+if (window.WWCommon && typeof WWCommon.registerServiceWorker === 'function') {
+  WWCommon.registerServiceWorker();
 }
 </script>
 

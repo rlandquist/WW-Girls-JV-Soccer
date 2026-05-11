@@ -7,6 +7,7 @@
 <title>WW Girls JV Soccer — Card Builder</title>
 <link rel="icon" type="image/png" href="./Logos/WaukeshaWest.png">
 <link rel="manifest" href="./manifest.json">
+<link rel="stylesheet" href="./shared.css">
 <meta name="theme-color" content="#0d1f42">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,8 +15,19 @@
 <link rel="apple-touch-icon" href="./Logos/WaukeshaWest.png">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:Arial,sans-serif;background:#e6e9ef;display:flex;flex-direction:column;min-height:100vh;}
+/* Per-tool overrides. The brand palette, document base, app-header,
+   .app-body, .editor-toggle (mobile), photo-credit pill, toast,
+   #toast-container, mobile media query, and body.exporting export
+   override all live in shared.css. Card uses a slightly lighter navy
+   for the marker stripe under the header so it stays distinct from
+   the deep navy card body in the preview pane. */
+:root {
+  --tool-marker: #3a6090;  /* lighter navy, distinct from --ink */
+}
+
+/* Aggressive margin/padding reset kept (shared.css only resets
+   box-sizing). Card's compact CSS uses zero default margins on h1/p/etc. */
+* { margin: 0; padding: 0; }
 
 /* ── EDITOR ── */
 .editor{width:340px;display:flex;flex-direction:column;gap:11px;background:#fff;padding:16px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.12);flex-shrink:0;}
@@ -41,11 +53,7 @@ input[type=file]{font-size:11px;color:#666;}
 .copy-btn:hover{background:#3a7f3a;}
 .copy-btn.success{background:#1a7a3a;}
 .copy-btn:disabled{background:#888;cursor:default;}
-.photo-credit{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000;border-radius:10px;padding:10px 18px 10px 10px;display:flex;align-items:center;gap:12px;z-index:10;font-family:Arial,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,0.15);}
-.photo-credit .rlp-logo{height:56px;width:auto;display:block;flex-shrink:0;border-radius:6px;}
-.photo-credit .rlp-text{font-size:13px;color:rgba(255,255,255,0.85);letter-spacing:.05em;}
-.photo-credit .rlp-copy{color:rgba(255,255,255,0.55);margin-right:2px;}
-.photo-credit .rlp-name{font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.07em;}
+/* .photo-credit chrome lives in shared.css. */
 .hint{font-size:10px;color:#aaa;}
 .drag-hint{display:none;font-size:10px;color:#1a3a6b;font-weight:600;background:#e8eef7;border-radius:5px;padding:5px 8px;margin-top:2px;text-align:center;}
 input[type=range]{width:100%;accent-color:#0d1f42;cursor:pointer;}
@@ -553,100 +561,18 @@ select:disabled{background:#f5f5f5;color:#aaa;cursor:default;}
 .spine-input:focus{outline:none;border-color:#1a3a8f;}
 .spine-divider{border-top:1px solid #eee;margin:10px 0 10px 0;}
 .empty-hint{text-align:center;color:#888;padding:16px 8px;font-size:11.5px;line-height:1.5;}
-#toast-container{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
-.toast{background:rgba(13,31,66,0.95);color:#fff;padding:10px 14px;border-radius:6px;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,0.25);max-width:300px;pointer-events:auto;animation:toast-in 0.2s ease-out;}
-.toast.warn{background:rgba(180,80,30,0.95);}
-.toast.error{background:rgba(160,40,40,0.95);}
-@keyframes toast-in{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+/* Toast styling + #toast-container live in shared.css. */
 
 /* ═══════════════════════════════════════════════════════════════ */
 /* APP HEADER + MOBILE RESPONSIVENESS                               */
 /* Added 2026-05-08. Mirrors the Goals-tool pattern so all four     */
 /* PWAs share the same app-shell when installed to a home screen.   */
 /* ═══════════════════════════════════════════════════════════════ */
-:root { --app-header-h: 52px; }
+/* .app-header chrome lives in shared.css. The marker stripe under
+   the header is set via --tool-marker (#3a6090, lighter navy) in the
+   :root override at the top of this <style> block. */
 
-/* Sticky navy app-header (desktop + mobile). */
-.app-header {
-  background: #0d1f42;
-  color: #fff;
-  padding: 10px 14px;
-  /* Top safe-area inset so an iOS notch / status bar doesn't overlap
-     when installed as a PWA. */
-  padding-top: max(10px, env(safe-area-inset-top));
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-  min-height: var(--app-header-h);
-}
-.app-header .back-link {
-  /* Override the in-page .back-link styles when inside the header. */
-  color: rgba(255,255,255,0.85);
-  background: rgba(255,255,255,0.08);
-  border: none;
-  padding: 9px 14px;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 6px;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  letter-spacing: 0.04em;
-  min-height: 40px;
-}
-.app-header .back-link:hover  { background: rgba(255,255,255,0.16); border: none; }
-.app-header .back-link:active { background: rgba(255,255,255,0.22); }
-
-/* Tool color marker bar under the header — parallels the colored tile
-   strip on the index page. Card's index tile color is navy, which would
-   be invisible against this navy header; using a lighter-navy variant
-   that still reads as Card's color while being clearly distinct. */
-.app-header::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0;
-  bottom: -3px;
-  height: 3px;
-  background: #3a6090;
-}
-.app-header .paw {
-  width: 28px;
-  height: 36px;
-  flex-shrink: 0;
-  display: block;
-}
-.app-header h1 {
-  font-family: 'Oswald', sans-serif;
-  font-weight: 600;
-  font-size: 17px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin: 0;
-}
-
-/* App body holds the existing .editor + .card-container row layout —
-   wrapping them lets <body> itself stack header-then-content. */
-.app-body {
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 20px;
-  flex: 1;
-}
-
-/* Editor toggle button — hidden on desktop, only renders on phones. */
-.editor-toggle { display: none; }
+/* .app-body + .editor-toggle (mobile) live in shared.css. */
 
 /* ─── MOBILE (≤900 px) ─────────────────────────────────────────
    Below 900 px the desktop layout is broken anyway (editor 260 +
@@ -4136,27 +4062,26 @@ function copyToClipboard() {
 
 <!-- ─── Service worker registration ──────────────────────────── -->
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js').catch(function() {
-      /* Offline support just doesn't activate; the page still works. */
+if (window.WWCommon) {
+  WWCommon.registerServiceWorker();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      WWCommon.setupMobileEditorToggle('.editor-toggle', '#editor-panel');
     });
-  });
+  } else {
+    WWCommon.setupMobileEditorToggle('.editor-toggle', '#editor-panel');
+  }
 }
 </script>
 
 <!-- Mobile: editor collapse toggle. Defined globally so the inline
      onclick on .editor-toggle has access. Only visible at ≤900 px. -->
 <script>
-function toggleEditor(btn) {
-  var p = document.getElementById('editor-panel');
-  if (!p) return;
-  var collapsed = p.classList.toggle('collapsed');
-  btn.setAttribute('aria-expanded', String(!collapsed));
-  var t = btn.querySelector('.editor-toggle-text');
-  if (t) t.textContent = collapsed ? 'Show editor' : 'Hide editor';
-  var c = btn.querySelector('.chev');
-  if (c) c.textContent = collapsed ? '▸' : '▾';
+function toggleEditor() {
+  /* No-op stub — WWCommon.setupMobileEditorToggle wires the real
+     click handler. The inline onclick="toggleEditor(this)" on the
+     button still fires; this stub just keeps it from
+     ReferenceError-ing before the WWCommon listener runs. */
 }
 </script>
 

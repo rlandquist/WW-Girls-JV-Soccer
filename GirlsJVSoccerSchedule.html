@@ -7,6 +7,7 @@
 <title>WW Girls JV Soccer — Team Schedule</title>
 <link rel="icon" type="image/png" href="./Logos/WaukeshaWest.png">
 <link rel="manifest" href="./manifest.json">
+<link rel="stylesheet" href="./shared.css">
 <meta name="theme-color" content="#0d1f42">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,14 +15,14 @@
 <link rel="apple-touch-icon" href="./Logos/WaukeshaWest.png">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: #e6e9ef;
-  font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+/* Per-tool overrides. The brand palette, document base, app-header,
+   .app-body, .editor-toggle (mobile), photo-credit pill, toast,
+   #toast-container, mobile media query, and body.exporting export
+   override all live in shared.css. Schedule sets its identity colour
+   here: a green stripe under the header to echo the Schedule tile
+   on the index page. */
+:root {
+  --tool-marker: var(--good);
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
@@ -316,43 +317,7 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
 .sync-btn.primary { background: #0d1f42; color: #fff; border-color: #0d1f42; }
 .sync-btn.primary:hover { background: #1a3a6b; }
 
-.photo-credit {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #000;
-  border-radius: 10px;
-  padding: 10px 18px 10px 10px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  z-index: 10;
-  font-family: Arial, sans-serif;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-}
-.photo-credit .rlp-logo {
-  height: 56px;
-  width: auto;
-  display: block;
-  flex-shrink: 0;
-  border-radius: 6px;
-}
-.photo-credit .rlp-text {
-  font-size: 13px;
-  color: rgba(255,255,255,0.85);
-  letter-spacing: 0.05em;
-}
-.photo-credit .rlp-copy {
-  color: rgba(255,255,255,0.55);
-  margin-right: 2px;
-}
-.photo-credit .rlp-name {
-  font-weight: 700;
-  color: #fff;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
+/* .photo-credit chrome lives in shared.css. */
 
 /* ═══════════════════════════════════════════════════════════════ */
 /* CARD                                                             */
@@ -683,246 +648,19 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
   line-height: 1.6;
 }
 
-/* Toast */
-#toast-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: none;
-}
-.toast {
-  background: rgba(13,31,66,0.95);
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: 6px;
-  font-size: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-  max-width: 300px;
-  pointer-events: auto;
-  animation: toast-in 0.2s ease-out;
-}
-.toast.warn { background: rgba(180,80,30,0.95); }
-.toast.error { background: rgba(160,40,40,0.95); }
-@keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+/* Toast styling + #toast-container live in shared.css. */
 
 /* ═══════════════════════════════════════════════════════════════ */
 /* APP HEADER + MOBILE RESPONSIVENESS                               */
 /* Added 2026-05-08. Mirrors the Goals-tool pattern so all four     */
 /* PWAs share the same app-shell when installed to a home screen.   */
 /* ═══════════════════════════════════════════════════════════════ */
-:root { --app-header-h: 52px; }
+/* .app-header chrome lives in shared.css. */
 
-/* Sticky navy app-header (desktop + mobile). */
-.app-header {
-  background: #0d1f42;
-  color: #fff;
-  padding: 10px 14px;
-  /* Top safe-area inset so an iOS notch / status bar doesn't overlap
-     when installed as a PWA. */
-  padding-top: max(10px, env(safe-area-inset-top));
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-  min-height: var(--app-header-h);
-}
-.app-header .back-link {
-  /* Override the in-page .back-link styles when inside the header. */
-  color: rgba(255,255,255,0.85);
-  background: rgba(255,255,255,0.08);
-  border: none;
-  padding: 9px 14px;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 6px;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  letter-spacing: 0.04em;
-  min-height: 40px;
-}
-.app-header .back-link:hover  { background: rgba(255,255,255,0.16); border: none; }
-.app-header .back-link:active { background: rgba(255,255,255,0.22); }
 
-/* Tool color marker bar under the header — parallels the colored tile
-   strip on the index page (Schedule's tile uses --good green). */
-.app-header::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0;
-  bottom: -3px;
-  height: 3px;
-  background: #2a7a3a;
-}
-.app-header .paw {
-  width: 28px;
-  height: 36px;
-  flex-shrink: 0;
-  display: block;
-}
-.app-header h1 {
-  font-family: 'Oswald', sans-serif;
-  font-weight: 600;
-  font-size: 17px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin: 0;
-}
+/* .app-body + .editor-toggle (mobile) live in shared.css. */
 
-/* App body holds the existing .editor + .card-container row layout —
-   wrapping them lets <body> itself stack header-then-content. */
-.app-body {
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 24px;
-  flex: 1;
-  width: 100%;
-}
-
-/* Editor toggle button — hidden on desktop, only renders on phones. */
-.editor-toggle { display: none; }
-
-/* ─── MOBILE (≤900 px) ─────────────────────────────────────────
-   Below 900 px the desktop layout is broken anyway (editor 320 +
-   card 440 + gap 24 + padding 48 = 832 minimum, and double-column
-   needs ~1200). Stack everything vertically. */
-@media (max-width: 900px) {
-  .app-body {
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px;
-    /* iOS PWA bottom safe-area for the home indicator. */
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-  }
-
-  /* Editor: full-width, part of normal page scroll (not its own
-     scroll container). */
-  .editor {
-    width: 100% !important;
-    max-width: 100% !important;
-    max-height: none !important;
-    overflow-y: visible !important;
-    flex-shrink: 1;
-  }
-  /* Collapsed: hidden entirely; the toggle button stays visible. */
-  .editor.collapsed { display: none; }
-
-  /* The toggle that hides/shows the editor on phones. */
-  .editor-toggle {
-    display: inline-flex;
-    align-self: flex-start;
-    align-items: center;
-    gap: 8px;
-    padding: 11px 16px;
-    background: #fff;
-    color: #0d1f42;
-    border: 1px solid #d0dcec;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    min-height: 44px;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .editor-toggle:active { background: #f0f4fa; }
-  .editor-toggle .chev {
-    font-size: 11px;
-    line-height: 1;
-    transform: translateY(1px);
-  }
-
-  /* Card preview: scroll horizontally on its own when 440 / 800 px
-     overflows the viewport. The card's real width is preserved so
-     html2canvas exports at full resolution. */
-  .card-container {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    /* Re-anchor inside the column flow — original justify-content was
-       designed for the card to sit centered in remaining horizontal
-       space inside a row layout. In column layout it's redundant; we
-       want the card flush-left so horizontal scrolling feels right. */
-    justify-content: flex-start;
-    padding-top: 4px;
-    padding-bottom: 4px;
-    padding-left: 2px;
-    padding-right: 2px;
-  }
-  .card-container > * { flex-shrink: 0; }
-
-  /* Bigger touch targets for the editor's form controls. 16 px font
-     prevents iOS auto-zoom-on-focus. */
-  .editor input[type="text"],
-  .editor input[type="number"],
-  .editor input[type="date"],
-  .editor input[type="time"],
-  .editor select,
-  .editor textarea {
-    font-size: 16px;
-    padding: 10px 11px;
-    min-height: 44px;
-  }
-  .editor button {
-    min-height: 40px;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  /* Header tightens slightly on small phones. */
-  .app-header { padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
-  .app-header .paw { width: 24px; height: 30px; }
-  .app-header h1 { font-size: 15px; }
-  /* Back-link stays at desktop size on mobile — it's the primary nav
-     control and shouldn't shrink to a hard-to-tap pill. */
-
-  /* Photo credit drops out of fixed positioning on phones so it sits
-     below the card preview rather than overlaying its bottom edge.
-     Also shrinks to take less screen space, and respects the iOS
-     PWA home-indicator safe area via margin-bottom. */
-  .photo-credit {
-    position: static;
-    transform: none;
-    align-self: center;
-    margin-top: 4px;
-    margin-bottom: max(8px, env(safe-area-inset-bottom));
-    padding: 6px 12px 6px 6px;
-  }
-  .photo-credit .rlp-logo { height: 36px; }
-  .photo-credit .rlp-text { font-size: 10px; }
-
-  /* During PNG export, lift the overflow clip on .card-container so
-     html2canvas captures the card at its full natural width. The
-     body.exporting class is added by downloadCard() / copyToClipboard()
-     immediately before the html2canvas call and removed when it
-     resolves. Brief layout flicker during the capture is acceptable
-     since the user has just tapped Download. */
-  body.exporting .card-container {
-    overflow: visible !important;
-    width: auto !important;
-    max-width: none !important;
-    align-self: flex-start !important;
-    flex-shrink: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-}
+/* Mobile (≤900 px) overrides live in shared.css. */
 </style>
 </head>
 <body>
@@ -1061,34 +799,10 @@ var PAW = "./Logos/WaukeshaWest.png";
 var LS_TEAMS_KEY    = 'ww-soccer-opponents-v1';   // shared with card tool (read-only access here)
 var LS_SCHEDULE_KEY = 'ww-soccer-schedule-v1';    // this tool's own games list
 
-/* ── PATTERN DEFINITIONS (9 patterns, dark navy background) ── */
-var PATTERNS = [
-  { id:'streaks',  label:'Streaks',
-    bg:'linear-gradient(145deg,transparent 44%,rgba(42,90,200,0.28) 44%,rgba(42,90,200,0.28) 53%,transparent 53%),linear-gradient(145deg,transparent 58%,rgba(42,90,200,0.16) 58%,rgba(42,90,200,0.16) 64%,transparent 64%)',
-    bgSize:'auto' },
-  { id:'carbon',   label:'Carbon',
-    bg:'repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(255,255,255,0.06) 5px,rgba(255,255,255,0.06) 6px),repeating-linear-gradient(-45deg,transparent,transparent 5px,rgba(255,255,255,0.06) 5px,rgba(255,255,255,0.06) 6px)',
-    bgSize:'auto' },
-  { id:'grid',     label:'Grid',
-    bg:'repeating-linear-gradient(0deg,transparent,transparent 24px,rgba(255,255,255,0.09) 24px,rgba(255,255,255,0.09) 25px),repeating-linear-gradient(90deg,transparent,transparent 24px,rgba(255,255,255,0.09) 24px,rgba(255,255,255,0.09) 25px)',
-    bgSize:'auto' },
-  { id:'halftone', label:'Halftone',
-    bg:'radial-gradient(circle,rgba(255,255,255,0.18) 1.5px,transparent 1.5px)',
-    bgSize:'11px 11px' },
-  { id:'pulse',    label:'Pulse',
-    bg:'repeating-radial-gradient(ellipse at 110% 110%,transparent,transparent 14px,rgba(50,100,210,0.24) 14px,rgba(50,100,210,0.24) 16px)',
-    bgSize:'auto' },
-  { id:'slash',    label:'Slash',
-    bg:'repeating-linear-gradient(-60deg,transparent,transparent 10px,rgba(255,255,255,0.07) 10px,rgba(255,255,255,0.07) 12px)',
-    bgSize:'auto' },
-  { id:'diamonds', label:'Diamonds',
-    bg:'repeating-linear-gradient(45deg,rgba(255,255,255,0.05) 0,rgba(255,255,255,0.05) 1px,transparent 0,transparent 50%),repeating-linear-gradient(135deg,rgba(255,255,255,0.05) 0,rgba(255,255,255,0.05) 1px,transparent 0,transparent 50%)',
-    bgSize:'16px 16px' },
-  { id:'noise',    label:'Scatter',
-    bg:'radial-gradient(circle,rgba(255,255,255,0.12) 1px,transparent 1px),radial-gradient(circle,rgba(255,255,255,0.07) 1px,transparent 1px)',
-    bgSize:'18px 18px, 9px 9px' },
-  { id:'clean',    label:'Clean', bg:'none', bgSize:'auto' }
-];
+/* Pattern catalogue generated by common.js so all tools that use
+   CSS-background patterns share one source of truth. Default tint
+   (navy stripe + pulse) matches Schedule's #0d1f42 card body. */
+var PATTERNS = WWCommon.makeSoccerPatterns();
 var currentPattern = 'streaks';
 
 /* ═══════════════════════════════════════════════════════════════ */
@@ -1435,15 +1149,12 @@ function renderDoubleColumnBody(split) {
 }
 
 function applyPattern() {
-  var card = document.getElementById('card-inner');
-  var p = PATTERNS.find(function(x) { return x.id === currentPattern; });
-  if (!p) return;
-  // Set CSS backgrounds on the card: base navy + pattern overlay
-  card.style.backgroundImage = p.bg === 'none'
-    ? 'none'
-    : p.bg;
-  card.style.backgroundSize = p.bgSize;
-  card.style.backgroundColor = '#0d1f42';
+  WWCommon.applyPatternToElement(
+    document.getElementById('card-inner'),
+    PATTERNS,
+    currentPattern,
+    '#0d1f42'   /* navy card body */
+  );
 }
 
 /* Reflect the current LAYOUT in the editor's toggle buttons. */
@@ -1717,30 +1428,15 @@ function clearAllGames() {
 /* PATTERN PICKER                                                    */
 /* ═══════════════════════════════════════════════════════════════ */
 function buildPatternPicker() {
-  var grid = document.getElementById('pattern-grid');
-  grid.innerHTML = '';
-  PATTERNS.forEach(function(p) {
-    var btn = document.createElement('div');
-    btn.className = 'pat-btn' + (p.id === currentPattern ? ' active' : '');
-    btn.onclick = function() { setPattern(p.id); };
-    var prev = document.createElement('div');
-    prev.className = 'pat-preview';
-    prev.style.backgroundImage = p.bg === 'none' ? 'none' : p.bg;
-    prev.style.backgroundSize = p.bgSize;
-    btn.appendChild(prev);
-    var nm = document.createElement('div');
-    nm.className = 'pat-name';
-    nm.textContent = p.label;
-    btn.appendChild(nm);
-    grid.appendChild(btn);
-  });
+  WWCommon.buildPatternPicker(
+    document.getElementById('pattern-grid'),
+    PATTERNS,
+    { currentId: currentPattern, onPick: setPattern }
+  );
 }
 
 function setPattern(id) {
   currentPattern = id;
-  document.querySelectorAll('.pat-btn').forEach(function(b) { b.classList.remove('active'); });
-  var i = PATTERNS.findIndex(function(p) { return p.id === id; });
-  if (i >= 0) document.querySelectorAll('.pat-btn')[i].classList.add('active');
   applyPattern();
 }
 
@@ -1808,72 +1504,25 @@ function importSchedule(input) {
 function downloadCard() {
   if (downloadInProgress) return;
   downloadInProgress = true;
-  var btn = document.getElementById('download-btn');
-  btn.disabled = true;
-  btn.textContent = 'Rendering...';
-
   var node = document.getElementById('card-inner').parentNode;
-  document.body.classList.add('exporting');
-  html2canvas(node, { scale:3, backgroundColor:null, useCORS:true, logging:false }).then(function(canvas) {
-    document.body.classList.remove('exporting');
-    var year = (document.getElementById('hdr-year').value || 'season').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    var fname = 'ww_schedule_' + year + '_' + Date.now() + '.png';
-    canvas.toBlob(function(blob) {
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = fname;
-      a.click();
-      setTimeout(function() { URL.revokeObjectURL(url); }, 100);
-      btn.disabled = false;
-      btn.textContent = '⬇ Download PNG';
-      downloadInProgress = false;
-      toast('Saved ' + fname);
-    });
-  }).catch(function(err) {
-    document.body.classList.remove('exporting');
-    btn.disabled = false;
-    btn.textContent = '⬇ Download PNG';
+  var btn  = document.getElementById('download-btn');
+  var year = document.getElementById('hdr-year').value || 'season';
+  WWCommon.downloadElementAsPng(node, {
+    filenamePrefix: 'ww_schedule',
+    slug:           year,
+    button:         btn,
+    idleLabel:      '⬇ Download PNG'
+  }).catch(function(){}).then(function(){
     downloadInProgress = false;
-    toast('Download failed: ' + err.message, 'error');
   });
 }
 
 function copyToClipboard() {
-  var btn = document.getElementById('copy-btn');
-  btn.disabled = true;
-  btn.textContent = 'Rendering...';
   var node = document.getElementById('card-inner').parentNode;
-  document.body.classList.add('exporting');
-  html2canvas(node, { scale:3, backgroundColor:null, useCORS:true, logging:false }).then(function(canvas) {
-    document.body.classList.remove('exporting');
-    canvas.toBlob(function(blob) {
-      if (!navigator.clipboard || !window.ClipboardItem) {
-        btn.disabled = false;
-        btn.textContent = '⎘ Copy to clipboard';
-        toast('Clipboard API not supported', 'warn');
-        return;
-      }
-      var item = new ClipboardItem({ 'image/png': blob });
-      navigator.clipboard.write([item]).then(function() {
-        btn.classList.add('done');
-        btn.textContent = '✓ Copied!';
-        setTimeout(function() {
-          btn.classList.remove('done');
-          btn.textContent = '⎘ Copy to clipboard';
-          btn.disabled = false;
-        }, 1800);
-      }).catch(function(err) {
-        btn.disabled = false;
-        btn.textContent = '⎘ Copy to clipboard';
-        toast('Copy failed: ' + err.message, 'error');
-      });
-    });
-  }).catch(function(err) {
-    document.body.classList.remove('exporting');
-    btn.disabled = false;
-    btn.textContent = '⎘ Copy to clipboard';
-    toast('Render failed: ' + err.message, 'error');
+  var btn  = document.getElementById('copy-btn');
+  WWCommon.copyElementAsPngToClipboard(node, {
+    button:    btn,
+    idleLabel: '⎘ Copy to clipboard'
   });
 }
 
@@ -2061,27 +1710,26 @@ document.addEventListener('DOMContentLoaded', init);
 
 <!-- ─── Service worker registration ──────────────────────────── -->
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js').catch(function() {
-      /* Offline support just doesn't activate; the page still works. */
+if (window.WWCommon) {
+  WWCommon.registerServiceWorker();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      WWCommon.setupMobileEditorToggle('.editor-toggle', '#editor-panel');
     });
-  });
+  } else {
+    WWCommon.setupMobileEditorToggle('.editor-toggle', '#editor-panel');
+  }
 }
 </script>
 
 <!-- Mobile: editor collapse toggle. Defined globally so the inline
      onclick on .editor-toggle has access. Only visible at ≤900 px. -->
 <script>
-function toggleEditor(btn) {
-  var p = document.getElementById('editor-panel');
-  if (!p) return;
-  var collapsed = p.classList.toggle('collapsed');
-  btn.setAttribute('aria-expanded', String(!collapsed));
-  var t = btn.querySelector('.editor-toggle-text');
-  if (t) t.textContent = collapsed ? 'Show editor' : 'Hide editor';
-  var c = btn.querySelector('.chev');
-  if (c) c.textContent = collapsed ? '▸' : '▾';
+function toggleEditor() {
+  /* No-op stub — WWCommon.setupMobileEditorToggle wires the real
+     click handler. The inline onclick="toggleEditor(this)" on the
+     button still fires; this stub just keeps it from
+     ReferenceError-ing before the WWCommon listener runs. */
 }
 </script>
 

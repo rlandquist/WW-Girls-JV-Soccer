@@ -1,0 +1,169 @@
+WW Girls JV Soccer — Project Journal, Volume 2
+================================================
+
+Continuation of journal.txt. Volume 1 was retired at ~175 KB on
+2026-05-10; all entries from that point forward live here. Same
+format as Volume 1 (timestamped headers, bracketed summary, then
+free-form sections).
+
+
+=== Journal Entry 2026-05-10T21:00:00.000000+00:00 ===
+2026-05-10-21-00-00-tier1-shared-css-common-helpers.txt
+[Tier 1 refactor across the whole site: extract duplicated CSS chrome
+into a new shared.css, adopt CSS custom properties everywhere, and
+consolidate duplicated JS helpers into common.js. Five HTMLs touched
+(index + Schedule + Roster + Goals + Card), one new file created
+(shared.css), one file extended (common.js), one file bumped (sw.js to
+v6 to cache shared.css). Build dates moved 2026-05-09 -> 2026-05-10 on
+every HTML that wasn't already there. Net ~22 KB removed from HTML in
+aggregate, ~16 KB added in shared.css; the real win is single-source-
+of-truth for header padding, mobile breakpoints, photo-credit pill,
+toast styling, and body.exporting export override.
+
+CONVERSATION ARC: Rob pointed at the repo (C:\GitHub\WW-Girls-JV-Soccer)
+and said do Tier 1 — extract shared CSS, adopt CSS custom properties,
+move duplicated JS into common.js — "ask questions if needed, process
+in the most efficient manner." This session resumed an in-progress
+multi-compaction refactor where shared.css / common.js / sw.js / index
+/ Schedule / Roster / Goals were already on disk and Card was partial
+(shared.css link added, top of <style> replaced; chrome chunks and JS
+delegations still pending). Resumed via filesystem:edit_file (no bash
+/ python this turn — those were lost across compaction), worked Card
+to completion, then Rob asked for journal + git commands.
+
+CRITICAL LESSON: filesystem:edit_file is byte-exact. Decorated comments
+using box-drawing characters (═, ─, ≤) keep failing when the oldText
+copy has a different dash count than the file. Two workarounds proven
+this session: (1) read the file fresh immediately before the edit so
+the oldText bytes are guaranteed correct, (2) anchor oldText AFTER the
+decorated comment so an orphan comment remains harmlessly above the
+replacement marker. Combined with dryRun probes for files too big to
+read, this got every chrome chunk replaced across all four tool HTMLs.
+
+SECOND CRITICAL LESSON (the embarrassing one): don't try to find EOF
+in a large file by probe-stepping forward — and don't insert near
+where you THINK the end is without confirming. Appending the journal
+entry sent me down a deep rabbit hole: I burned a lot of dryRun probes
+trying to locate the absolute end of journal.txt, then inserted my
+new entry at the first plausible-looking trailing closing-bracket I
+found, NOT realizing the file had additional entries after that point
+(02:30 backlog grooming and 17:00 code-review). Result: the entry
+landed mid-file, between two existing entries, in the wrong
+chronological position. Rob caught it, I undid the insertion, and we
+agreed to split the journal into a new volume (this file) instead of
+hunting for the actual end of the old one. Two lessons: (a) when
+appending to a large file, verify what's actually at the tail before
+picking an anchor — don't assume any closing bracket is THE closing
+bracket; (b) when a file is too big to read in one shot and probing
+is taking many tool calls, that's a signal to split it, not to keep
+probing. Should have suggested the volume-split immediately when the
+read overflowed.
+
+CARD-SPECIFIC EXCEPTIONS (intentional non-dedup):
+- Card's @media (max-width: 900px) kept in place. Card has a tool-
+  specific `.card-container { position: static !important; }` mobile
+  override that the other three tools don't, so deleting Card's @media
+  block would silently regress mobile behaviour. Acceptable duplication.
+- Card's download() and copyToClipboard() left AS-IS. Both wrap
+  Card-specific drag-tip / team-photo positioning logic that does not
+  fit WWCommon.downloadElementAsPng's contract. Future refactor could
+  generalise WWCommon to accept pre/post hooks; not worth it for Tier 1.
+- Card's three PATTERNS arrays (PATTERNS_SCORE / PATTERNS_PREVIEW /
+  PATTERNS_HALFTIME) and Card's own canvas-based buildPatternPicker
+  kept. They draw to <canvas> with mode-specific tints — incompatible
+  with WWCommon.makeSoccerPatterns' CSS-background model.
+
+PER-TOOL MARKER STRIPE COLOURS (the new --tool-marker var):
+- index.html: not used (no app-header on index)
+- Schedule:   var(--good)   -> green stripe under header
+- Roster:     var(--accent) -> gold stripe
+- Goals:      #8a2a2a       -> deep red
+- Card:       #3a6090       -> lighter navy (Card's tile is navy; using
+              --ink directly would be invisible against the navy header)
+
+FILES TOUCHED THIS SESSION (final-pass only — earlier compactions
+already shipped index/Schedule/Roster/Goals):
+- GirlsJVSoccerCard.html: shared.css link added; top of <style>
+  swapped from minified `*{box-sizing:border-box;margin:0;padding:0;}
+  body{...}` to per-tool :root { --tool-marker: #3a6090 } + a kept
+  `* { margin: 0; padding: 0; }` reset; minified .photo-credit block +
+  5 .rlp-* children removed; minified toast section removed (#toast-
+  container, .toast, .toast.warn, .toast.error, @keyframes toast-in);
+  readable .app-header chunk removed (:root --app-header-h, .app-
+  header, .app-header .back-link + hover + active, .app-header::after
+  with Card-specific comment, .app-header .paw, .app-header h1); .app-
+  body block removed (note Card had padding: 20px, not 24px); .editor-
+  toggle { display: none; } removed; inline SW registration replaced
+  with WWCommon.registerServiceWorker() + setupMobileEditorToggle;
+  toggleEditor function stubbed to no-op. Build date was already
+  2026-05-10. @media (max-width: 900px) block left intact for the
+  Card-specific position:static reason above.
+- journal.txt: untouched (any in-progress edits to it during this
+  session were undone). Closed out at ~175 KB.
+- journal-2.txt: created, this entry is the first.
+
+VALIDATION: confirmed via dryRun probes after each commit. Final
+sanity-check sentinels in Card: `--tool-marker: #3a6090` present,
+`WWCommon.registerServiceWorker()` present, `WWCommon.setupMobile-
+EditorToggle` present, `<link rel="stylesheet" href="./shared.css">`
+present. File sizes after the dust settled:
+  shared.css                 15.92 KB
+  common.js                  60.90 KB
+  sw.js                      10.73 KB  (v6)
+  index.html                 28.27 KB  (-~1 KB)
+  GirlsJVSoccerSchedule.html 64.14 KB  (-~9 KB)
+  GirlsJVSoccerRoster.html   68.81 KB  (-~9 KB)
+  GirlsJVSoccerGoals.html   107.37 KB  (+~3 KB; added explanatory comments)
+  GirlsJVSoccerCard.html    186.82 KB  (-~3 KB)
+
+COSMETIC LEFTOVERS (harmless, sweep later if you want):
+- Several orphaned decorated comments remain above the new "lives in
+  shared.css" replacement markers (e.g. the `/* ═══ APP HEADER +
+  MOBILE RESPONSIVENESS ═══ */` header now sits above a body that's
+  been hollowed out; `/* ─── MOBILE (≤900 px) ─── */` still in front
+  of Card's kept @media block). These were left in place because
+  including the box-drawing chars in oldText was the source of every
+  failed edit this session — orphaning the decoration was the safer
+  trade.
+- Goals.html grew slightly (~3 KB) because the replacement comments
+  explaining the dedup are longer than the few CSS bytes they
+  removed. Net win is still the dedup; size is rounding error.
+
+REMAINING BACKLOG (Tier 1 closed; carried over from the journal.txt
+17:00 entry):
+- Web Share API integration (Card tool's PNG -> share sheet). Rob
+  flagged as very low priority.
+- Three zero-byte stray files at repo root (v5, "Stadium)", and
+  2026-05-10) noted in the 17:00 entry as cruft to delete. Not
+  addressed this session.
+
+TIER 2 CANDIDATES (new, not requested yet — only fire if Rob asks):
+- Wrap Card's download() / copyToClipboard() into WWCommon with pre/
+  post hooks so the drag-tip + team-photo logic can live in the tool
+  while the html2canvas plumbing moves to common.js.
+- Move Card's mode-specific PATTERNS arrays into common.js; would
+  require a canvas-tinting helper since these don't fit the CSS-bg
+  model that WWCommon.makeSoccerPatterns currently uses.
+- Sweep the orphaned decorated comments listed above.
+
+PROCESS NOTES:
+
+- Volume split as a circuit-breaker. journal.txt got to ~175 KB and
+  the "read whole file, append, write back" pattern stopped working
+  for any tool that needs to fit content in context. Splitting to
+  journal-2.txt restores that pattern. Future split trigger: when
+  appending requires more than ~3 dryRun probes to find the tail,
+  start a new volume.
+
+- Compaction-resilience pattern paid off. The pre-compaction summary
+  embedded in this conversation's transcript was specific enough that
+  I could resume Card.html cold without re-deriving the plan — it
+  listed which chunks were verified, which were pending, and the
+  exact per-tool marker colours. Worth keeping the same level of
+  detail in future mid-session summaries for any multi-file refactor.
+
+- Bash/Python dropped across the compaction boundary, but filesystem
+  MCP edit_file with dryRun probes was sufficient for the per-tool
+  work. Where it failed was the append-to-large-file path above. Not
+  a tool limitation per se, more a "knowing when to stop probing"
+  judgment call I missed.]

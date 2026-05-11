@@ -859,6 +859,280 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
+     CARD-BUILDER HELPERS
+     ─────────────────────────────────────────────────────────────────────────
+     Shared by the Schedule and Roster tools (CSS-background pattern rendering)
+     and partially by Card (download / copy helpers; Card has its own pattern
+     picker because it has three card modes each with its own PATTERNS array
+     and canvas-based rendering, which doesn't fit this CSS-background shape).
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* Build the 9-pattern array used by Schedule and Roster. The 'streaks'
+     and 'pulse' patterns are tinted with the tool's own colour family;
+     everything else uses neutral white-on-dark overlays that look correct
+     on any dark base. Returns a fresh array so callers can mutate without
+     affecting other tools.
+
+     stripeRgb / pulseRgb are comma-separated rgb strings (no rgba(), no
+     parentheses) — they're interpolated into rgba(...) gradient stops at
+     a few different opacities. Defaults match Schedule (navy card body).
+
+       makeSoccerPatterns()                                  -> navy tint
+       makeSoccerPatterns({stripeRgb:'100,140,240', pulseRgb:'120,160,255'})
+                                                              -> royal-blue tint
+  */
+  function makeSoccerPatterns(opts) {
+    opts = opts || {};
+    var stripe = opts.stripeRgb || '42,90,200';
+    var pulse  = opts.pulseRgb  || '50,100,210';
+    return [
+      { id: 'streaks', label: 'Streaks',
+        bg: 'linear-gradient(145deg,transparent 44%,rgba(' + stripe + ',0.28) 44%,rgba(' + stripe + ',0.28) 53%,transparent 53%),linear-gradient(145deg,transparent 58%,rgba(' + stripe + ',0.16) 58%,rgba(' + stripe + ',0.16) 64%,transparent 64%)',
+        bgSize: 'auto' },
+      { id: 'carbon', label: 'Carbon',
+        bg: 'repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(255,255,255,0.06) 5px,rgba(255,255,255,0.06) 6px),repeating-linear-gradient(-45deg,transparent,transparent 5px,rgba(255,255,255,0.06) 5px,rgba(255,255,255,0.06) 6px)',
+        bgSize: 'auto' },
+      { id: 'grid', label: 'Grid',
+        bg: 'repeating-linear-gradient(0deg,transparent,transparent 24px,rgba(255,255,255,0.09) 24px,rgba(255,255,255,0.09) 25px),repeating-linear-gradient(90deg,transparent,transparent 24px,rgba(255,255,255,0.09) 24px,rgba(255,255,255,0.09) 25px)',
+        bgSize: 'auto' },
+      { id: 'halftone', label: 'Halftone',
+        bg: 'radial-gradient(circle,rgba(255,255,255,0.18) 1.5px,transparent 1.5px)',
+        bgSize: '11px 11px' },
+      { id: 'pulse', label: 'Pulse',
+        bg: 'repeating-radial-gradient(ellipse at 110% 110%,transparent,transparent 14px,rgba(' + pulse + ',0.24) 14px,rgba(' + pulse + ',0.24) 16px)',
+        bgSize: 'auto' },
+      { id: 'slash', label: 'Slash',
+        bg: 'repeating-linear-gradient(-60deg,transparent,transparent 10px,rgba(255,255,255,0.07) 10px,rgba(255,255,255,0.07) 12px)',
+        bgSize: 'auto' },
+      { id: 'diamonds', label: 'Diamonds',
+        bg: 'repeating-linear-gradient(45deg,rgba(255,255,255,0.05) 0,rgba(255,255,255,0.05) 1px,transparent 0,transparent 50%),repeating-linear-gradient(135deg,rgba(255,255,255,0.05) 0,rgba(255,255,255,0.05) 1px,transparent 0,transparent 50%)',
+        bgSize: '16px 16px' },
+      { id: 'noise', label: 'Scatter',
+        bg: 'radial-gradient(circle,rgba(255,255,255,0.12) 1px,transparent 1px),radial-gradient(circle,rgba(255,255,255,0.07) 1px,transparent 1px)',
+        bgSize: '18px 18px, 9px 9px' },
+      { id: 'clean', label: 'Clean', bg: 'none', bgSize: 'auto' }
+    ];
+  }
+
+  /* Build a pattern picker grid. Renders a swatch button for each
+     pattern with a preview + label, and wires the click handler to
+     toggle .active and invoke opts.onPick(id).
+
+     grid     — the DOM element to populate (typically #pattern-grid)
+     patterns — the patterns array (from makeSoccerPatterns or a custom set)
+     opts.currentId — which pattern is active at first render
+     opts.onPick    — callback(patternId) when a swatch is clicked
+  */
+  function buildPatternPicker(grid, patterns, opts) {
+    if (!grid) return;
+    opts = opts || {};
+    var currentId = opts.currentId;
+    var onPick = opts.onPick;
+    grid.innerHTML = '';
+    patterns.forEach(function (p) {
+      var btn = document.createElement('div');
+      btn.className = 'pat-btn' + (p.id === currentId ? ' active' : '');
+      btn.onclick = function () {
+        grid.querySelectorAll('.pat-btn').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        if (typeof onPick === 'function') onPick(p.id);
+      };
+      var prev = document.createElement('div');
+      prev.className = 'pat-preview';
+      prev.style.backgroundImage = (p.bg === 'none') ? 'none' : p.bg;
+      prev.style.backgroundSize = p.bgSize;
+      btn.appendChild(prev);
+      var nm = document.createElement('div');
+      nm.className = 'pat-name';
+      nm.textContent = p.label;
+      btn.appendChild(nm);
+      grid.appendChild(btn);
+    });
+  }
+
+  /* Apply a pattern to a card element by setting its CSS backgrounds.
+     Used by Schedule and Roster (Card uses canvas drawing instead).
+     baseColor is optional — when set, it's applied as backgroundColor
+     so the pattern's translucent overlays read against the right base. */
+  function applyPatternToElement(el, patterns, patternId, baseColor) {
+    if (!el || !patterns) return;
+    var p = null;
+    for (var i = 0; i < patterns.length; i++) {
+      if (patterns[i].id === patternId) { p = patterns[i]; break; }
+    }
+    if (!p) return;
+    el.style.backgroundImage = (p.bg === 'none') ? 'none' : p.bg;
+    el.style.backgroundSize = p.bgSize;
+    if (baseColor) el.style.backgroundColor = baseColor;
+  }
+
+  /* Render a DOM node to a PNG via html2canvas and trigger a download.
+     Assumes html2canvas is loaded globally (caller's responsibility —
+     the tools that need this include the CDN <script>).
+
+     node       — the element to capture (typically card-wrapper)
+     opts.filenamePrefix — e.g. 'ww_card', 'ww_schedule', 'ww_roster'
+     opts.slug          — extra slug appended after the prefix (e.g. season year);
+                          gets sanitised to [a-z0-9_] and lowercased.
+     opts.button        — optional button element to disable + relabel during capture
+     opts.busyLabel     — text shown on the button during capture (default 'Rendering...')
+     opts.idleLabel     — text restored on the button after capture (default = its current text)
+     opts.toastFn       — callback for showing toasts (defaults to WWCommon.toast)
+     Returns a Promise that resolves with the filename or rejects with the error. */
+  function downloadElementAsPng(node, opts) {
+    opts = opts || {};
+    if (typeof html2canvas !== 'function') {
+      return Promise.reject(new Error('html2canvas not loaded'));
+    }
+    var prefix = opts.filenamePrefix || 'ww';
+    var slug = (opts.slug || '').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    var btn = opts.button || null;
+    var idleLabel = opts.idleLabel || (btn ? btn.textContent : null);
+    var busyLabel = opts.busyLabel || 'Rendering...';
+    var toastFn = opts.toastFn || toast;
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = busyLabel;
+    }
+    document.body.classList.add('exporting');
+
+    return new Promise(function (resolve, reject) {
+      html2canvas(node, { scale: 3, backgroundColor: null, useCORS: true, logging: false })
+        .then(function (canvas) {
+          document.body.classList.remove('exporting');
+          var fname = prefix + (slug ? '_' + slug : '') + '_' + Date.now() + '.png';
+          canvas.toBlob(function (blob) {
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = fname;
+            a.click();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 100);
+            if (btn && idleLabel != null) {
+              btn.disabled = false;
+              btn.textContent = idleLabel;
+            }
+            if (toastFn) toastFn('Saved ' + fname);
+            resolve(fname);
+          });
+        })
+        .catch(function (err) {
+          document.body.classList.remove('exporting');
+          if (btn && idleLabel != null) {
+            btn.disabled = false;
+            btn.textContent = idleLabel;
+          }
+          if (toastFn) toastFn('Download failed: ' + (err && err.message || err), 'error');
+          reject(err);
+        });
+    });
+  }
+
+  /* Same as downloadElementAsPng but writes the PNG to the system clipboard
+     instead of downloading. Falls back to a warn toast if the browser doesn't
+     expose ClipboardItem (Safari < 13.4, older Firefox). Returns a Promise. */
+  function copyElementAsPngToClipboard(node, opts) {
+    opts = opts || {};
+    if (typeof html2canvas !== 'function') {
+      return Promise.reject(new Error('html2canvas not loaded'));
+    }
+    var btn = opts.button || null;
+    var idleLabel = opts.idleLabel || (btn ? btn.textContent : null);
+    var busyLabel = opts.busyLabel || 'Rendering...';
+    var doneLabel = opts.doneLabel || '✓ Copied!';
+    var toastFn = opts.toastFn || toast;
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = busyLabel;
+    }
+    document.body.classList.add('exporting');
+
+    return new Promise(function (resolve, reject) {
+      html2canvas(node, { scale: 3, backgroundColor: null, useCORS: true, logging: false })
+        .then(function (canvas) {
+          document.body.classList.remove('exporting');
+          canvas.toBlob(function (blob) {
+            if (!navigator.clipboard || typeof window.ClipboardItem === 'undefined') {
+              if (btn && idleLabel != null) {
+                btn.disabled = false;
+                btn.textContent = idleLabel;
+              }
+              if (toastFn) toastFn('Clipboard API not supported', 'warn');
+              reject(new Error('clipboard-unsupported'));
+              return;
+            }
+            var item = new ClipboardItem({ 'image/png': blob });
+            navigator.clipboard.write([item])
+              .then(function () {
+                if (btn) {
+                  btn.classList.add('done');
+                  btn.textContent = doneLabel;
+                  setTimeout(function () {
+                    btn.classList.remove('done');
+                    if (idleLabel != null) btn.textContent = idleLabel;
+                    btn.disabled = false;
+                  }, 1800);
+                }
+                resolve();
+              })
+              .catch(function (err) {
+                if (btn && idleLabel != null) {
+                  btn.disabled = false;
+                  btn.textContent = idleLabel;
+                }
+                if (toastFn) toastFn('Copy failed: ' + (err && err.message || err), 'error');
+                reject(err);
+              });
+          });
+        })
+        .catch(function (err) {
+          document.body.classList.remove('exporting');
+          if (btn && idleLabel != null) {
+            btn.disabled = false;
+            btn.textContent = idleLabel;
+          }
+          if (toastFn) toastFn('Render failed: ' + (err && err.message || err), 'error');
+          reject(err);
+        });
+    });
+  }
+
+  /* Wire the mobile editor-collapse toggle. Each tool's HTML has a
+     <button class="editor-toggle"> that hides/shows the editor panel
+     via the .collapsed class on the panel. Centralised here so all
+     three card-builder tools share one implementation.
+
+     btnSelector / panelSelector — CSS selectors or DOM elements.
+     The button is expected to contain a .chev arrow and an
+     .editor-toggle-text label, which this helper updates. */
+  function setupMobileEditorToggle(btnSelector, panelSelector) {
+    var btn   = (typeof btnSelector   === 'string') ? document.querySelector(btnSelector)   : btnSelector;
+    var panel = (typeof panelSelector === 'string') ? document.querySelector(panelSelector) : panelSelector;
+    if (!btn || !panel) return;
+    btn.addEventListener('click', function () {
+      var collapsed = panel.classList.toggle('collapsed');
+      btn.setAttribute('aria-expanded', String(!collapsed));
+      var txt = btn.querySelector('.editor-toggle-text');
+      if (txt) txt.textContent = collapsed ? 'Show editor' : 'Hide editor';
+      var chev = btn.querySelector('.chev');
+      if (chev) chev.textContent = collapsed ? '▸' : '▾';
+    });
+  }
+
+  /* Register the app's service worker. Called from each tool's init.
+     Failures are intentionally silent — offline support just doesn't
+     activate, but the page still works. */
+  function registerServiceWorker(path) {
+    if (!('serviceWorker' in navigator)) return;
+    var p = path || './sw.js';
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register(p).catch(function () { /* silent */ });
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
      STYLES (injected once on first script load)
      ═══════════════════════════════════════════════════════════════════════ */
   function injectStyles() {
@@ -976,6 +1250,14 @@
     escapeAttr:              escapeAttr,
     encodeBase64Utf8:        encodeBase64Utf8,
     decodeBase64Utf8:        decodeBase64Utf8,
+    // Card-builder helpers (Schedule + Roster patterns; all three for download)
+    makeSoccerPatterns:          makeSoccerPatterns,
+    buildPatternPicker:          buildPatternPicker,
+    applyPatternToElement:       applyPatternToElement,
+    downloadElementAsPng:        downloadElementAsPng,
+    copyElementAsPngToClipboard: copyElementAsPngToClipboard,
+    setupMobileEditorToggle:     setupMobileEditorToggle,
+    registerServiceWorker:       registerServiceWorker,
     // Constants (for tools that want to display them)
     DEFAULT_OWNER:           DEFAULT_OWNER,
     DEFAULT_REPO:            DEFAULT_REPO,
