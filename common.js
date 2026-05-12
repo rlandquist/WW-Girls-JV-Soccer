@@ -981,45 +981,6 @@
     el.style.backgroundImage = (p.bg === 'none') ? 'none' : p.bg;
     el.style.backgroundSize = p.bgSize;
     if (baseColor) el.style.backgroundColor = baseColor;
-    /* Tag the element so the html2canvas export path can find it
-       inside the cloned document and re-apply the inline background
-       styles. html2canvas 1.4.1's clone step does not reliably carry
-       complex multi-stop CSS gradient values set via element.style
-       across to the cloned subtree, which produced 'patterns missing
-       from downloaded PNG' on all three Card modes after the v11
-       stripe-removal exposed it. The repaintPatternsOnClone hook
-       below uses this marker (plus the element's id) to find the
-       cloned counterpart and copy the live element's inline style
-       byte-for-byte, sidestepping whatever html2canvas drops. */
-    el.setAttribute('data-ww-pattern', patternId);
-  }
-
-  /* html2canvas onclone hook: walks the source subtree for elements
-     tagged by applyPatternToElement and copies each one's live inline
-     style to its cloned counterpart in clonedDoc. Match is by element
-     id, which is reliable because every tool that uses applyPattern-
-     ToElement applies it to an element with a stable id (#card-inner
-     for Schedule / Roster; #card-top / #card-preview-inner /
-     #card-halftime-inner for Card). Elements without an id are
-     skipped — add an id at the callsite if a future tool needs this. */
-  function repaintPatternsOnClone(sourceRoot, clonedDoc) {
-    if (!sourceRoot || !clonedDoc) return;
-    var sources = [];
-    if (sourceRoot.hasAttribute && sourceRoot.hasAttribute('data-ww-pattern')) {
-      sources.push(sourceRoot);
-    }
-    var descendants = (sourceRoot.querySelectorAll)
-      ? sourceRoot.querySelectorAll('[data-ww-pattern]')
-      : [];
-    for (var i = 0; i < descendants.length; i++) sources.push(descendants[i]);
-    for (var j = 0; j < sources.length; j++) {
-      var src = sources[j];
-      if (!src.id) continue;
-      var clone = clonedDoc.getElementById(src.id);
-      if (!clone) continue;
-      var srcStyle = src.getAttribute('style');
-      if (srcStyle) clone.setAttribute('style', srcStyle);
-    }
   }
 
   /* Render a DOM node to a PNG via html2canvas and trigger a download.
@@ -1092,14 +1053,7 @@
     }
 
     return new Promise(function (resolve, reject) {
-      html2canvas(node, {
-        scale: 3, backgroundColor: null, useCORS: true, logging: false,
-        /* Re-apply pattern inline styles inside the cloned document so
-           html2canvas paints them. See repaintPatternsOnClone above for
-           why this is needed. Safe no-op when nothing in the captured
-           subtree was tagged by applyPatternToElement. */
-        onclone: function (clonedDoc) { repaintPatternsOnClone(node, clonedDoc); }
-      })
+      html2canvas(node, { scale: 3, backgroundColor: null, useCORS: true, logging: false })
         .then(function (canvas) {
           document.body.classList.remove('exporting');
           if (afterFn) { try { afterFn(); } catch (e) {} }
@@ -1177,11 +1131,7 @@
     }
 
     return new Promise(function (resolve, reject) {
-      html2canvas(node, {
-        scale: 3, backgroundColor: null, useCORS: true, logging: false,
-        /* Same pattern-repaint hook as downloadElementAsPng above. */
-        onclone: function (clonedDoc) { repaintPatternsOnClone(node, clonedDoc); }
-      })
+      html2canvas(node, { scale: 3, backgroundColor: null, useCORS: true, logging: false })
         .then(function (canvas) {
           document.body.classList.remove('exporting');
           if (afterFn) { try { afterFn(); } catch (e) {} }
