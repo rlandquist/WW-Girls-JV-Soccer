@@ -48,13 +48,21 @@
 html, body {
   /* font-family + size + smoothing + horizontal-scroll guard are
      Goals-specific (the long-form prose / form layout reads better
-     in a system stack than the Card/Schedule/Roster Arial). */
+     in a system stack than the Card/Schedule/Roster Arial).
+     overflow-x:clip (not :hidden) is intentional — :hidden would
+     turn html/body into a scroll container, which silently breaks
+     position:sticky on .app-header (shared.css declares the header
+     sticky; with :hidden the browser sticks it to body's scroll
+     viewport instead of the page's, so it doesn't follow page
+     scroll). :clip blocks horizontal overflow visually without
+     establishing a scroll container, so the sticky header keeps
+     working. Chrome 90+ / Firefox 81+ / Safari 16+. */
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ─── App header ───────────────────────────────────────────── */

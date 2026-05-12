@@ -22,6 +22,28 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
+ * v14 (May 2026): Two unrelated sticky-related fixes shipped together.
+ * (1) Schedule and Roster preview panes now stick just below the
+ * app-header on desktop, so vertical page scroll no longer slides
+ * the card under the navy header bar or under the fixed photo-credit
+ * pill at the bottom. Matches the Card tool's existing pattern:
+ * position: sticky + top: calc(var(--app-header-h, 52px) + 12px) +
+ * align-self: flex-start on .card-container. shared.css's
+ * (max-width: 900px) media query already forces position: static
+ * !important on .card-container, so the mobile column-stacked layout
+ * is unaffected. (2) Goals page's app-header was not actually
+ * sticking despite shared.css declaring it position:sticky. Root
+ * cause was Goals' own `html, body { overflow-x: hidden }` rule —
+ * overflow:hidden on an ancestor turns that ancestor into the sticky
+ * element's scroll container, so the header was sticking to body's
+ * scroll viewport (which never scrolls) instead of the page viewport.
+ * Swapped to overflow-x:clip, which provides the same horizontal-
+ * overflow guard without establishing a scroll container. Chrome 90+
+ * / Firefox 81+ / Safari 16+; the public site is well clear of those
+ * floors. No common.js or shared.css changes — only the three tool
+ * HTMLs (Schedule, Roster, Goals). Bumped so v13-cached devices
+ * evict and pick up the updated tool HTMLs on next visit.
+ *
  * v13 (May 2026): Fix patterns missing from downloaded PNGs on the
  * Card, Schedule, and Roster tools. Only the streaks pattern (a plain
  * linear-gradient) was actually surviving the html2canvas export;
@@ -165,7 +187,7 @@
  * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v13';
+const CACHE_VERSION    = 'v14';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 

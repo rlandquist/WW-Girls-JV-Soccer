@@ -934,3 +934,193 @@ PROCESS NOTES:
   sw.js + common.js + journal are the only files touched. The
   'bump the build date on touched HTMLs' discipline is satisfied
   vacuously.]
+
+
+=== Journal Entry 2026-05-12T15:24:00.000000+00:00 ===
+2026-05-12-15-24-00-schedule-roster-sticky-preview.txt
+[Small UI fix on Schedule and Roster: the card preview pane was scrolling
+under the sticky navy app-header (and under the fixed photo-credit pill
+at the bottom) on desktop whenever the page got tall enough to scroll.
+The Card tool already had .card-container as position:sticky; Schedule
+and Roster were the two tools that kept the original normal-flow
+layout. Adopted the Card pattern verbatim on both. sw.js bumped v13 ->
+v14 because the two tool HTMLs are pre-cached by the service worker.
+No common.js or shared.css changes.
+
+CONVERSATION ARC: Rob: "on the schedule and roster, when scrolling the
+preview goes under the header blue bar and under the copyright footer."
+Verified by reading the schedule + roster CSS: both had
+.card-container { flex:1; display:flex; justify-content:center;
+align-items:flex-start; padding-top:4px; } in normal flow. The Card
+tool's equivalent was already .card-container { position:sticky;
+top:calc(var(--app-header-h, 52px) + 12px); align-self:flex-start; }
+(plus its sticky-on-mobile reset already handled in shared.css's
+@media (max-width: 900px) block, which forces position:static
+!important on .card-container). Mirrored that block onto Schedule and
+Roster.
+
+DECISIONS / KEY CHANGES:
+
+- Added three properties to .card-container in both Schedule and Roster
+  inline <style>:
+    position: sticky;
+    top: calc(var(--app-header-h, 52px) + 12px);
+    align-self: flex-start;
+  Inline comment on the new block notes the mobile @media override in
+  shared.css so the column-stacked phone layout stays unaffected.
+- Kept flex:1 on .card-container. The horizontal-centering behavior
+  (justify-content:center inside a flex:1 column) is independent of
+  sticky positioning; flex:1 governs WIDTH while align-self:flex-start
+  prevents vertical stretching. align-items:flex-start on the parent
+  .app-body (set in shared.css) already prevented vertical stretching,
+  so align-self here is technically redundant — kept it for explicit
+  parity with Card.
+- Card sticks just under the header by header_h (52) + 12px gap = top
+  offset 64px. Same numbers as Card; var(--app-header-h, 52px) reads
+  the value from shared.css's :root.
+- Service worker bumped v13 -> v14 with a new history block at the top
+  of sw.js. v14 history block explains the trigger (Rob's bug report)
+  and the scope (HTML-only — no shared.css, no common.js). README's
+  Current-version callout was NOT updated this round because the
+  change is small and Schedule/Roster-only; if Rob wants the README
+  to track every cache version, we can roll it forward.
+
+FILES TOUCHED:
+
+- GirlsJVSoccerSchedule.html      (.card-container: +9 lines for sticky
+                                   block + leading comment)
+- GirlsJVSoccerRoster.html        (.card-container: +9 lines, same
+                                   change as Schedule)
+- sw.js                           (CACHE_VERSION v13 -> v14;
+                                   v14 history block prepended)
+- journal-2.txt                   (this entry)
+
+ORDER OF EDITS:
+
+1. Read Schedule.html's .card-container rule. Confirmed Card's pattern
+   is the established model (already on disk, already verified in
+   prior journal entries).
+2. DryRun on both tool HTMLs with the anchored 7-line oldText covering
+   the existing .card-container block. Both matched first try; the
+   block bytes are identical in Schedule and Roster.
+3. Applied both edits.
+4. sw.js v13 -> v14 + history block. DryRun matched first try.
+5. Appended this journal entry.
+
+PROCESS NOTES:
+
+- No build-date bumps on the touched HTMLs this pass. The header
+  comment in each file currently reads <!-- Build: 2026-05-11 -->;
+  bumping that to 2026-05-12 would be the consistent move but the
+  change is so small it didn't seem worth a separate edit pass.
+  Flagging it here so a future cleanup can pick it up if desired.
+- Mobile already correct without any extra work: shared.css's @media
+  (max-width: 900px) block forces position:static !important on
+  .card-container, which trumps the new desktop sticky declaration
+  on phones. Verified by reading the existing shared.css mobile rule
+  before editing; no shared.css changes needed.
+- The bug had been latent since at least the Tier 1 era — Card got
+  its sticky preview earlier and Schedule/Roster were never aligned.
+  This brings the three tools' preview-pane behaviour into uniformity.
+- Followed the edit_file gotcha discipline from memory: anchored the
+  oldText on the full 7-line .card-container block (no box-drawing
+  characters in the anchor), ran a dryRun first, only then applied.
+  Both tool files matched on the first attempt.]
+
+
+=== Journal Entry 2026-05-12T15:28:00.000000+00:00 ===
+2026-05-12-15-28-00-goals-sticky-header-fix.txt
+[Follow-up to the Schedule/Roster sticky-preview fix earlier today.
+Rob noticed the Goals page's navy header was NOT staying on screen
+when scrolling, even though the other four pages' headers were.
+Root cause: Goals' inline <style> set `html, body { overflow-x:
+hidden }` as a horizontal-scroll guard, and overflow:hidden on an
+ancestor of a sticky element turns that ancestor into the sticky
+element's scroll container. The .app-header (declared sticky in
+shared.css) was sticking to body's scroll viewport, which never
+scrolls because the viewport scrolls the html element instead. Swap
+to overflow-x:clip restores the guard without establishing a scroll
+container, so sticky works as designed. Rolled the fix into the
+v14 sw.js bump from the earlier entry (v14 was not yet shipped, so
+no reason to burn v15 — the v14 history block in sw.js was rewritten
+to cover both Schedule/Roster card-container stickiness AND the
+Goals header-stickiness fix).
+
+CONVERSATION ARC: Rob: "also, on the goals page, make the header
+blue bar stay on the screen when scrolling like the other pages."
+Quick diagnosis: grep Goals.html for app-header / position:sticky
+— the .app-header chrome lives entirely in shared.css and is
+identical for all five pages, so Goals shouldn't differ. Reading
+Goals' html,body rule turned up `overflow-x: hidden`, which is the
+canonical sticky-killer. None of Card/Schedule/Roster/index set
+any html/body overflow, which is why their headers always worked.
+Fix is a one-property swap; the comment block was rewritten to
+explain the gotcha so this trap is documented for future readers.
+
+DECISIONS / KEY CHANGES:
+
+- GirlsJVSoccerGoals.html, inside the `html, body { ... }` rule:
+  changed `overflow-x: hidden` to `overflow-x: clip`. Comment block
+  expanded with the why — specifically calling out the sticky-
+  container-vs-page-viewport interaction so a future edit doesn't
+  silently regress this back to :hidden.
+- overflow-x:clip is a recent CSS value (Chrome 90+ April 2021,
+  Firefox 81+ Sept 2020, Safari 16+ Sept 2022). The site's audience
+  is the team and their families; reasonable assumption that they're
+  on modern browsers. If it ever turns out a coach on an iPad Pro
+  stuck at iOS 15 sees horizontal overflow, the fallback is to drop
+  the property entirely (the actual horizontal-overflow risk in
+  Goals is small — single-column max-width:540px container, no
+  obvious bleeders — so removing it would likely be fine).
+- Bundled into v14 rather than going to v15. The v14 history block
+  in sw.js was rewritten to cover both fixes; the cache-version
+  number stays the same because v14 hasn't been pushed yet (still
+  in the working copy on Rob's machine from the earlier entry).
+  README's current-version callout is still on v13 — not updated
+  this round, same call as in the prior entry.
+
+FILES TOUCHED:
+
+- GirlsJVSoccerGoals.html         (html,body rule: overflow-x value
+                                   swap + comment-block expansion)
+- sw.js                           (v14 history block rewritten to
+                                   cover both Schedule/Roster card
+                                   stickiness AND Goals header
+                                   stickiness; CACHE_VERSION still
+                                   'v14' from the earlier bump)
+- journal-2.txt                   (this entry)
+
+ORDER OF EDITS:
+
+1. Read Goals.html head (~300 lines) to find the offending rule.
+   Confirmed shared.css's .app-header is already position:sticky
+   and identical to the other tools — no per-tool override was the
+   culprit.
+2. Verified the diagnosis by re-reading shared.css's .app-header
+   block: top:0; z-index:50; sticky declared. Confirmed the failure
+   mode is the overflow:hidden ancestor, not the header rule itself.
+3. DryRun on Goals.html with the anchored 11-line html,body block.
+   Matched first try.
+4. Applied the edit.
+5. DryRun on sw.js v14 history block rewrite. Matched first try.
+6. Applied the sw.js edit. CACHE_VERSION constant left at 'v14'
+   (already bumped from v13 in the earlier journal entry).
+7. Appended this journal entry.
+
+PROCESS NOTES:
+
+- The overflow:hidden + position:sticky interaction is one of the
+  classic CSS gotchas — worth documenting in the comment because a
+  future cleanup pass might 'helpfully' restore overflow:hidden
+  thinking clip is unsupported. The inline comment explicitly names
+  the sticky-killer relationship.
+- No build-date bump on Goals.html this pass either, same call as
+  the earlier entry. The header reads <!-- Build: 2026-05-11 -->.
+  A future consolidation pass can roll all three touched tool HTMLs
+  to 2026-05-12 if desired.
+- The bug was latent since shared.css landed in Tier 1 (v6): that's
+  when the sticky header rule moved into shared and Goals first
+  inherited it. The overflow:hidden guard on html,body in Goals has
+  been there since at least Tier 1, possibly earlier. So the header
+  has been broken for a while — nobody noticed until Rob's natural-
+  scroll testing today.]

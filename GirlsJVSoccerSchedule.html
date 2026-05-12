@@ -328,6 +328,14 @@ select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
   justify-content: center;
   align-items: flex-start;
   padding-top: 4px;
+  /* Sticky preview — anchors the card just below the sticky app-header so
+     vertical page scroll doesn't slide it under the navy bar (or under the
+     fixed photo-credit pill at the bottom). Mirrors the Card tool. The
+     shared.css mobile @media block forces position:static!important here
+     so the column-stacked phone layout is unaffected. */
+  position: sticky;
+  top: calc(var(--app-header-h, 52px) + 12px);
+  align-self: flex-start;
 }
 .card-wrapper { position: relative; }
 
