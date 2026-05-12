@@ -882,29 +882,26 @@ ORDER OF EDITS:
 4. README.md: example bump + Current-version rewrite.
 5. journal-2.txt: this entry.
 
-VERIFICATION (NOT YET DONE):
+VERIFICATION (CONFIRMED 2026-05-12):
 
-Fix is on disk but NOT verified end-to-end. Rob to verify by:
-  1. Hard-reload any of the three tools (or wait for sw.js v13 to
-     evict the v11/v12 cache on next visit).
-  2. Cycle through every one of the 9 patterns on Card (Preview,
-     Halftime, Final modes), Schedule, and Roster.
-  3. For each pattern, confirm BOTH the on-screen preview AND the
-     downloaded PNG show the pattern. The on-screen and PNG should
-     look visually identical (modulo minor antialiasing differences
-     on the canvas-rendered tiles).
-  4. Same check for Copy-to-clipboard on Card.
-  5. Spot-check the swatch picker grid in each mode — each swatch
-     should preview the pattern correctly, especially in the
-     Preview-mode (light bg) picker where the boosted-alpha neutrals
-     kick in.
+Rob verified end-to-end after the v13 push: patterns now render in
+the downloaded PNG on the Card (all three modes), Schedule, and
+Roster tools. Single-line confirmation: "that works." No follow-up
+adjustments required; the canvas-tile approach landed clean on the
+first try.
 
-If any pattern still doesn't appear in the PNG: most likely the
-canvas toDataURL() failed silently on that pattern (unlikely — the
-drawings are simple). Check the browser console for canvas errors.
-If any pattern looks visually wrong but is present in the PNG:
-likely a math error in the tile dimensions — each tile-renderer
-doc-comment cites the perpendicular spacing it's targeting.
+Future-debug hints (kept in case a later regression resurfaces in
+this area):
+  - If a pattern stops appearing in the PNG: most likely the canvas
+    toDataURL() failed silently on that pattern (the drawings are
+    simple, so this would be unusual). Check the browser console
+    for canvas errors.
+  - If a pattern looks visually wrong but IS present in the PNG: a
+    math error in the tile dimensions is the suspect — each tile-
+    renderer doc-comment in makeSoccerPatterns cites the
+    perpendicular spacing it's targeting and the rationale for the
+    tile dims, so reading those is the fast path back to the
+    expected geometry.
 
 PROCESS NOTES:
 
