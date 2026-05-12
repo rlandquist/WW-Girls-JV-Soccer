@@ -22,6 +22,25 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
+ * v12 (May 2026): Fix patterns missing from downloaded PNGs on all
+ * three Card modes (Preview, Halftime, Final). The Tier 2 pattern
+ * rework moved card backgrounds from a pre-rendered <canvas> overlay
+ * to inline CSS gradients set on the card element via
+ * WWCommon.applyPatternToElement. html2canvas 1.4.1's clone step
+ * does not reliably carry complex multi-stop gradient values across
+ * to its cloned subtree, so the captured PNG ended up showing the
+ * base colour but none of the streaks / grid / halftone / etc.
+ * overlay. Fix is centralised in common.js: applyPatternToElement
+ * now tags the element with a data-ww-pattern marker, and the two
+ * export helpers (downloadElementAsPng + copyElementAsPngToClipboard)
+ * pass html2canvas an onclone hook that finds the tagged element in
+ * the cloned document by id and re-copies the live inline style
+ * byte-for-byte. Schedule and Roster share the same export path and
+ * the same applyPatternToElement, so they pick up the fix for free.
+ * Card.html / Schedule.html / Roster.html themselves are unchanged.
+ * Bumped so v11-cached devices evict and pick up the patched
+ * common.js on next visit.
+ *
  * v11 (May 2026): Removed decorative diagonal stripes from the
  * Preview and Halftime cards — both the upper-right .card-stripe
  * pair on each card body and the upper-left .gametime-stripe /
@@ -146,7 +165,7 @@
  * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v11';
+const CACHE_VERSION    = 'v12';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 
