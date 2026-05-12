@@ -22,27 +22,37 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
- * v14 (May 2026): Two unrelated sticky-related fixes shipped together.
+ * v14 (May 2026): Three related stickiness fixes shipped together.
  * (1) Schedule and Roster preview panes now stick just below the
  * app-header on desktop, so vertical page scroll no longer slides
- * the card under the navy header bar or under the fixed photo-credit
- * pill at the bottom. Matches the Card tool's existing pattern:
- * position: sticky + top: calc(var(--app-header-h, 52px) + 12px) +
- * align-self: flex-start on .card-container. shared.css's
- * (max-width: 900px) media query already forces position: static
- * !important on .card-container, so the mobile column-stacked layout
- * is unaffected. (2) Goals page's app-header was not actually
- * sticking despite shared.css declaring it position:sticky. Root
- * cause was Goals' own `html, body { overflow-x: hidden }` rule —
- * overflow:hidden on an ancestor turns that ancestor into the sticky
- * element's scroll container, so the header was sticking to body's
- * scroll viewport (which never scrolls) instead of the page viewport.
- * Swapped to overflow-x:clip, which provides the same horizontal-
- * overflow guard without establishing a scroll container. Chrome 90+
- * / Firefox 81+ / Safari 16+; the public site is well clear of those
- * floors. No common.js or shared.css changes — only the three tool
- * HTMLs (Schedule, Roster, Goals). Bumped so v13-cached devices
- * evict and pick up the updated tool HTMLs on next visit.
+ * the card under the navy header bar. Matches the Card tool's
+ * existing pattern: position: sticky + top: calc(var(--app-header-h,
+ * 52px) + 12px) + align-self: flex-start on .card-container.
+ * shared.css's (max-width: 900px) media query already forces
+ * position: static !important on .card-container, so the mobile
+ * column-stacked layout is unaffected. (2) The sticky preview from
+ * fix #1 was now colliding with shared.css's fixed-position
+ * .photo-credit pill at the bottom of the viewport — a tall card's
+ * bottom rows were getting permanently obscured by the credit. Both
+ * tools now override .photo-credit to position:static + margin auto
+ * + width:max-content so the pill sits in document flow at the end
+ * of body (same model Goals and the shared mobile @media already
+ * use). Body's flex column layout puts the pill below .app-body;
+ * with .app-body { flex:1 } stretching to fill, the pill ends up at
+ * the bottom of viewport when content fits, and at the end of page
+ * when the card pushes body taller. (3) Goals page's app-header was
+ * not actually sticking despite shared.css declaring it
+ * position:sticky. Root cause was Goals' own `html, body {
+ * overflow-x: hidden }` rule — overflow:hidden on an ancestor turns
+ * that ancestor into the sticky element's scroll container, so the
+ * header was sticking to body's scroll viewport (which never scrolls)
+ * instead of the page viewport. Swapped to overflow-x:clip, which
+ * provides the same horizontal-overflow guard without establishing
+ * a scroll container. Chrome 90+ / Firefox 81+ / Safari 16+; the
+ * public site is well clear of those floors. No common.js or
+ * shared.css changes — only the three tool HTMLs (Schedule, Roster,
+ * Goals). Bumped so v13-cached devices evict and pick up the updated
+ * tool HTMLs on next visit.
  *
  * v13 (May 2026): Fix patterns missing from downloaded PNGs on the
  * Card, Schedule, and Roster tools. Only the streaks pattern (a plain

@@ -1124,3 +1124,138 @@ PROCESS NOTES:
   been there since at least Tier 1, possibly earlier. So the header
   has been broken for a while — nobody noticed until Rob's natural-
   scroll testing today.]
+
+
+=== Journal Entry 2026-05-12T15:45:00.000000+00:00 ===
+2026-05-12-15-45-00-schedule-roster-photo-credit-inflow.txt
+[Second follow-up to the v14 work. The earlier sticky-preview fix on
+Schedule and Roster (15:24 entry) surfaced a second issue Rob caught
+on a longer card: the fixed-position .photo-credit pill at the bottom
+of the viewport was now sitting on top of the sticky preview's bottom
+edge. Pre-fix, both moved with page scroll, so the collision was
+transient. Post-fix, the preview is anchored at viewport top and the
+pill is anchored at viewport bottom, so on tall cards the bottom rows
+are permanently obscured. Resolved by overriding .photo-credit to
+position:static + margin:auto + width:max-content on both tools,
+dropping the pill into document flow at the end of body. Same model
+Goals (already in this state via its own override) and the shared.css
+mobile @media block already use. Rolled into the still-local v14
+bump; v14 history block in sw.js was rewritten again to describe all
+three fixes (preview sticky on Schedule/Roster, photo-credit in-flow
+on Schedule/Roster, Goals overflow-x guard swap). No common.js or
+shared.css changes — only the three tool HTMLs (Schedule, Roster,
+Goals) and sw.js.
+
+CONVERSATION ARC: Rob: "the roster and schedule issue with the header
+is fixed, but the copyright footer is now always on top of the
+preview." Confirmed the geometry: with .card-container sticky at
+top:calc(var(--app-header-h, 52px) + 12px) and .photo-credit at
+position:fixed bottom:20px (shared.css default), a card whose height
+exceeds (viewport - header - 12 - photo-credit_h - 20) has its bottom
+rows under the pill. Three options considered:
+
+  A) Raise card-container z-index above .photo-credit so the card
+     paints over the pill when they collide. Downside: hides the
+     photo credit entirely on tall cards.
+  B) Cap .card-container with max-height + overflow:auto so the card
+     never extends into the pill's area. Downside: introduces a
+     scrollbar inside the preview, clips the box-shadow on the card.
+  C) Drop .photo-credit out of fixed positioning into document flow
+     at the end of body. With body's flex-column layout, the pill
+     ends up below .app-body — visible at viewport bottom when
+     content fits, at the end of page when the card pushes body
+     taller. Same approach already used by Goals (its own override)
+     and shared.css's mobile @media block.
+
+Went with option C because it (a) preserves photo-credit visibility,
+(b) doesn't introduce a nested scrollbar or clip the card's shadow,
+and (c) reuses an existing pattern already documented in two places.
+
+DECISIONS / KEY CHANGES:
+
+- Schedule and Roster inline <style>, at the spot where the comment
+  previously just read `.photo-credit chrome lives in shared.css.`,
+  added a positioning override block:
+      .photo-credit {
+        position: static;
+        transform: none;
+        margin: 8px auto 16px;
+        width: max-content;
+        max-width: calc(100% - 16px);
+      }
+  margin:8px auto 16px sets the top/bottom spacing and lets the
+  flex-item auto margins centre the pill horizontally in body's
+  column. width:max-content keeps the pill snug; max-width caps it
+  on narrow viewports.
+- Inline comment expanded from the one-liner to ~12 lines explaining
+  why the override exists (the collision with the now-sticky preview)
+  and the body-flex centring mechanic. The verbose comment is worth
+  the bytes; future-me would not have inferred this from the rule
+  alone.
+- Comment in shared.css's .photo-credit block was NOT changed. That
+  block still documents the fixed-position default; Card and index
+  still use it. The per-tool override pattern (Goals already had
+  one; Schedule and Roster now do too) is described in the override's
+  inline comment, not in shared.css.
+- sw.js v14 history block rewritten a second time today to cover all
+  three fixes (preview sticky, photo-credit in-flow, Goals overflow
+  guard). CACHE_VERSION still 'v14' — v14 has not been committed yet,
+  so we're free to keep iterating under that label.
+- README current-version callout still on v13 — not updated. Same
+  call as in the two earlier entries today.
+
+FILES TOUCHED:
+
+- GirlsJVSoccerSchedule.html      (.photo-credit override block:
+                                   ~18 lines added, replacing the
+                                   one-line `chrome lives in shared`
+                                   comment)
+- GirlsJVSoccerRoster.html        (same change as Schedule)
+- sw.js                           (v14 history block rewritten to
+                                   list three fixes instead of two)
+- journal-2.txt                   (this entry)
+
+ORDER OF EDITS:
+
+1. Read Goals's existing .photo-credit override (lines ~905-922) to
+   confirm the pattern: position:static + transform:none + margin
+   auto + width:max-content + max-width. Verified it's the
+   established model in this repo.
+2. DryRun with an oldText anchored on the decorated comment lines
+   ABOVE and BELOW the `.photo-credit chrome lives in shared.css.`
+   marker. FAILED on both Schedule and Roster — box-drawing
+   characters did not byte-match. Classic edit_file gotcha.
+3. Re-anchored oldText on the one-line `.photo-credit chrome lives
+   in shared.css.` comment only (no box-drawing chars). DryRun
+   matched both tool files first try.
+4. Applied the edits.
+5. Rewrote sw.js v14 history block.
+6. Appended this journal entry.
+
+PROCESS NOTES:
+
+- Confirmed the edit_file box-drawing-character gotcha memory is
+  still load-bearing. The decorated `/* ═══ CARD ═══ */` line
+  above and below the photo-credit comment did NOT match byte-exact
+  on the first attempt — the same trap that bit Card.html at line
+  573 in earlier sessions. Re-anchoring on the plain ASCII line
+  worked first try. Memory entry stays valid.
+- All three fixes shipped under the same v14 cache bump because v14
+  has not been pushed yet — the cache-version sequence is still
+  ours to spend until Rob runs the git commit. If Rob had already
+  committed and pushed v14 between turns, this would have needed
+  to go to v15. Worth checking .git/COMMIT_EDITMSG and the reflog
+  before assuming we can keep iterating under the same version.
+- The geometry of the collision: .card-container sticky top is
+  header_h(52) + 12 = 64px from viewport top. .photo-credit at
+  fixed bottom:20 with ~76px height occupies viewport y =
+  (viewport_h - 96) to (viewport_h - 20). For a card of height H,
+  card bottom is at viewport y = 64+H. Collision when 64+H >
+  viewport_h - 96, i.e. H > viewport_h - 160. On a typical 800px
+  desktop, any card taller than 640px collides. Schedule with 6+
+  games and Roster with 12+ players both hit that threshold easily.
+- option-B alternative (cap card-container max-height + overflow:
+  auto) was the second-best option — keeps the photo-credit fixed,
+  contains the preview inside its allocated space. Worth
+  remembering if option C turns out to look bad in practice. The
+  cost is a nested scroll-bar and a clipped card shadow.]

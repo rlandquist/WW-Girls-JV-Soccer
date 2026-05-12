@@ -350,7 +350,25 @@ input[type="number"] { padding-right: 4px; }
 .sync-btn.primary { background: #1e40af; color: #fff; border-color: #1e40af; }
 .sync-btn.primary:hover { background: #2b50c0; }
 
-/* .photo-credit chrome lives in shared.css. */
+/* Photo-credit chrome (background, padding, logo size, text colours)
+   lives in shared.css. Roster overrides the POSITIONING only:
+   shared.css's default puts the pill at position:fixed bottom:20px,
+   which now sits on top of the sticky card preview — with the
+   preview pinned just below the header, the bottom of a tall card
+   collides with the fixed pill. Drop the pill into document flow at
+   the end of body instead. Body is display:flex; flex-direction:
+   column (set in shared.css), so margin:auto on the horizontal axis
+   centres the pill across the viewport. width:max-content keeps the
+   pill snug to its contents instead of stretching to the full body
+   width (the default for flex children with align-items:stretch).
+   Mirrors what Goals and the shared mobile @media already do. */
+.photo-credit {
+  position: static;
+  transform: none;
+  margin: 8px auto 16px;
+  width: max-content;
+  max-width: calc(100% - 16px);
+}
 
 /* ═══════════════════════════════════════════════════════════════ */
 /* CARD                                                             */
