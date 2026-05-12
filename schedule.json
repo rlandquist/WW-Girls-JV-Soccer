@@ -108,9 +108,9 @@
       "date": "2026-05-12",
       "opponent": "Muskego",
       "location": "away",
-      "status": "scheduled",
-      "scoreUs": null,
-      "scoreThem": null,
+      "status": "final",
+      "scoreUs": 1,
+      "scoreThem": 8,
       "time": "4:30 PM"
     },
     {
