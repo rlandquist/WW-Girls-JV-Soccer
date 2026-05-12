@@ -98,59 +98,59 @@
     "2026-05-11|catholic memorial": [
       {
         "id": "go_mp1q3194xp76",
-        "minute": 3,
-        "half": 1,
         "kind": "roster",
         "playerId": "p_modcpq9psnf1",
-        "customName": ""
+        "customName": "",
+        "minute": 3,
+        "half": 1
       },
       {
         "id": "go_mp1q6lekcbs4",
-        "minute": 6,
-        "half": 1,
         "kind": "roster",
         "playerId": "p_modckd8lmlbz",
-        "customName": ""
+        "customName": "",
+        "minute": 6,
+        "half": 1
       },
       {
         "id": "go_mp1qgt7pp0t3",
+        "kind": "roster",
+        "playerId": "p_modctjj4r067",
+        "customName": "",
         "minute": 14,
-        "half": 1,
-        "kind": "unknown",
-        "playerId": "",
-        "customName": ""
+        "half": 1
       },
       {
         "id": "go_mp1qlpab0t5d",
-        "minute": 18,
-        "half": 1,
         "kind": "roster",
         "playerId": "p_modbspdh4xpd",
-        "customName": ""
+        "customName": "",
+        "minute": 18,
+        "half": 1
       },
       {
         "id": "go_mp1s80up6snr",
-        "minute": 52,
-        "half": 2,
         "kind": "roster",
         "playerId": "p_modcfhv68mqy",
-        "customName": ""
+        "customName": "",
+        "minute": 52,
+        "half": 2
       },
       {
         "id": "go_mp1sow7l4j1l",
-        "minute": 65,
-        "half": 2,
         "kind": "roster",
         "playerId": "p_modcf605xt7x",
-        "customName": ""
+        "customName": "",
+        "minute": 65,
+        "half": 2
       },
       {
         "id": "go_mp1t01yh6uq2",
-        "minute": 73,
-        "half": 2,
         "kind": "roster",
         "playerId": "p_modcf605xt7x",
-        "customName": ""
+        "customName": "",
+        "minute": 73,
+        "half": 2
       }
     ]
   }
