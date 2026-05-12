@@ -22,6 +22,25 @@
  * activate handler deletes any cache that doesn't match the current
  * version, so old shells get evicted on the next page load.
  *
+ * v13 (May 2026): Fix patterns missing from downloaded PNGs on the
+ * Card, Schedule, and Roster tools. Only the streaks pattern (a plain
+ * linear-gradient) was actually surviving the html2canvas export;
+ * the other 8 patterns in makeSoccerPatterns used repeating-linear-
+ * gradient (carbon, grid, slash, diamonds), radial-gradient (halftone,
+ * noise), or repeating-radial-gradient (pulse) — all of which
+ * html2canvas 1.4.1 silently drops, leaving downloaded PNGs with the
+ * base colour but no overlay. Fix: makeSoccerPatterns now pre-renders
+ * those 7 patterns to small canvas tiles inside common.js and returns
+ * a CSS url() pointing at the tile's PNG data URL. html2canvas paints
+ * data-URL background-images natively, so the patterns survive the
+ * export end-to-end. Streaks stays as a plain linear-gradient (it
+ * already worked); clean stays as 'none'. No HTML files were touched
+ * — the change is entirely inside common.js's makeSoccerPatterns.
+ * Skipped v12 because an earlier failed onclone-style fix briefly
+ * shipped under that label and may still be cached on devices that
+ * hit the site in that window; bumping straight to v13 evicts any
+ * stale v11 OR v12 caches in one step.
+ *
  * v11 (May 2026): Removed decorative diagonal stripes from the
  * Preview and Halftime cards — both the upper-right .card-stripe
  * pair on each card body and the upper-left .gametime-stripe /
@@ -146,7 +165,7 @@
  * reload).
  * ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION    = 'v11';
+const CACHE_VERSION    = 'v13';
 const APP_SHELL_CACHE  = `ww-soccer-shell-${CACHE_VERSION}`;
 const LOGO_CACHE       = `ww-soccer-logos-${CACHE_VERSION}`;
 

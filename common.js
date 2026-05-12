@@ -902,32 +902,125 @@
       var v = Math.min(1, a * boost);
       return 'rgba(' + accent + ',' + (Math.round(v * 10000) / 10000) + ')';
     }
+    /* Render a small tile to a canvas and return its PNG data URL
+       wrapped in CSS url() syntax. Used for the 7 patterns that
+       html2canvas 1.4.1 can't render as live CSS gradients
+       (repeating-linear-gradient, radial-gradient, repeating-radial-
+       gradient); streaks stays as a plain linear-gradient because
+       html2canvas paints those reliably. The 9-pattern picker
+       previously rendered patterns as canvas data URLs in the pre-
+       Tier-2 era; this restores that approach but only for the
+       gradient shapes html2canvas drops on the floor, keeping the
+       fast-path CSS-gradient render in place for everything else. */
+    function tileUrl(w, h, draw) {
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      draw(c.getContext('2d'));
+      return 'url("' + c.toDataURL('image/png') + '")';
+    }
+    /* carbon: 6×6 crosshatch — two 1px diagonals running corner to
+       corner so adjacent tiles weave into a clean crosshatch grid. */
+    var carbonBg = tileUrl(6, 6, function (ctx) {
+      ctx.strokeStyle = n(0.06);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, 6); ctx.lineTo(6, 0);
+      ctx.moveTo(0, 0); ctx.lineTo(6, 6);
+      ctx.stroke();
+    });
+    /* grid: 25×25 tile with a 1px horizontal line at y=24.5 and a 1px
+       vertical line at x=24.5 so tiling stitches into a continuous
+       grid. The .5 offsets keep the lines crisp on integer pixel
+       boundaries instead of getting subpixel-blurred. */
+    var gridBg = tileUrl(25, 25, function (ctx) {
+      ctx.strokeStyle = n(0.09);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, 24.5); ctx.lineTo(25, 24.5);
+      ctx.moveTo(24.5, 0); ctx.lineTo(24.5, 25);
+      ctx.stroke();
+    });
+    /* halftone: 11×11 with a single 3-px-diameter filled dot at the
+       tile centre, matching the radial-gradient + 11px bg-size of
+       the original CSS. */
+    var halftoneBg = tileUrl(11, 11, function (ctx) {
+      ctx.fillStyle = n(0.18);
+      ctx.beginPath();
+      ctx.arc(5.5, 5.5, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    /* slash: 14×24 tile, a single 2-px-wide diagonal from bottom-left
+       to top-right. 14×24 approximates -60° lines at 12px perpendicular
+       spacing (12/sin60 ≈ 13.86, 12/cos60 = 24); the 0.14-pixel
+       horizontal mismatch is invisible at this alpha. */
+    var slashBg = tileUrl(14, 24, function (ctx) {
+      ctx.strokeStyle = n(0.07);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 24); ctx.lineTo(14, 0);
+      ctx.stroke();
+    });
+    /* diamonds: 16×16 wide crosshatch — same shape as carbon at a
+       larger tile and lower alpha, approximating the original CSS's
+       wider 11.3-px perpendicular spacing (50% of the 22.6-px gradient
+       line across a 16×16 background-size tile). */
+    var diamondsBg = tileUrl(16, 16, function (ctx) {
+      ctx.strokeStyle = n(0.05);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, 16); ctx.lineTo(16, 0);
+      ctx.moveTo(0, 0); ctx.lineTo(16, 16);
+      ctx.stroke();
+    });
+    /* noise (Scatter): 18×18 tile with one large dot at the centre and
+       four smaller dots at each 9-px sub-tile centre, approximating
+       the original CSS's two stacked radial-gradients at 18-px and
+       9-px tile sizes. */
+    var noiseBg = tileUrl(18, 18, function (ctx) {
+      ctx.fillStyle = n(0.12);
+      ctx.beginPath();
+      ctx.arc(9, 9, 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = n(0.07);
+      var pts = [[4.5, 4.5], [13.5, 4.5], [4.5, 13.5], [13.5, 13.5]];
+      for (var i = 0; i < pts.length; i++) {
+        ctx.beginPath();
+        ctx.arc(pts[i][0], pts[i][1], 1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+    /* pulse: concentric rings emanating from a point just past the
+       bottom-right corner, 16px apart, 2px wide. Rendered at 440×440
+       (Card body size) and stretched to non-square Schedule/Roster
+       cards via background-size:100% 100% — the slight ellipse-vs-
+       circle drift on wide cards mirrors the original CSS's
+       ellipse-at-110%-110% behaviour, so the visual is consistent
+       with the pre-fix render. */
+    var pulseBg = tileUrl(440, 440, function (ctx) {
+      ctx.strokeStyle = 'rgba(' + pulse + ',0.24)';
+      ctx.lineWidth = 2;
+      var cx = 484, cy = 484; /* 110% of 440 */
+      var maxR = Math.sqrt(cx * cx + cy * cy) + 4;
+      for (var r = 15; r < maxR; r += 16) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    });
     return [
+      /* streaks: stays as a plain linear-gradient — html2canvas 1.4.1
+         paints those natively, so no canvas detour is needed. */
       { id: 'streaks', label: 'Streaks',
         bg: 'linear-gradient(145deg,transparent 44%,rgba(' + stripe + ',0.28) 44%,rgba(' + stripe + ',0.28) 53%,transparent 53%),linear-gradient(145deg,transparent 58%,rgba(' + stripe + ',0.16) 58%,rgba(' + stripe + ',0.16) 64%,transparent 64%)',
         bgSize: 'auto' },
-      { id: 'carbon', label: 'Carbon',
-        bg: 'repeating-linear-gradient(45deg,transparent,transparent 5px,' + n(0.06) + ' 5px,' + n(0.06) + ' 6px),repeating-linear-gradient(-45deg,transparent,transparent 5px,' + n(0.06) + ' 5px,' + n(0.06) + ' 6px)',
-        bgSize: 'auto' },
-      { id: 'grid', label: 'Grid',
-        bg: 'repeating-linear-gradient(0deg,transparent,transparent 24px,' + n(0.09) + ' 24px,' + n(0.09) + ' 25px),repeating-linear-gradient(90deg,transparent,transparent 24px,' + n(0.09) + ' 24px,' + n(0.09) + ' 25px)',
-        bgSize: 'auto' },
-      { id: 'halftone', label: 'Halftone',
-        bg: 'radial-gradient(circle,' + n(0.18) + ' 1.5px,transparent 1.5px)',
-        bgSize: '11px 11px' },
-      { id: 'pulse', label: 'Pulse',
-        bg: 'repeating-radial-gradient(ellipse at 110% 110%,transparent,transparent 14px,rgba(' + pulse + ',0.24) 14px,rgba(' + pulse + ',0.24) 16px)',
-        bgSize: 'auto' },
-      { id: 'slash', label: 'Slash',
-        bg: 'repeating-linear-gradient(-60deg,transparent,transparent 10px,' + n(0.07) + ' 10px,' + n(0.07) + ' 12px)',
-        bgSize: 'auto' },
-      { id: 'diamonds', label: 'Diamonds',
-        bg: 'repeating-linear-gradient(45deg,' + n(0.05) + ' 0,' + n(0.05) + ' 1px,transparent 0,transparent 50%),repeating-linear-gradient(135deg,' + n(0.05) + ' 0,' + n(0.05) + ' 1px,transparent 0,transparent 50%)',
-        bgSize: '16px 16px' },
-      { id: 'noise', label: 'Scatter',
-        bg: 'radial-gradient(circle,' + n(0.12) + ' 1px,transparent 1px),radial-gradient(circle,' + n(0.07) + ' 1px,transparent 1px)',
-        bgSize: '18px 18px, 9px 9px' },
-      { id: 'clean', label: 'Clean', bg: 'none', bgSize: 'auto' }
+      { id: 'carbon',   label: 'Carbon',   bg: carbonBg,   bgSize: '6px 6px' },
+      { id: 'grid',     label: 'Grid',     bg: gridBg,     bgSize: '25px 25px' },
+      { id: 'halftone', label: 'Halftone', bg: halftoneBg, bgSize: '11px 11px' },
+      { id: 'pulse',    label: 'Pulse',    bg: pulseBg,    bgSize: '100% 100%' },
+      { id: 'slash',    label: 'Slash',    bg: slashBg,    bgSize: '14px 24px' },
+      { id: 'diamonds', label: 'Diamonds', bg: diamondsBg, bgSize: '16px 16px' },
+      { id: 'noise',    label: 'Scatter',  bg: noiseBg,    bgSize: '18px 18px' },
+      { id: 'clean',    label: 'Clean',    bg: 'none',     bgSize: 'auto' }
     ];
   }
 

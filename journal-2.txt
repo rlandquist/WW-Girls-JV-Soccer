@@ -730,3 +730,210 @@ PROCESS NOTES:
   rewrite (no historical drift to fix this time, since Tier 3 #2 +
   #3 already caught up v8 + v9 + v10 in its own batch). Now v11
   leads with no backlog from prior bumps.]
+
+
+=== Journal Entry 2026-05-12T15:00:00.000000+00:00 ===
+2026-05-12-15-00-00-v13-pattern-png-canvas-tiles-fix.txt
+[Fix patterns missing from downloaded PNGs on the Card, Schedule, and
+Roster tools — only the streaks pattern was actually surviving the
+html2canvas export. Root cause: of the 9 patterns in makeSoccerPatterns,
+only streaks uses a plain linear-gradient (which html2canvas 1.4.1
+paints natively). The other 8 use repeating-linear-gradient (carbon,
+grid, slash, diamonds), radial-gradient (halftone, noise), or
+repeating-radial-gradient (pulse) — all of which html2canvas 1.4.1
+silently drops on the floor during its DOM-to-canvas conversion. Fix:
+makeSoccerPatterns now pre-renders those 7 patterns to small canvas
+tiles inside common.js and returns a CSS url() pointing at the tile's
+PNG data URL. html2canvas paints data-URL background-images natively,
+so the patterns survive the export end-to-end. Schedule and Roster
+pick up the fix for free because they consume the same
+makeSoccerPatterns output. Three files touched: common.js (the
+pattern rewrite), sw.js (v11 -> v13 with v13 history block prepended;
+v12 skipped to bust browsers that briefly cached the failed earlier
+fix), README.md (example bumped + Current-version callout rewritten
+to lead with v13 and walk back through v11 — v12 was never a real
+release).]
+
+CONVERSATION ARC: Rob's first report was 'after the changes to the
+cards, now when downloading the patterns are not included'. The
+immediate hypothesis was that v11 stripe-removal had clipped something
+on the pattern apply path. AskUserQuestion narrowed it to 'patterns
+render on screen but not in PNG, all three Card modes affected',
+which pointed at the html2canvas clone step. First-pass fix shipped
+as a v12 onclone hook that re-copied inline style on the cloned
+element — it solved no real problem (the style WAS already cloned)
+and broke Schedule + Roster export by overwriting the cloned
+element's full style attribute, which html2canvas was relying on for
+layout dimensions. Rob force-pushed the revert, then came back with
+the critical diagnostic: 'for the cards, roster and schedule only
+the streaks pattern is part of the image when downloaded. The rest
+do not appear'. That immediately implicated the gradient TYPE,
+because streaks is the only pattern using plain linear-gradient.
+Rob chose Option B (pre-render to data-URL PNGs) over Option A
+(rewrite all patterns as linear-gradient + bg-size, which would have
+faithfully reproduced the tile-based patterns but only approximated
+halftone/pulse/noise which need radial geometry).
+
+ROOT-CAUSE NOTES:
+
+- html2canvas 1.4.1's CSS-gradient renderer supports linear-gradient
+  (well) but has known gaps with repeating-linear-gradient (drops
+  silently in some configurations), radial-gradient (buggy or skipped
+  depending on shape), and repeating-radial-gradient (similar). The
+  9-pattern library hit all three broken shapes. Streaks is the only
+  outlier because it explicitly uses plain linear-gradient with
+  percentage stops, the one shape html2canvas paints reliably.
+- The bug has existed since the Tier 2 era (when Card's pattern
+  rendering moved from a hidden <canvas> overlay to CSS gradient
+  backgrounds) but was visually masked. Most tool images Rob
+  generated landed on the streaks default. The v11 stripe removal
+  made the on-screen-vs-PNG asymmetry visible because the corner
+  stripes had been carrying part of the visual weight; once they
+  were gone, the flat-background PNG read as obviously broken.
+- The failed v12 onclone fix was based on a wrong root-cause model
+  (style not being cloned). It WOULD have helped if html2canvas was
+  dropping inline style values, but the actual failure mode is that
+  html2canvas reads the gradient string and can't paint certain
+  gradient types. Copying the style attribute byte-for-byte didn't
+  fix that — it just trampled additional inline style html2canvas
+  had attached for its own bookkeeping. Lesson: when fixing a
+  rendering bug, confirm the failing render path is actually missing
+  the data it needs before instrumenting transport plumbing.
+
+WHY OPTION B OVER OPTION A:
+
+Option A would have rewritten each pattern as a plain linear-gradient
++ background-size + background-repeat:repeat. Worked cleanly for
+carbon, grid, slash, diamonds (all tile-able as linear stripes /
+crosshatch). Did NOT work cleanly for halftone, pulse, noise, which
+are fundamentally radial — the only linear-gradient approximation is
+essentially squares or stripes, which would visibly change those
+three swatches. Option B keeps every pattern visually faithful by
+rendering the canvas tile programmatically with the same shapes the
+original CSS produced, then exporting as a PNG that html2canvas
+can paint reliably. Slightly more code (~100 extra lines in common.js)
+but zero visual regressions vs the on-screen render.
+
+WHAT CHANGED IN common.js:
+
+- New internal helper tileUrl(w, h, draw) inside makeSoccerPatterns:
+  creates a hidden <canvas>, runs the caller's draw(ctx) function,
+  returns 'url("data:image/png;base64,...")' wrapped in CSS url()
+  syntax. Not exposed on the WWCommon API surface — internal to the
+  factory.
+- 7 new tile-render functions one per broken pattern:
+  * carbon  (6×6 crosshatch, two corner-to-corner diagonals, 1px wide)
+  * grid    (25×25 tile with 1px lines at x=24.5 and y=24.5)
+  * halftone (11×11 tile with a single 3px-diameter dot)
+  * slash   (14×24 tile with a single 2px diagonal approximating -60°)
+  * diamonds (16×16 wider crosshatch — same shape as carbon, lower alpha)
+  * noise   (18×18 tile with one big dot + four smaller dots at 9-px
+             sub-tile centres, approximating two stacked radial layers)
+  * pulse   (440×440 with concentric rings centred at (484, 484) —
+             110% of 440 — 16px apart, 2px wide; stretched to non-
+             square cards via background-size:100% 100%)
+- The return array reformat: streaks keeps its long literal definition
+  inline; the other 8 entries are now one-line { id, label, bg,
+  bgSize } records pointing at the pre-rendered data URLs.
+- All other helpers (buildPatternPicker, applyPatternToElement,
+  download/copy export) are UNCHANGED. The API surface
+  ({id,label,bg,bgSize} per pattern) is identical — callers see the
+  same shape regardless of whether bg is a gradient string or a
+  data-URL.
+
+VERSIONING NOTES:
+
+- Bumped sw.js v11 -> v13 (skipped v12). The failed onclone fix
+  briefly shipped as v12 and was force-revert-pushed shortly after.
+  Any device that fetched the v12 sw.js in that window has v12 in
+  its cache. Going straight to v13 evicts both v11 and v12 caches
+  in one step. The v12 number is now permanently 'burned' from the
+  cache-version sequence.
+- v13 SW history block at the top of sw.js explains the skip so
+  future readers don't wonder where v12 went. README's Current-
+  version callout does the same in user-facing prose.
+- The git history still shows the v12 commit + its revert. That's
+  fine — the sequence is a clean revert, not a forced rewrite, so
+  anyone reading the log can see what happened and why.
+
+FILES TOUCHED:
+
+- common.js                       (makeSoccerPatterns rewrite —
+                                   added tileUrl helper, 7 canvas
+                                   tile renderers; ~100 lines net
+                                   addition; API unchanged)
+- sw.js                           (v11 -> v13 + v13 history block;
+                                   v12 deliberately skipped)
+- README.md                       (example line v11 -> v13;
+                                   Current-version callout rewritten
+                                   to lead with v13 and continue
+                                   with v11 narrative — v12 was
+                                   never a real release)
+- journal-2.txt                   (this entry)
+
+ORDER OF EDITS:
+
+1. Verified the revert was clean (anchor on the v11-era applyPattern-
+   ToElement body matched first try, confirming no v12 marker /
+   helper / onclone wiring left on disk).
+2. common.js: replaced makeSoccerPatterns body. Single big edit,
+   anchored on the entire function body. DryRun matched first try.
+3. sw.js: v11 -> v13 + v13 history block prepended.
+4. README.md: example bump + Current-version rewrite.
+5. journal-2.txt: this entry.
+
+VERIFICATION (NOT YET DONE):
+
+Fix is on disk but NOT verified end-to-end. Rob to verify by:
+  1. Hard-reload any of the three tools (or wait for sw.js v13 to
+     evict the v11/v12 cache on next visit).
+  2. Cycle through every one of the 9 patterns on Card (Preview,
+     Halftime, Final modes), Schedule, and Roster.
+  3. For each pattern, confirm BOTH the on-screen preview AND the
+     downloaded PNG show the pattern. The on-screen and PNG should
+     look visually identical (modulo minor antialiasing differences
+     on the canvas-rendered tiles).
+  4. Same check for Copy-to-clipboard on Card.
+  5. Spot-check the swatch picker grid in each mode — each swatch
+     should preview the pattern correctly, especially in the
+     Preview-mode (light bg) picker where the boosted-alpha neutrals
+     kick in.
+
+If any pattern still doesn't appear in the PNG: most likely the
+canvas toDataURL() failed silently on that pattern (unlikely — the
+drawings are simple). Check the browser console for canvas errors.
+If any pattern looks visually wrong but is present in the PNG:
+likely a math error in the tile dimensions — each tile-renderer
+doc-comment cites the perpendicular spacing it's targeting.
+
+PROCESS NOTES:
+
+- Two-stage diagnosis. The first stage (which Card modes affected,
+  on-screen vs PNG) narrowed the bug to the html2canvas conversion
+  path. The second stage (which PATTERNS specifically were missing
+  from the PNG) narrowed it further to a gradient-type compatibility
+  problem inside html2canvas. Both stages came from AskUserQuestion-
+  style triangulation — the first via the actual AskUserQuestion
+  tool, the second via Rob's own observation after the failed v12
+  ship. Lesson: stop and re-diagnose when a fix fails, don't iterate
+  the fix on the same root-cause model.
+- Failed v12 attempt is preserved in git history but never made it
+  into the named-release sequence. The 'skip v12' decision on sw.js
+  cache versioning was the right call — a small handful of devices
+  may have cached the broken v12 SW before the revert, and going
+  straight to v13 sidesteps the need to reason about which v12-cached
+  devices are still in the wild.
+- The pre-Tier-2 era code (canvas-rendered patterns) was the right
+  model all along. Tier 2's CSS-gradient migration unlocked a small
+  perf win (no canvas allocation on each apply) but cost us PNG
+  export correctness for 8 of 9 patterns. v13 is a partial revert
+  to the pre-Tier-2 approach — keep the CSS path for streaks (which
+  works), but render the other 7 via canvas + data URL again.
+- Card.html (162 KB), Schedule.html (~64 KB), and Roster.html
+  (~69 KB) were untouched. Pure common.js fix benefits all three
+  tools simultaneously. The 'plumbing lives in common.js' rule from
+  Tier 2 kept the change tightly scoped.
+- No build-date bump on any HTML because none were edited. README +
+  sw.js + common.js + journal are the only files touched. The
+  'bump the build date on touched HTMLs' discipline is satisfied
+  vacuously.]
