@@ -1258,4 +1258,15 @@ PROCESS NOTES:
   auto) was the second-best option — keeps the photo-credit fixed,
   contains the preview inside its allocated space. Worth
   remembering if option C turns out to look bad in practice. The
-  cost is a nested scroll-bar and a clipped card shadow.]
+  cost is a nested scroll-bar and a clipped card shadow.
+
+VERIFICATION (CONFIRMED 2026-05-12T16:00):
+
+Rob verified end-to-end after the v14 push: "it seems to be working
+fine now." Covers all three fixes bundled in v14 — sticky preview
+on Schedule/Roster, in-flow photo-credit on Schedule/Roster, and
+Goals overflow-x guard swap so the shared sticky header actually
+sticks. No follow-up adjustments needed. Option C (photo-credit in
+document flow) is the confirmed-good choice; option B (max-height +
+overflow scroll on .card-container) stays parked unless a future
+regression surfaces.]
