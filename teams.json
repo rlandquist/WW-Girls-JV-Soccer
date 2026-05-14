@@ -85,7 +85,8 @@
     "2026-05-11|catholic memorial": "scorers",
     "2026-05-01|kimberly": "next",
     "2026-05-05|kettle moraine": "scorers",
-    "2026-05-12|muskego": "scorers"
+    "2026-05-12|muskego": "scorers",
+    "2026-05-14|elkhorn": "next"
   },
   "halftimeModeByGame": {
     "2026-05-02|st augustine prep": "msg",
@@ -93,6 +94,7 @@
     "2026-05-11|catholic memorial": "msg",
     "2026-05-01|kimberly": "msg",
     "2026-05-05|kettle moraine": "msg",
-    "2026-05-12|muskego": "msg"
+    "2026-05-12|muskego": "msg",
+    "2026-05-14|elkhorn": "scorers"
   }
 }
