@@ -156,10 +156,20 @@
     "2026-05-12|muskego": [
       {
         "id": "go_mp35ziwt6o0b",
-        "minute": 20,
-        "half": 1,
         "kind": "roster",
         "playerId": "p_modcmjfbf5ef",
+        "customName": "",
+        "minute": 20,
+        "half": 1
+      }
+    ],
+    "2026-05-14|elkhorn": [
+      {
+        "id": "go_mp607et8r5fz",
+        "minute": 2,
+        "half": 1,
+        "kind": "roster",
+        "playerId": "p_modckd8lmlbz",
         "customName": ""
       }
     ]
